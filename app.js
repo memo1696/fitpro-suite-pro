@@ -9971,6 +9971,11 @@ function arrancarAplicacionFitPro() {
     const nombreInput = document.getElementById('auth-input-nombre');
     if (nombreInput) nombreInput.addEventListener('input', limpiarErrorAuth);
 
+    const quickPeso = document.getElementById('quick-log-peso');
+    const quickReps = document.getElementById('quick-log-reps');
+    if (quickPeso) quickPeso.addEventListener('input', actualizarPreview1RMQuickLog);
+    if (quickReps) quickReps.addEventListener('input', actualizarPreview1RMQuickLog);
+
     // 4. Renderizar todas las vistas del sistema con manejo seguro de excepciones
     renderDashboardStats();
     renderClientes();
@@ -10282,9 +10287,14 @@ function renderPortalAtleta(userObj) {
                         <div id="badge-rm-${dIdx}-${eIdx}" style="font-size:12px; color:#38bdf8;">
                           ${rmBadgeText}
                         </div>
-                        <button type="button" class="btn-primary" style="padding:7px 16px; font-size:12.5px; font-weight:800; border-radius:6px; display:inline-flex; align-items:center; gap:6px;" onclick="guardarCargaEjercicioAtleta('${escapeHTML(cliente.nombre)}', ${dIdx}, ${eIdx}, '${escapeHTML(e.nombre || e.ejercicio)}', ${numSets})">
-                          💾 Guardar Cargas
-                        </button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                          <button type="button" class="btn-secondary" style="padding:7px 12px; font-size:12px; font-weight:700; border-radius:6px; border-color:rgba(56,189,248,0.4); color:#38bdf8; display:inline-flex; align-items:center; gap:4px;" onclick="fijarTiempoDescanso(90)">
+                            ⏳ Descanso 90s
+                          </button>
+                          <button type="button" class="btn-primary" style="padding:7px 16px; font-size:12.5px; font-weight:800; border-radius:6px; display:inline-flex; align-items:center; gap:6px;" onclick="guardarCargaEjercicioAtleta('${escapeHTML(cliente.nombre)}', ${dIdx}, ${eIdx}, '${escapeHTML(e.nombre || e.ejercicio)}', ${numSets})">
+                            💾 Guardar Cargas
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -10606,6 +10616,283 @@ function guardarCargaEjercicioAtleta(clienteNombre, dIdx, eIdx, ejercicioNombre,
   }
 }
 
+// ==========================================
+// ⏱️ SPORTS CRONÓMETRO & TEMPORIZADOR DE DESCANSO ENGINE
+// ==========================================
+let stopwatchInterval = null;
+let stopwatchTimeMs = 0;
+let stopwatchRunning = false;
+let stopwatchMode = 'timer'; // 'stopwatch' | 'timer'
+let timerTargetSeconds = 90; // Default rest: 90s
+let timerRemainingSeconds = 90;
+
+function alternarModoStopwatch(modo) {
+  stopwatchMode = modo;
+  detenerStopwatch();
+  
+  const tabTimer = document.getElementById('tab-mode-timer');
+  const tabStopwatch = document.getElementById('tab-mode-stopwatch');
+  const presetsContainer = document.getElementById('stopwatch-presets-container');
+
+  if (tabTimer) tabTimer.classList.toggle('active', modo === 'timer');
+  if (tabStopwatch) tabStopwatch.classList.toggle('active', modo === 'stopwatch');
+  if (presetsContainer) presetsContainer.style.display = modo === 'timer' ? 'flex' : 'none';
+
+  if (modo === 'timer') {
+    timerRemainingSeconds = timerTargetSeconds;
+  } else {
+    stopwatchTimeMs = 0;
+  }
+  actualizarDisplayStopwatch();
+  actualizarBotonesStopwatch(false);
+}
+
+function fijarTiempoDescanso(segundos) {
+  timerTargetSeconds = segundos;
+  timerRemainingSeconds = segundos;
+  stopwatchMode = 'timer';
+  detenerStopwatch();
+
+  const presets = document.querySelectorAll('#stopwatch-presets-container .stopwatch-preset-pill');
+  presets.forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.innerText.includes(`${segundos}s`) || (segundos === 180 && btn.innerText.includes('3 min'))) {
+      btn.classList.add('active');
+    }
+  });
+
+  const tabTimer = document.getElementById('tab-mode-timer');
+  const tabStopwatch = document.getElementById('tab-mode-stopwatch');
+  if (tabTimer) tabTimer.classList.add('active');
+  if (tabStopwatch) tabStopwatch.classList.remove('active');
+
+  actualizarDisplayStopwatch();
+  iniciarStopwatch();
+  showToast(`⏳ Temporizador de descanso fijado en ${segundos} segundos.`, "info", "⏱️ Descanso Iniciado", 3000);
+}
+
+function iniciarStopwatch() {
+  if (stopwatchRunning) return;
+  stopwatchRunning = true;
+
+  stopwatchInterval = setInterval(() => {
+    if (stopwatchMode === 'timer') {
+      timerRemainingSeconds--;
+      if (timerRemainingSeconds <= 0) {
+        timerRemainingSeconds = 0;
+        detenerStopwatch();
+        sonarAlarmaDescanso();
+        showToast("🔔 ¡Tiempo de descanso completado! A por la siguiente serie 💪", "success", "⏱️ ¡Descanso Listo!", 6000);
+      }
+    } else {
+      stopwatchTimeMs += 100;
+    }
+    actualizarDisplayStopwatch();
+  }, stopwatchMode === 'timer' ? 1000 : 100);
+
+  actualizarBotonesStopwatch(true);
+}
+
+function pausarStopwatch() {
+  detenerStopwatch();
+  actualizarBotonesStopwatch(false);
+}
+
+function reiniciarStopwatch() {
+  detenerStopwatch();
+  if (stopwatchMode === 'timer') {
+    timerRemainingSeconds = timerTargetSeconds;
+  } else {
+    stopwatchTimeMs = 0;
+  }
+  actualizarDisplayStopwatch();
+  actualizarBotonesStopwatch(false);
+}
+
+function detenerStopwatch() {
+  stopwatchRunning = false;
+  if (stopwatchInterval) {
+    clearInterval(stopwatchInterval);
+    stopwatchInterval = null;
+  }
+}
+
+function actualizarDisplayStopwatch() {
+  const displayEl = document.getElementById('stopwatch-time-display');
+  const badgeEl = document.getElementById('stopwatch-mode-indicator');
+  if (!displayEl) return;
+
+  if (stopwatchMode === 'timer') {
+    const mins = Math.floor(timerRemainingSeconds / 60);
+    const secs = timerRemainingSeconds % 60;
+    displayEl.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (badgeEl) {
+      badgeEl.innerText = '⏳ Descanso';
+      badgeEl.style.color = '#38bdf8';
+    }
+  } else {
+    const totalSecs = Math.floor(stopwatchTimeMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    const tenths = Math.floor((stopwatchTimeMs % 1000) / 100);
+    displayEl.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`;
+    if (badgeEl) {
+      badgeEl.innerText = '⏱️ Cronómetro';
+      badgeEl.style.color = '#10b981';
+    }
+  }
+}
+
+function actualizarBotonesStopwatch(corriendo) {
+  const btnStart = document.getElementById('btn-stopwatch-start');
+  const btnPause = document.getElementById('btn-stopwatch-pause');
+  if (btnStart) btnStart.style.display = corriendo ? 'none' : 'inline-flex';
+  if (btnPause) btnPause.style.display = corriendo ? 'inline-flex' : 'none';
+}
+
+function sonarAlarmaDescanso() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      const audioCtx = new AudioContext();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.45);
+    }
+
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 350]);
+    }
+  } catch (e) {
+    console.log("Audio notification fallback", e);
+  }
+}
+
+// ==========================================
+// 📱 MOBILE STEPPER & QUICK STRENGTH LOGGER ENGINE
+// ==========================================
+function ajustarValorStepper(inputId, delta, min = 0) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  let val = parseFloat(input.value) || 0;
+  val = Math.max(min, val + delta);
+  input.value = Number.isInteger(val) ? val : val.toFixed(1);
+  
+  if (navigator.vibrate) navigator.vibrate(20);
+  actualizarPreview1RMQuickLog();
+}
+
+function actualizarPreview1RMQuickLog() {
+  const inputPeso = document.getElementById('quick-log-peso');
+  const inputReps = document.getElementById('quick-log-reps');
+  const previewEl = document.getElementById('quick-log-calc-preview');
+  if (!inputPeso || !inputReps || !previewEl) return;
+
+  const peso = parseFloat(inputPeso.value) || 0;
+  const reps = parseInt(inputReps.value) || 0;
+  if (peso > 0 && reps > 0) {
+    const rm = (peso * (1 + reps / 30)).toFixed(1);
+    const vol = Math.round(peso * reps);
+    previewEl.innerHTML = `🏆 1RM Estimado: <strong>${rm} kg</strong> • Vol: <strong>${vol} kg</strong>`;
+  } else {
+    previewEl.innerHTML = `🏆 1RM Estimado: <strong>-- kg</strong>`;
+  }
+}
+
+function procesarRegistroRapidoFuerza(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    const ejInput = document.getElementById('quick-log-ejercicio');
+    const pesoInput = document.getElementById('quick-log-peso');
+    const repsInput = document.getElementById('quick-log-reps');
+    const serieInput = document.getElementById('quick-log-serie');
+
+    const ejercicio = ejInput?.value?.trim() || '';
+    const peso = parseFloat(pesoInput?.value) || 0;
+    const reps = parseInt(repsInput?.value) || 0;
+    const setNum = parseInt(serieInput?.value) || 1;
+
+    if (!ejercicio) {
+      showToast("Por favor escribe el nombre del ejercicio.", "warning", "⚠️ Nombre Requerido");
+      return;
+    }
+    if (peso <= 0 || reps <= 0) {
+      showToast("Por favor ingresa un peso y repeticiones válidos.", "warning", "⚠️ Datos Requeridos");
+      return;
+    }
+
+    const clienteNombre = window.atletaActivoPortal?.nombre || sesionUsuarioActual?.user_metadata?.full_name || "Carlos Mendoza";
+    const rmCalc = parseFloat((peso * (1 + reps / 30)).toFixed(1));
+    const volTotal = Math.round(peso * reps);
+
+    // Buscar si ya hay un registro previo hoy para este ejercicio
+    let regExistente = registrosFuerzaDB.find(r => r.cliente && r.cliente.toLowerCase() === clienteNombre.toLowerCase() && r.ejercicio.toLowerCase() === ejercicio.toLowerCase());
+    
+    if (regExistente) {
+      // Actualizar o agregar serie
+      const idxSerie = regExistente.series.findIndex(s => s.set === setNum);
+      if (idxSerie !== -1) {
+        regExistente.series[idxSerie] = { set: setNum, peso, reps, rpe: 8.5 };
+      } else {
+        regExistente.series.push({ set: setNum, peso, reps, rpe: 8.5 });
+      }
+      regExistente.series.sort((a, b) => a.set - b.set);
+      let maxRm = 0;
+      let sumVol = 0;
+      regExistente.series.forEach(s => {
+        const r = s.peso * (1 + s.reps / 30);
+        if (r > maxRm) maxRm = r;
+        sumVol += (s.peso * s.reps);
+      });
+      regExistente.rmEstimado = parseFloat(maxRm.toFixed(1));
+      regExistente.volumenTotal = Math.round(sumVol);
+      regExistente.fecha = new Date().toISOString().split('T')[0];
+    } else {
+      const nuevo = {
+        id: `fuerza_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        cliente: clienteNombre,
+        ejercicio: ejercicio,
+        fecha: new Date().toISOString().split('T')[0],
+        fechaHora: new Date().toISOString(),
+        series: [{ set: setNum, peso, reps, rpe: 8.5 }],
+        rmEstimado: rmCalc,
+        volumenTotal: volTotal,
+        gymId: gimnasioActivoId
+      };
+      registrosFuerzaDB.unshift(nuevo);
+    }
+
+    persistirDatosUsuarioActual();
+
+    // Sincronizar en vivo si el coach tiene abierta la vista de Analytics
+    if (clienteAnalyticsSeleccionado && clienteAnalyticsSeleccionado.toLowerCase() === clienteNombre.toLowerCase()) {
+      renderAnalyticsAtleta(clienteNombre);
+    }
+
+    showToast(`🎉 ¡Serie ${setNum} de ${peso} kg × ${reps} reps guardada para ${ejercicio}! Enviada al instructor.`, "success", "💪 Carga Registrada", 5000);
+
+    // Auto-avanzar a la siguiente serie en el formulario
+    if (serieInput) {
+      const siguienteSerie = Math.min(5, setNum + 1);
+      serieInput.value = String(siguienteSerie);
+    }
+
+    // Ofrecer inicio de temporizador de descanso
+    fijarTiempoDescanso(90);
+  } catch (err) {
+    console.error("Error al procesar registro rápido de fuerza:", err);
+    showToast("Hubo un error al registrar la carga.", "error", "Error");
+  }
+}
+
 function cerrarBannerPWA() {
   const banner = document.getElementById('pwa-install-banner');
   if (banner) banner.style.display = 'none';
@@ -10618,6 +10905,14 @@ window.cerrarBannerPWA = cerrarBannerPWA;
 window.renderPortalAtleta = renderPortalAtleta;
 window.cambiarPestañaPortalAtleta = cambiarPestañaPortalAtleta;
 window.abrirModalCambiarPasswordManual = abrirModalCambiarPasswordManual;
+window.alternarModoStopwatch = alternarModoStopwatch;
+window.fijarTiempoDescanso = fijarTiempoDescanso;
+window.iniciarStopwatch = iniciarStopwatch;
+window.pausarStopwatch = pausarStopwatch;
+window.reiniciarStopwatch = reiniciarStopwatch;
+window.ajustarValorStepper = ajustarValorStepper;
+window.actualizarPreview1RMQuickLog = actualizarPreview1RMQuickLog;
+window.procesarRegistroRapidoFuerza = procesarRegistroRapidoFuerza;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', arrancarAplicacionFitPro);

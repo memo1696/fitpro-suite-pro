@@ -1444,8 +1444,128 @@
 
       <!-- CONTENIDO 1: RUTINA BIOMECÁNICA DEL ATLETA -->
       <div id="tab-portal-content-rutina">
+        <!-- ⏱️ CRONÓMETRO & TEMPORIZADOR DE DESCANSO PARA ENTRENAMIENTO -->
+        <div class="athlete-stopwatch-container">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:18px;">⏱️</span>
+              <strong style="font-family:var(--font-heading); font-size:15px; color:#fff;">Cronómetro & Descanso</strong>
+              <span class="stopwatch-mode-badge" id="stopwatch-mode-indicator">⏳ Descanso</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="stopwatch-preset-pill active" onclick="alternarModoStopwatch('timer')" id="tab-mode-timer">⏳ Descanso</button>
+              <button type="button" class="stopwatch-preset-pill" onclick="alternarModoStopwatch('stopwatch')" id="tab-mode-stopwatch">⏱️ Cronómetro</button>
+            </div>
+          </div>
+
+          <!-- PANTALLA DIGITAL LED -->
+          <div class="stopwatch-display-wrapper">
+            <span class="stopwatch-digital-time" id="stopwatch-time-display">01:30</span>
+          </div>
+
+          <!-- BOTONES DE CONTROL -->
+          <div class="stopwatch-btn-group">
+            <button type="button" class="stopwatch-btn stopwatch-btn-primary" id="btn-stopwatch-start" onclick="iniciarStopwatch()">
+              ▶️ Iniciar
+            </button>
+            <button type="button" class="stopwatch-btn stopwatch-btn-secondary" id="btn-stopwatch-pause" style="display:none;" onclick="pausarStopwatch()">
+              ⏸️ Pausar
+            </button>
+            <button type="button" class="stopwatch-btn stopwatch-btn-danger" onclick="reiniciarStopwatch()">
+              🔄 Reiniciar
+            </button>
+          </div>
+
+          <!-- ACCESOS DIRECTOS DE DESCANSO -->
+          <div class="stopwatch-presets-grid" id="stopwatch-presets-container">
+            <span style="font-size:11px; color:var(--text-muted); align-self:center; font-weight:700; text-transform:uppercase;">Preajustes:</span>
+            <button type="button" class="stopwatch-preset-pill" onclick="fijarTiempoDescanso(30)">30s</button>
+            <button type="button" class="stopwatch-preset-pill" onclick="fijarTiempoDescanso(60)">60s</button>
+            <button type="button" class="stopwatch-preset-pill active" onclick="fijarTiempoDescanso(90)">90s</button>
+            <button type="button" class="stopwatch-preset-pill" onclick="fijarTiempoDescanso(120)">120s</button>
+            <button type="button" class="stopwatch-preset-pill" onclick="fijarTiempoDescanso(180)">3 min</button>
+          </div>
+        </div>
+
+        <!-- ⚡ REGISTRO RÁPIDO Y DIRECTO DE EJERCICIO & PESO -->
+        <div class="quick-log-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h3 style="margin:0; font-family:var(--font-heading); font-size:16px; color:#fff; font-weight:800; display:flex; align-items:center; gap:8px;">
+                ⚡ Registrar Carga de Fuerza
+              </h3>
+              <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);">
+                Ingresa el ejercicio, peso levantado y repeticiones para enviar el progreso a tu instructor.
+              </p>
+            </div>
+            <span class="badge badge-green" style="font-size:11px;">● Enlace Directo con Coach</span>
+          </div>
+
+          <form id="form-quick-strength-log" onsubmit="procesarRegistroRapidoFuerza(event)">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:14px;">
+              <div>
+                <label for="quick-log-ejercicio" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; display:block;">Nombre del Ejercicio *</label>
+                <input type="text" id="quick-log-ejercicio" list="lista-ejercicios-datalist" class="input-field" placeholder="ej: Press de Banca, Sentadilla..." required style="padding:10px 12px; font-size:13.5px;" />
+                <datalist id="lista-ejercicios-datalist">
+                  <option value="Press de Banca Plano con Barra">
+                  <option value="Press Inclinado con Mancuernas (30°)">
+                  <option value="Sentadilla Hack Profunda">
+                  <option value="Sentadilla Libre con Barra">
+                  <option value="Peso Muerto Rumano">
+                  <option value="Jalón al Pecho Agarre Neutro">
+                  <option value="Remo con Barra T apoyado">
+                  <option value="Press Militar con Mancuernas">
+                  <option value="Elevaciones Laterales en Polea">
+                  <option value="Curl de Bíceps con Barra Z">
+                  <option value="Extensión de Tríceps en Polea">
+                  <option value="Prensa de Piernas 45°">
+                  <option value="Curl Femoral Acostado">
+                </datalist>
+              </div>
+
+              <div>
+                <label for="quick-log-peso" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; display:block;">Peso que Levantas (kg) *</label>
+                <div class="mobile-stepper-wrapper">
+                  <button type="button" class="stepper-btn" onclick="ajustarValorStepper('quick-log-peso', -2.5, 0)">-</button>
+                  <input type="number" step="0.5" id="quick-log-peso" class="stepper-input" placeholder="80" value="80" required />
+                  <button type="button" class="stepper-btn" onclick="ajustarValorStepper('quick-log-peso', 2.5, 0)">+</button>
+                </div>
+              </div>
+
+              <div>
+                <label for="quick-log-reps" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; display:block;">Repeticiones Hechas *</label>
+                <div class="mobile-stepper-wrapper">
+                  <button type="button" class="stepper-btn" onclick="ajustarValorStepper('quick-log-reps', -1, 1)">-</button>
+                  <input type="number" id="quick-log-reps" class="stepper-input" placeholder="10" value="10" required />
+                  <button type="button" class="stepper-btn" onclick="ajustarValorStepper('quick-log-reps', 1, 1)">+</button>
+                </div>
+              </div>
+
+              <div>
+                <label for="quick-log-serie" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; display:block;">Número de Serie</label>
+                <select id="quick-log-serie" class="select-field" style="padding:10px 12px; font-size:13.5px;">
+                  <option value="1">Serie 1 (S1)</option>
+                  <option value="2">Serie 2 (S2)</option>
+                  <option value="3">Serie 3 (S3)</option>
+                  <option value="4">Serie 4 (S4)</option>
+                  <option value="5">Serie 5 (S5)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div id="quick-log-calc-preview" style="font-size:12.5px; color:#38bdf8; font-weight:700;">
+                🏆 1RM Estimado: <strong>106.7 kg</strong>
+              </div>
+              <button type="submit" class="btn-primary" style="padding:10px 22px; font-size:13.5px; font-weight:800; border-radius:var(--radius-md); display:inline-flex; align-items:center; gap:8px;">
+                💾 Enviar Carga al Instructor
+              </button>
+            </div>
+          </form>
+        </div>
+
         <div id="athlete-portal-rutina-container">
-          <!-- Renderizado dinámico de la rutina del atleta -->
+          <!-- Renderizado dinámico de la rutina del atleta con registro por serie -->
         </div>
       </div>
 
