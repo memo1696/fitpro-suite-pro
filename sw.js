@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitpro-suite-pro-v2.2.0-live';
+const CACHE_NAME = 'fitpro-suite-pro-v2.3.0-fuerza';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -16,7 +16,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ FitPro PWA Service Worker: Cacheando versión 2.2.0...');
+      console.log('⚡ FitPro PWA Service Worker: Cacheando versión 2.3.0...');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('Advertencia en precache PWA:', err);
       });

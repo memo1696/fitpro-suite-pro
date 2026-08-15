@@ -1319,6 +1319,56 @@ let bitacoraClinicaDB = [];
 let dietasGuardadas = [];
 let metricasEvolucionDB = [];
 let archivosMedicosDB = [];
+let registrosFuerzaDB = [];
+
+function getSeedFuerzaDemo() {
+  return [
+    {
+      id: "fuerza_001",
+      cliente: "Carlos Mendoza",
+      ejercicio: "Press Inclinado con Mancuernas (30°)",
+      fecha: "2026-08-14",
+      series: [
+        { set: 1, peso: 28.0, reps: 10, rpe: 8.0 },
+        { set: 2, peso: 30.0, reps: 10, rpe: 8.5 },
+        { set: 3, peso: 32.0, reps: 8, rpe: 9.0 },
+        { set: 4, peso: 32.0, reps: 8, rpe: 9.0 }
+      ],
+      rmEstimado: 40.5,
+      volumenTotal: 1096,
+      notas: "Excelente estabilidad escapular y control excéntrico."
+    },
+    {
+      id: "fuerza_002",
+      cliente: "Carlos Mendoza",
+      ejercicio: "Sentadilla Hack Profunda",
+      fecha: "2026-08-13",
+      series: [
+        { set: 1, peso: 100.0, reps: 10, rpe: 8.0 },
+        { set: 2, peso: 120.0, reps: 10, rpe: 8.5 },
+        { set: 3, peso: 130.0, reps: 8, rpe: 9.0 },
+        { set: 4, peso: 140.0, reps: 6, rpe: 9.5 }
+      ],
+      rmEstimado: 168.0,
+      volumenTotal: 4080,
+      notas: "Récord personal (PR) alcanzado en la última serie."
+    },
+    {
+      id: "fuerza_003",
+      cliente: "Alejandro Gómez",
+      ejercicio: "Press Banca Plano con Barra",
+      fecha: "2026-08-12",
+      series: [
+        { set: 1, peso: 80.0, reps: 10, rpe: 8.0 },
+        { set: 2, peso: 85.0, reps: 8, rpe: 8.5 },
+        { set: 3, peso: 90.0, reps: 6, rpe: 9.0 }
+      ],
+      rmEstimado: 108.0,
+      volumenTotal: 2020,
+      notas: "Buena trayectoria de barra."
+    }
+  ];
+}
 
 function cargarDatosPorUsuario(userId, esModoDemo = false) {
   if (esModoDemo) {
@@ -1331,6 +1381,7 @@ function cargarDatosPorUsuario(userId, esModoDemo = false) {
     dietasGuardadas = leerStorageCifrado('fitpro_dietas_demo') || getSeedDietasDemo();
     metricasEvolucionDB = leerStorageCifrado('fitpro_metricas_demo') || getSeedMetricasDemo();
     archivosMedicosDB = leerStorageCifrado('fitpro_archivos_demo') || getSeedArchivosDemo();
+    registrosFuerzaDB = leerStorageCifrado('fitpro_fuerza_demo') || getSeedFuerzaDemo();
   } else {
     // Usuario Real de Supabase: Aislamiento estricto por user_id
     const localClientes = leerStorageCifrado(`fitpro_clientes_${userId}`);
@@ -1341,6 +1392,7 @@ function cargarDatosPorUsuario(userId, esModoDemo = false) {
     const localBitacora = leerStorageCifrado(`fitpro_bitacora_${userId}`);
     const localMetricas = leerStorageCifrado(`fitpro_metricas_${userId}`);
     const localArchivos = leerStorageCifrado(`fitpro_archivos_${userId}`);
+    const localFuerza = leerStorageCifrado(`fitpro_fuerza_${userId}`);
 
     // Si el entrenador es nuevo, empieza con panel completamente limpio (vacío)
     clientes = localClientes ? localClientes : [];
@@ -1351,6 +1403,7 @@ function cargarDatosPorUsuario(userId, esModoDemo = false) {
     bitacoraClinicaDB = localBitacora ? localBitacora : [];
     metricasEvolucionDB = localMetricas ? localMetricas : [];
     archivosMedicosDB = localArchivos ? localArchivos : [];
+    registrosFuerzaDB = localFuerza ? localFuerza : [];
   }
 
   // Asignar referencias a window
@@ -1362,6 +1415,7 @@ function cargarDatosPorUsuario(userId, esModoDemo = false) {
   window.bitacoraClinicaDB = bitacoraClinicaDB;
   window.metricasEvolucionDB = metricasEvolucionDB;
   window.archivosMedicosDB = archivosMedicosDB;
+  window.registrosFuerzaDB = registrosFuerzaDB;
 }
 
 function persistirDatosUsuarioActual() {
@@ -1377,6 +1431,7 @@ function persistirDatosUsuarioActual() {
   guardarStorageCifrado(`fitpro_bitacora_${suffix}`, bitacoraClinicaDB);
   guardarStorageCifrado(`fitpro_metricas_${suffix}`, metricasEvolucionDB);
   guardarStorageCifrado(`fitpro_archivos_${suffix}`, archivosMedicosDB);
+  guardarStorageCifrado(`fitpro_fuerza_${suffix}`, registrosFuerzaDB);
 }
 
 function establecerSesionActiva(session, user = null) {
@@ -5888,6 +5943,71 @@ function renderAnalyticsAtleta(clienteNombre = '') {
       tableContainer.innerHTML = `<div style="color:var(--text-muted); padding:20px; text-align:center;">No hay registros tabulares para este atleta.</div>`;
     }
   }
+
+  // 5. Render Strength Progress Logs sent by Athlete from mobile app
+  const fuerzaContainer = document.getElementById('analytics-fuerza-container');
+  if (fuerzaContainer) {
+    const fuerzaCliente = (registrosFuerzaDB || []).filter(r => r.cliente && r.cliente.toLowerCase() === clienteNombre.toLowerCase());
+    if (fuerzaCliente.length > 0) {
+      fuerzaContainer.innerHTML = `
+        <div class="card" style="padding:22px; background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); backdrop-filter:blur(16px);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:12px;">
+            <div>
+              <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+                🏋️ Registro de Fuerza & Cargas en Tiempo Real (Enviadas por el Atleta)
+              </h3>
+              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">
+                Auditoría instantánea de sobrecarga progresiva registrada en cada serie por el alumno desde su teléfono móvil.
+              </p>
+            </div>
+            <span class="badge badge-green" style="font-size:12px; font-weight:800;">🟢 ${fuerzaCliente.length} Registros Activos</span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Ejercicio Biomecánico</th>
+                  <th>Desglose de Series (Peso × Reps @ RPE)</th>
+                  <th>1RM Estimado</th>
+                  <th>Volumen Carga</th>
+                  <th>Auditoría Sobrecarga</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${fuerzaCliente.map(f => {
+                  const seriesText = (f.series || []).map(s => `
+                    <span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:3px 8px; border-radius:6px; margin:2px 4px 2px 0; display:inline-block; font-size:12px; font-weight:700;">
+                      S${s.set}: <strong style="color:#10b981;">${s.peso} kg</strong> × ${s.reps} <span style="color:#38bdf8;">(@${s.rpe})</span>
+                    </span>
+                  `).join('');
+                  return `
+                    <tr>
+                      <td style="color:#fff; font-weight:700; font-size:12.5px;">${f.fecha}</td>
+                      <td style="color:#38bdf8; font-weight:800; font-family:var(--font-heading); font-size:14px;">${f.ejercicio}</td>
+                      <td>${seriesText}</td>
+                      <td style="color:#10b981; font-weight:900; font-size:15px; font-family:var(--font-heading);">${f.rmEstimado || '--'} <span style="font-size:12px; color:var(--text-muted);">kg</span></td>
+                      <td style="color:#fbbf24; font-weight:800; font-size:14px;">${f.volumenTotal || '--'} <span style="font-size:12px; color:var(--text-muted);">kg</span></td>
+                      <td><span class="badge badge-green" style="font-size:11px;">🔥 Sobrecarga Progresiva</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else {
+      fuerzaContainer.innerHTML = `
+        <div class="card" style="padding:20px; text-align:center; background:rgba(18,26,42,0.6); border:1px dashed rgba(255,255,255,0.1);">
+          <div style="font-size:28px; margin-bottom:8px;">🏋️</div>
+          <div style="font-weight:700; color:#fff; font-size:15px;">Sin registros de fuerza enviados por este atleta</div>
+          <div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">Cuando el alumno ingrese sus pesos en la app móvil, aparecerán aquí automáticamente para tu control biomecánico.</div>
+        </div>
+      `;
+    }
+  }
 }
 
 // Dynamic SVG Chart Generators
@@ -10085,7 +10205,7 @@ function renderPortalAtleta(userObj) {
       let ejerciciosHtml = '';
       if (plan.dias && plan.dias.length > 0) {
         ejerciciosHtml = plan.dias.map((d, dIdx) => `
-          <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); margin-bottom:20px; overflow:hidden; box-shadow:var(--shadow-card); backdrop-filter:blur(16px);">
+          <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); margin-bottom:24px; overflow:hidden; box-shadow:var(--shadow-card); backdrop-filter:blur(16px);">
             <div style="background:linear-gradient(90deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 100%); padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
               <div>
                 <h3 style="margin:0; font-size:17px; font-family:var(--font-heading); color:#fff; font-weight:800;">📅 ${d.nombre || `Día ${dIdx + 1}`}</h3>
@@ -10095,27 +10215,81 @@ function renderPortalAtleta(userObj) {
                 ${d.ejercicios ? d.ejercicios.length : 0} Ejercicios
               </span>
             </div>
-            <div style="padding:18px; display:grid; gap:12px;">
-              ${(d.ejercicios || []).map((e, eIdx) => `
-                <div style="background:rgba(10,15,26,0.65); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; transition:all 0.2s ease;">
-                  <div style="flex:1; min-width:240px;">
-                    <div style="font-weight:800; font-size:15px; color:#ffffff; font-family:var(--font-heading);">${eIdx + 1}. ${e.nombre || e.ejercicio}</div>
-                    <div style="font-size:13px; color:var(--text-muted); margin-top:5px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                      <span>🎯 Series: <strong style="color:#fff;">${e.series || 4}</strong></span>
-                      <span>•</span>
-                      <span>Reps: <strong style="color:#fff;">${e.repeticiones || '8-12'}</strong></span>
-                      <span>•</span>
-                      <span>RPE: <strong style="color:#10b981;">@${e.rpe || 8.5}</strong> (RIR ${e.rir || 1})</span>
+            <div style="padding:18px; display:grid; gap:16px;">
+              ${(d.ejercicios || []).map((e, eIdx) => {
+                const numSets = parseInt(e.series) || 4;
+                const regPrevio = (registrosFuerzaDB || []).find(r => r.cliente && r.cliente.toLowerCase() === cliente.nombre.toLowerCase() && r.ejercicio === (e.nombre || e.ejercicio));
+                
+                const setRowsHtml = Array.from({ length: numSets }, (_, sIdx) => {
+                  const setNum = sIdx + 1;
+                  const setPrev = regPrevio?.series?.find(s => s.set === setNum);
+                  const valPeso = setPrev ? setPrev.peso : '';
+                  const valReps = setPrev ? setPrev.reps : (e.repeticiones ? parseInt(e.repeticiones) : 10);
+                  const valRpe = setPrev ? setPrev.rpe : (e.rpe || 8.5);
+
+                  return `
+                    <div style="display:grid; grid-template-columns: 50px 1fr 1fr 1fr; gap:8px; align-items:center; margin-bottom:6px;">
+                      <span style="font-size:12px; font-weight:800; color:var(--text-muted); text-align:center; background:rgba(255,255,255,0.04); padding:4px 0; border-radius:4px;">S${setNum}</span>
+                      <div>
+                        <input type="number" step="0.5" id="input-peso-${dIdx}-${eIdx}-${setNum}" placeholder="Peso (kg)" value="${valPeso}" style="width:100%; padding:8px 10px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-size:13px; font-weight:700; text-align:center;" />
+                      </div>
+                      <div>
+                        <input type="number" id="input-reps-${dIdx}-${eIdx}-${setNum}" placeholder="Reps" value="${valReps}" style="width:100%; padding:8px 10px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-size:13px; font-weight:700; text-align:center;" />
+                      </div>
+                      <div>
+                        <input type="number" step="0.5" id="input-rpe-${dIdx}-${eIdx}-${setNum}" placeholder="RPE" value="${valRpe}" style="width:100%; padding:8px 10px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#10b981; font-size:13px; font-weight:700; text-align:center;" />
+                      </div>
                     </div>
-                    ${e.notas ? `<div style="font-size:12px; color:#38bdf8; margin-top:6px; background:rgba(56,189,248,0.08); padding:6px 10px; border-radius:6px; border-left:3px solid #38bdf8;">💡 ${e.notas}</div>` : ''}
+                  `;
+                }).join('');
+
+                const rmBadgeText = regPrevio ? `🏆 1RM Estimado: <strong>${regPrevio.rmEstimado} kg</strong> • Vol: <strong>${regPrevio.volumenTotal} kg</strong>` : '🏆 1RM Estimado: -- kg';
+
+                return `
+                  <div style="background:rgba(10,15,26,0.7); padding:18px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06); transition:all 0.2s ease;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+                      <div>
+                        <div style="font-weight:800; font-size:15.5px; color:#ffffff; font-family:var(--font-heading);">${eIdx + 1}. ${e.nombre || e.ejercicio}</div>
+                        <div style="font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                          <span>🎯 Objetivo: <strong style="color:#fff;">${e.series || 4} series × ${e.repeticiones || '8-12'} reps</strong></span>
+                          <span>•</span>
+                          <span>RPE Meta: <strong style="color:#10b981;">@${e.rpe || 8.5}</strong></span>
+                        </div>
+                        ${e.notas ? `<div style="font-size:12px; color:#38bdf8; margin-top:6px; background:rgba(56,189,248,0.08); padding:6px 10px; border-radius:6px; border-left:3px solid #38bdf8;">💡 ${e.notas}</div>` : ''}
+                      </div>
+                      <span style="background:rgba(255,255,255,0.05); color:#e2e8f0; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+                        ⏱️ Descanso: ${e.descanso || '90s'}
+                      </span>
+                    </div>
+
+                    <!-- CAJA INTERACTIVA DE REGISTRO DE PESOS Y FUERZA -->
+                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-sm); padding:14px; margin-top:10px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="font-size:12px; font-weight:800; color:#38bdf8; text-transform:uppercase; letter-spacing:0.5px;">🏋️ Registro de Cargas & Peso Levantado</span>
+                        <span style="font-size:11px; color:#10b981; font-weight:700;">● Sincronizado con Coach</span>
+                      </div>
+                      
+                      <div style="display:grid; grid-template-columns: 50px 1fr 1fr 1fr; gap:8px; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--text-dim); text-align:center; text-transform:uppercase;">
+                        <span>Serie</span>
+                        <span>Peso (kg)</span>
+                        <span>Reps</span>
+                        <span>RPE</span>
+                      </div>
+
+                      ${setRowsHtml}
+
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+                        <div id="badge-rm-${dIdx}-${eIdx}" style="font-size:12px; color:#38bdf8;">
+                          ${rmBadgeText}
+                        </div>
+                        <button type="button" class="btn-primary" style="padding:7px 16px; font-size:12.5px; font-weight:800; border-radius:6px; display:inline-flex; align-items:center; gap:6px;" onclick="guardarCargaEjercicioAtleta('${escapeHTML(cliente.nombre)}', ${dIdx}, ${eIdx}, '${escapeHTML(e.nombre || e.ejercicio)}', ${numSets})">
+                          💾 Guardar Cargas
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-                    <span style="background:rgba(255,255,255,0.05); color:#e2e8f0; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
-                      ⏱️ Descanso: ${e.descanso || '90s'}
-                    </span>
-                  </div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
           </div>
         `).join('');
@@ -10125,7 +10299,7 @@ function renderPortalAtleta(userObj) {
         <div style="background:linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.06)); border:1px solid rgba(16,185,129,0.3); padding:16px 20px; border-radius:var(--radius-lg); margin-bottom:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
           <div>
             <div style="font-weight:800; color:#fff; font-size:16px; font-family:var(--font-heading);">Plan Activo: ${plan.metodo || 'Sobrecarga Progresiva Adaptada'}</div>
-            <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">RPE Promedio: <strong style="color:#10b981;">@${plan.rpe_objetivo || 8.5}</strong> • Actualizado periódicamente por tu Head Coach</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Registra tus pesos levantados para que tu coach audite tu sobrecarga progresiva en tiempo real.</div>
           </div>
           <button class="btn-primary" style="font-size:13px; font-weight:800; padding:10px 18px; border-radius:var(--radius-md);" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
         </div>
@@ -10364,12 +10538,81 @@ function ejecutarInstalacionPWA() {
   }
 }
 
+function guardarCargaEjercicioAtleta(clienteNombre, dIdx, eIdx, ejercicioNombre, numSets) {
+  try {
+    const series = [];
+    let maxRM = 0;
+    let volumenTotal = 0;
+
+    for (let s = 1; s <= numSets; s++) {
+      const inputPeso = document.getElementById(`input-peso-${dIdx}-${eIdx}-${s}`);
+      const inputReps = document.getElementById(`input-reps-${dIdx}-${eIdx}-${s}`);
+      const inputRpe = document.getElementById(`input-rpe-${dIdx}-${eIdx}-${s}`);
+
+      const peso = parseFloat(inputPeso?.value) || 0;
+      const reps = parseInt(inputReps?.value) || 0;
+      const rpe = parseFloat(inputRpe?.value) || 8.5;
+
+      if (peso > 0 && reps > 0) {
+        series.push({ set: s, peso, reps, rpe });
+        const rmCalc = peso * (1 + reps / 30);
+        if (rmCalc > maxRM) maxRM = rmCalc;
+        volumenTotal += (peso * reps);
+      }
+    }
+
+    if (series.length === 0) {
+      showToast("Por favor ingresa el peso y repeticiones de al menos una serie.", "warning", "⚠️ Carga Requerida");
+      return;
+    }
+
+    const nuevoRegistro = {
+      id: `fuerza_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      cliente: clienteNombre,
+      ejercicio: ejercicioNombre,
+      fecha: new Date().toISOString().split('T')[0],
+      fechaHora: new Date().toISOString(),
+      series,
+      rmEstimado: parseFloat(maxRM.toFixed(1)),
+      volumenTotal: Math.round(volumenTotal),
+      gymId: gimnasioActivoId
+    };
+
+    // Agregar o actualizar registro en registrosFuerzaDB
+    const idx = registrosFuerzaDB.findIndex(r => r.cliente && r.cliente.toLowerCase() === clienteNombre.toLowerCase() && r.ejercicio === ejercicioNombre);
+    if (idx !== -1) {
+      registrosFuerzaDB[idx] = nuevoRegistro;
+    } else {
+      registrosFuerzaDB.unshift(nuevoRegistro);
+    }
+
+    persistirDatosUsuarioActual();
+
+    // Actualizar badge visual en vivo en la tarjeta del ejercicio
+    const badgeRm = document.getElementById(`badge-rm-${dIdx}-${eIdx}`);
+    if (badgeRm) {
+      badgeRm.innerHTML = `🔥 <strong>1RM Estimado: ${nuevoRegistro.rmEstimado} kg</strong> • Vol: <strong>${nuevoRegistro.volumenTotal} kg</strong>`;
+    }
+
+    // Si el entrenador está visualizando analytics, actualizar vista
+    if (clienteAnalyticsSeleccionado && clienteAnalyticsSeleccionado.toLowerCase() === clienteNombre.toLowerCase()) {
+      renderAnalyticsAtleta(clienteNombre);
+    }
+
+    showToast(`🎉 ¡Carga de ${nuevoRegistro.series[nuevoRegistro.series.length - 1].peso} kg guardada! Datos de fuerza enviados a tu entrenador.`, "success", "💪 Progreso Registrado", 5000);
+  } catch (err) {
+    console.error("Error al guardar carga de fuerza:", err);
+    showToast("Hubo un error al guardar la carga.", "error", "Error");
+  }
+}
+
 function cerrarBannerPWA() {
   const banner = document.getElementById('pwa-install-banner');
   if (banner) banner.style.display = 'none';
   sessionStorage.setItem('fitpro_pwa_dismissed', 'true');
 }
 
+window.guardarCargaEjercicioAtleta = guardarCargaEjercicioAtleta;
 window.ejecutarInstalacionPWA = ejecutarInstalacionPWA;
 window.cerrarBannerPWA = cerrarBannerPWA;
 window.renderPortalAtleta = renderPortalAtleta;
