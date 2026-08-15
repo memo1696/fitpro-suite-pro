@@ -1,0 +1,29 @@
+{
+  "packageId": "com.fitprosuite.app",
+  "host": "curious-bavarois-54aab1.netlify.app",
+  "name": "FitPro Suite Pro",
+  "launcherName": "FitPro Suite",
+  "display": "standalone",
+  "themeColor": "#090D16",
+  "navigationColor": "#090D16",
+  "navigationColorDark": "#090D16",
+  "navigationDividerColor": "#1E293B",
+  "navigationDividerColorDark": "#1E293B",
+  "backgroundColor": "#090D16",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+  "maskableIconUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "fitpro"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "fullScopeUrl": "https://curious-bavarois-54aab1.netlify.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait"
+}

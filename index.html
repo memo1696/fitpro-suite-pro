@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitPro Suite Pro — Plataforma Integral de Entrenamiento y Nutrición</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- PWA & Mobile Web Capabilities -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitPro Suite" />
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2936/2936886.png" />
+</head>
+<body class="auth-pending">
+
+  <!-- ============================================================================== -->
+  <!-- 🔐 PANTALLA CENTRADA DE AUTENTICACIÓN SAAS (SUPABASE AUTH) -->
+  <!-- ============================================================================== -->
+  <div id="auth-overlay-view">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo-box">FP</div>
+        <h2 class="auth-title">FitPro Suite Pro</h2>
+        <p class="auth-subtitle" id="auth-header-subtitle">Acceso seguro a la plataforma biomecánica y gestión SaaS</p>
+      </div>
+
+      <!-- TABS LOGIN / REGISTRO -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="auth-tab-login" onclick="cambiarModoAuth('login')">Iniciar Sesión</button>
+        <button type="button" class="auth-tab" id="auth-tab-signup" onclick="cambiarModoAuth('signup')">Registrarse</button>
+      </div>
+
+      <!-- CAJAS DE ALERTA DE ERROR Y ÉXITO -->
+      <div id="auth-error-box" class="auth-error-box hidden" role="alert"></div>
+      <div id="auth-success-box" class="auth-success-box hidden" role="status"></div>
+
+      <form id="form-auth-supabase" onsubmit="procesarFormularioAuth(event)">
+        <!-- NOMBRE (SOLO REGISTRO) -->
+        <div class="auth-form-group" id="auth-group-nombre" style="display:none;">
+          <label for="auth-input-nombre">Nombre Completo del Entrenador</label>
+          <div class="auth-input-wrapper">
+            <input type="text" id="auth-input-nombre" placeholder="ej. Coach Carlos Ramirez" autocomplete="name" oninput="limpiarErrorAuth()" />
+          </div>
+        </div>
+
+        <!-- ROL / ESPECIALIDAD (SOLO REGISTRO) -->
+        <div class="auth-form-group" id="auth-group-rol" style="display:none;">
+          <label for="auth-select-rol">Especialidad / Rol Profesional</label>
+          <div class="auth-input-wrapper">
+            <select id="auth-select-rol">
+              <option value="Head Coach & Readaptador" selected>🏋️ Head Coach & Readaptador Biomecánico</option>
+              <option value="Nutricionista Deportivo">🥗 Nutricionista Deportivo & Cineantropometrista</option>
+              <option value="Entrenador Personal Senior">💪 Entrenador Personal Especialista</option>
+              <option value="Fisioterapeuta Deportivo">🩺 Fisioterapeuta & Readaptador Funcional</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SEDE ASIGNADA (MULTI-GYM) -->
+        <div class="auth-form-group" id="auth-group-gym" style="display:none;">
+          <label for="auth-select-gym">Sede Principal Asignada</label>
+          <div class="auth-input-wrapper">
+            <select id="auth-select-gym">
+              <option value="gym_central_01" selected>🏋️ FitPro Central Hub (Sede Principal)</option>
+              <option value="gym_norte_02">🥇 FitPro North Performance (Sucursal Norte)</option>
+              <option value="gym_elite_03">⚡ FitPro Elite Studio (Studio Boutique)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CORREO ELECTRÓNICO -->
+        <div class="auth-form-group">
+          <label for="auth-input-email">Correo Electrónico</label>
+          <div class="auth-input-wrapper">
+            <input type="email" id="auth-input-email" placeholder="entrenador@fitprosuite.com" required autocomplete="email" oninput="limpiarErrorAuth()" />
+          </div>
+        </div>
+
+        <!-- CONTRASEÑA -->
+        <div class="auth-form-group">
+          <label for="auth-input-password">Contraseña</label>
+          <div class="auth-input-wrapper">
+            <input type="password" id="auth-input-password" placeholder="Mínimo 6 caracteres" required autocomplete="current-password" oninput="limpiarErrorAuth()" />
+            <button type="button" class="auth-password-toggle" onclick="alternarVisibilidadPassword()" aria-label="Mostrar/Ocultar contraseña">👁️</button>
+          </div>
+        </div>
+
+        <!-- BOTÓN DE ENVÍO PRINCIPAL -->
+        <button type="submit" class="auth-btn-submit" id="auth-btn-submit">
+          <span id="auth-btn-text">🔒 Iniciar Sesión en FitPro Cloud</span>
+        </button>
+      </form>
+
+      <!-- ENLACE DIRECTO PARA CAMBIO DE MODO -->
+      <div style="text-align:center; margin-top:14px; font-size:13px;">
+        <span id="auth-switch-prompt" style="color:var(--text-muted);">¿No tienes cuenta aún?</span>
+        <button type="button" id="auth-switch-btn" style="background:transparent; border:none; color:var(--accent-green); font-weight:700; cursor:pointer; text-decoration:underline; margin-left:4px;" onclick="alternarModoAuthDirecto()">Registrarse aquí</button>
+      </div>
+
+      <!-- DIVISOR MODO DEMO / LOCAL -->
+      <div class="auth-demo-divider">
+        <span>O también puedes</span>
+      </div>
+
+      <!-- BOTÓN MODO DEMO / OFFLINE -->
+      <button type="button" class="auth-btn-demo" onclick="entrarModoLocalDemo()">
+        <span>⚡ Acceder en Modo Demo / Local</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================================== -->
+  <!-- 📱 CONTENEDOR PRINCIPAL DE LA PLATAFORMA (OCULTO POR DEFECTO HASTA AUTENTICARSE) -->
+  <!-- ============================================================================== -->
+  <div id="app-layout" style="display: none;">
+
+  <!-- SIDEBAR DE NAVEGACIÓN -->
+  <aside class="sidebar" id="app-sidebar">
+    <div class="sidebar-logo" style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="logo-icon">FP</div>
+        <span class="logo-text">FitPro Suite</span>
+      </div>
+      <button class="mobile-sidebar-close" style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; display:none;" onclick="toggleMobileSidebar(false)">✕</button>
+    </div>
+
+    <!-- SELECTOR MULTI-GIMNASIO ACTIVO (GYM_ID) -->
+    <div class="gym-selector-wrapper" style="padding: 10px 12px; margin: 0 12px 14px 12px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+      <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
+        <span>🏢 Gimnasio Activo</span>
+        <span class="badge badge-primary" style="font-size:9px; padding:2px 6px;" id="gym-badge-id">gym_central_01</span>
+      </div>
+      <select id="select-gimnasio-activo" class="select-field" style="width:100%; font-size:12px; padding:6px 8px; background:var(--bg-surface); color:#fff; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="cambiarGimnasioActivo(this.value)">
+        <option value="gym_central_01" selected>🏋️ FitPro Central Hub</option>
+        <option value="gym_norte_02">🥇 FitPro North Performance</option>
+        <option value="gym_elite_03">⚡ FitPro Elite Studio</option>
+      </select>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- DASHBOARD DIRECTO -->
+      <button class="nav-item active" data-view="dashboard" onclick="navegarA('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Dashboard</span>
+      </button>
+
+      <!-- GRUPO 1: GESTIÓN OPERATIVA -->
+      <div class="nav-group active" id="nav-group-gestion">
+        <button class="nav-group-header" onclick="toggleNavGroup('nav-group-gestion')">
+          <div class="nav-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Gestión</span>
+          </div>
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" data-view="clients" onclick="navegarA('clients')">
+            <span class="subitem-bullet"></span>
+            <span>👥 Clientes & Atletas</span>
+          </button>
+          <button class="nav-subitem" data-view="finances" onclick="navegarA('finances')">
+            <span class="subitem-bullet"></span>
+            <span>💳 Finanzas & Pagos</span>
+          </button>
+          <button class="nav-subitem" data-view="plans" onclick="navegarA('plans')">
+            <span class="subitem-bullet"></span>
+            <span>📋 Planes de Rutina</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- GRUPO 2: RENDIMIENTO & BIOMETRÍA -->
+      <div class="nav-group" id="nav-group-rendimiento">
+        <button class="nav-group-header" onclick="toggleNavGroup('nav-group-rendimiento')">
+          <div class="nav-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+            <span>Rendimiento</span>
+          </div>
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" data-view="analytics" onclick="navegarA('analytics')">
+            <span class="subitem-bullet"></span>
+            <span>📈 Analytics & Progresión</span>
+          </button>
+          <button class="nav-subitem" data-view="calculator" onclick="navegarA('calculator')">
+            <span class="subitem-bullet"></span>
+            <span>🧮 Calculadora Biomecánica</span>
+          </button>
+          <button class="nav-subitem" data-view="nutrition" onclick="navegarA('nutrition')">
+            <span class="subitem-bullet"></span>
+            <span>🥗 Nutrición & Dietas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- GRUPO 3: HERRAMIENTAS & SALUD -->
+      <div class="nav-group" id="nav-group-herramientas">
+        <button class="nav-group-header" onclick="toggleNavGroup('nav-group-herramientas')">
+          <div class="nav-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span>Herramientas & Salud</span>
+          </div>
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" data-view="injuries" onclick="navegarA('injuries')">
+            <span class="subitem-bullet"></span>
+            <span>🩹 Lesiones & Readaptación</span>
+          </button>
+          <button class="nav-subitem" data-view="seniors" onclick="navegarA('seniors')">
+            <span class="subitem-bullet"></span>
+            <span>👴 Adultos Mayores</span>
+          </button>
+          <button class="nav-subitem" data-view="library" onclick="navegarA('library')">
+            <span class="subitem-bullet"></span>
+            <span>📚 Biblioteca de Ejercicios</span>
+          </button>
+          <button class="nav-subitem" data-view="supplements" onclick="navegarA('supplements')">
+            <span class="subitem-bullet"></span>
+            <span>💊 Suplementación</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+        <div class="user-avatar" id="sidebar-user-avatar">PT</div>
+        <div class="user-info" style="min-width:0;">
+          <span class="user-name" id="sidebar-user-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Coach Pro</span>
+          <span class="user-role" id="sidebar-user-role" style="font-size:11px; color:var(--text-muted);">SaaS Master Plan</span>
+        </div>
+      </div>
+      <button type="button" class="btn-logout" id="btn-logout-sidebar" onclick="cerrarSesionSupabaseAuth(event)" title="Cerrar Sesión de FitPro Suite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Salir</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- BARRA SUPERIOR PARA MÓVILES (MOBILE TOP BAR) -->
+  <div class="mobile-top-bar" id="mobile-top-bar">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Abrir Menú de Navegación">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+    <div class="mobile-logo">
+      <div class="logo-icon" style="width:32px; height:32px; font-size:14px;">FP</div>
+      <span class="logo-text" style="font-size:16px;">FitPro Suite</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="mobile-badge">
+        <span class="badge badge-primary" style="font-size:10px; padding:3px 7px;" id="mobile-gym-badge">gym_central_01</span>
+      </div>
+      <button type="button" class="btn-logout" id="btn-logout-mobile" style="padding:4px 8px; font-size:11px;" onclick="cerrarSesionSupabaseAuth(event)" title="Cerrar Sesión">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- OVERLAY DE FONDO PARA CIERRE EN MÓVILES -->
+  <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileSidebar(false)"></div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="main-content">
+    <div class="top-loader-bar" id="view-top-loader"></div>
+
+    <!-- 1. DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <header class="page-header">
+        <div>
+          <h1>Dashboard Pro</h1>
+          <p class="page-subtitle">Resumen general de tu cartera, ingresos y rendimiento biomecánico</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div id="supabase-cloud-badge" class="badge badge-green cloud-sync-badge" onclick="sincronizarTodoConSupabase()" title="Clic para sincronizar con Supabase Cloud">
+            <span class="pulse-dot pulse-dot-green"></span>
+            <span>☁️ Supabase Cloud: Sincronizado</span>
+          </div>
+          <span class="badge badge-primary">⚡ SaaS Engine Activo</span>
+          <button type="button" class="btn-logout" id="btn-logout-dashboard" style="padding:6px 12px; font-size:12px;" onclick="cerrarSesionSupabaseAuth(event)" title="Cerrar Sesión de FitPro Suite">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="stats-grid">
+        <div class="stat-card interactive" onclick="navegarA('clients')" title="Clic para ir al menú de Clientes">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" id="stat-clientes">0</div>
+            <div class="stat-label">Clientes Activos <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">➔ Ir a Clientes</span></div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" onclick="navegarA('finances')" title="Clic para ir al menú de Finanzas">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" id="stat-ingresos">$0.00</div>
+            <div class="stat-label">Ingresos del Mes <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">➔ Ir a Finanzas</span></div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" onclick="navegarA('injuries')" title="Clic para ir al seguimiento de Lesiones">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" id="stat-adherencia">0%</div>
+            <div class="stat-label">Adherencia Promedio <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">➔ Ir a Lesiones</span></div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" onclick="navegarA('plans')" title="Clic para ir a Planes Guardados">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" id="stat-satisfaccion">0.0 / 5.0</div>
+            <div class="stat-label">Satisfacción Atletas <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">➔ Ir a Planes</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTRO DE ALERTAS PROACTIVAS DASHBOARD -->
+      <div class="card" style="margin-bottom:24px; border:1px solid rgba(245, 158, 11, 0.3); background:rgba(245, 158, 11, 0.03);">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:50%; background:rgba(245, 158, 11, 0.2); display:flex; align-items:center; justify-content:center; color:#fbbf24; font-size:18px;">🔔</div>
+            <div>
+              <h2 class="card-title" style="margin:0; font-size:18px; color:#fff;">Centro de Alertas Proactivas SaaS</h2>
+              <div style="font-size:12px; color:var(--text-muted);">Monitoreo automático en tiempo real de renovaciones de rutinas y vencimientos de pago</div>
+            </div>
+          </div>
+          <span class="badge badge-risk-med" id="dash-alertas-count">0 Alertas Pendientes</span>
+        </div>
+        <div id="dash-alertas-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Atletas y Alumnos Recientes</h2>
+            <button class="btn-secondary" onclick="navegarA('clients')">Ver Todos</button>
+          </div>
+          <div id="dash-clients-list" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px; background:var(--bg-surface); border-radius:var(--radius-sm);">No hay atletas registrados aún.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Planes Generados</h2>
+            <button class="btn-secondary" onclick="navegarA('plans')" style="padding:6px 12px; font-size:12px;">Ver Historial Completo</button>
+          </div>
+          <div id="dash-recent-plans" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px; background:var(--bg-surface); border-radius:var(--radius-sm);">No hay planes prescritos aún.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CLIENTES -->
+    <section class="view" id="view-clients">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Gestión de Clientes</h1>
+            <p class="page-subtitle">Base de datos centralizada de tus atletas y alumnos</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="sincronizarTodoConSupabase()">☁️ Sincronizar Nube</button>
+          <button class="btn-secondary" onclick="abrirModalCliente()">+ Registrar Atleta</button>
+          <button class="btn-primary" onclick="irAGenerador()">⚡ + Nuevo Plan Inteligente</button>
+        </div>
+      </header>
+
+      <!-- CENTRO DE ALERTAS PROACTIVAS CLIENTES -->
+      <div class="card" style="margin-bottom:24px; border:1px solid rgba(245, 158, 11, 0.3); background:rgba(245, 158, 11, 0.03);">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:50%; background:rgba(245, 158, 11, 0.2); display:flex; align-items:center; justify-content:center; color:#fbbf24; font-size:18px;">🔔</div>
+            <div>
+              <h2 class="card-title" style="margin:0; font-size:18px; color:#fff;">Alertas Proactivas de Cartera</h2>
+              <div style="font-size:12px; color:var(--text-muted);">Renovaciones de ciclo de entrenamiento y control financiero rápido</div>
+            </div>
+          </div>
+          <span class="badge badge-risk-med" id="clients-alertas-count">0 Alertas Pendientes</span>
+        </div>
+        <div id="clients-alertas-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <!-- TARJETA GRAFICO CRECIMIENTO DE CLIENTES -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div>
+            <h2 class="card-title">Tendencia y Crecimiento de Cartera</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-top:2px;">Evolución mensual de atletas activos registrados</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="badge badge-green">↗ +25% Este Mes</span>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">1</div>
+            <div class="chart-bar-fill" style="height:25%;"></div>
+            <div class="chart-bar-label">Ene</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">2</div>
+            <div class="chart-bar-fill" style="height:45%;"></div>
+            <div class="chart-bar-label">Feb</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">2</div>
+            <div class="chart-bar-fill" style="height:45%;"></div>
+            <div class="chart-bar-label">Mar</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">3</div>
+            <div class="chart-bar-fill" style="height:65%;"></div>
+            <div class="chart-bar-label">Abr</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">3</div>
+            <div class="chart-bar-fill" style="height:65%;"></div>
+            <div class="chart-bar-label">May</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">3</div>
+            <div class="chart-bar-fill" style="height:65%;"></div>
+            <div class="chart-bar-label">Jun</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">4</div>
+            <div class="chart-bar-fill" style="height:85%;"></div>
+            <div class="chart-bar-label">Jul</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val" style="color:var(--accent-green);">4</div>
+            <div class="chart-bar-fill" style="height:100%; background:var(--accent-green);"></div>
+            <div class="chart-bar-label" style="color:#fff; font-weight:600;">Ago</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+          <div style="flex:1; min-width:260px;">
+            <input type="text" id="input-buscar-cliente" class="input-field" placeholder="🔍 Buscar atleta por nombre, email o disciplina..." onkeyup="filtrarClientes(this.value)">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-secondary active" id="btn-view-table-clients" onclick="cambiarModoVistaClientes('table')" title="Vista Tabla Detallada" style="padding:6px 12px; font-size:12px;">📊 Tabla de Datos</button>
+            <button class="btn-secondary" id="btn-view-grid-clients" onclick="cambiarModoVistaClientes('grid')" title="Vista Cuadrícula de Tarjetas" style="padding:6px 12px; font-size:12px;">🗂️ Tarjetas</button>
+          </div>
+        </div>
+        
+        <!-- TABLA DE GESTIÓN DE ATLETAS -->
+        <div id="clients-table-wrapper" style="overflow-x:auto;">
+          <table class="data-table" id="clients-table" style="width:100%; border-collapse:collapse; min-width:920px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border-color); text-align:left; color:var(--text-muted); font-size:12px; background:rgba(255,255,255,0.02);">
+                <th style="padding:12px 14px;">Atleta</th>
+                <th style="padding:12px 14px;">Objetivo & Sede</th>
+                <th style="padding:12px 14px;">Contacto & Email</th>
+                <th style="padding:12px 14px;">Membresía</th>
+                <th style="padding:12px 14px;">Rutina</th>
+                <th style="padding:12px 14px;">Acceso App</th>
+                <th style="padding:12px 14px; text-align:right;">Acciones & WhatsApp</th>
+              </tr>
+            </thead>
+            <tbody id="clients-table-body"></tbody>
+          </table>
+        </div>
+
+        <div id="clients-grid" style="display:none; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px; margin-top:16px;"></div>
+      </div>
+    </section>
+
+    <!-- 3. FINANZAS Y RENDIMIENTO ECONÓMICO -->
+    <section class="view" id="view-finances">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Finanzas y Rendimiento Económico</h1>
+            <p class="page-subtitle">Gestión de ingresos recurrentes (MRR), flujo de caja e historial de cobros</p>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="abrirModalNuevoPago()">⚡ + Registrar Pago</button>
+      </header>
+
+      <!-- TARJETAS DE RESUMEN FINANCIERO CON ELEVACIÓN HOVER -->
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card interactive" style="border:1px solid var(--border-color); transition:transform 0.2s ease, box-shadow 0.2s ease;">
+          <div class="stat-icon" style="background:rgba(34, 197, 94, 0.1); color:var(--accent-green);">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" style="color:var(--accent-green);" id="stat-fin-total">$3,850.00</div>
+            <div class="stat-label">Ingresos Totales del Mes <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">↑ +18%</span></div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" style="border:1px solid var(--border-color); transition:transform 0.2s ease, box-shadow 0.2s ease;">
+          <div class="stat-icon" style="background:rgba(245, 158, 11, 0.1); color:#fbbf24;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" style="color:#fbbf24;" id="stat-fin-pendiente">$450.00</div>
+            <div class="stat-label">Pagos Pendientes <span style="font-size:11px; color:#fbbf24; margin-left:4px;" id="stat-fin-pend-count">(2 Atletas)</span></div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" style="border:1px solid var(--border-color); transition:transform 0.2s ease, box-shadow 0.2s ease;">
+          <div class="stat-icon" style="background:rgba(96, 165, 250, 0.1); color:#60a5fa;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" style="color:#60a5fa;" id="stat-fin-mrr">$3,200.00</div>
+            <div class="stat-label">MRR (Ingreso Recurrente Mensual)</div>
+          </div>
+        </div>
+
+        <div class="stat-card interactive" style="border:1px solid var(--border-color); transition:transform 0.2s ease, box-shadow 0.2s ease;">
+          <div class="stat-icon" style="background:rgba(192, 132, 252, 0.1); color:#c084fc;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="stat-value" style="color:#c084fc;" id="stat-fin-efectividad">89.5%</div>
+            <div class="stat-label">Tasa de Cobro Efectiva</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRAFICO VISUAL DE RENDIMIENTO ECONÓMICO DE FLUJO DE CAJA -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header" style="margin-bottom:14px;">
+          <div>
+            <h2 class="card-title">📈 Flujo de Caja y Evolución de Ingresos</h2>
+            <div style="font-size:12px; color:var(--text-muted);">Comparativa de recaudación mensual (Ene - Ago)</div>
+          </div>
+          <span class="badge badge-green">Crecimiento Sostenible</span>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$1.2k</div>
+            <div class="chart-bar-fill" style="height:35%;"></div>
+            <div class="chart-bar-label">Ene</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$1.8k</div>
+            <div class="chart-bar-fill" style="height:48%;"></div>
+            <div class="chart-bar-label">Feb</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$2.1k</div>
+            <div class="chart-bar-fill" style="height:55%;"></div>
+            <div class="chart-bar-label">Mar</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$2.6k</div>
+            <div class="chart-bar-fill" style="height:68%;"></div>
+            <div class="chart-bar-label">Abr</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$3.0k</div>
+            <div class="chart-bar-fill" style="height:78%;"></div>
+            <div class="chart-bar-label">May</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$3.2k</div>
+            <div class="chart-bar-fill" style="height:82%;"></div>
+            <div class="chart-bar-label">Jun</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val">$3.5k</div>
+            <div class="chart-bar-fill" style="height:90%;"></div>
+            <div class="chart-bar-label">Jul</div>
+          </div>
+          <div class="chart-bar-col">
+            <div class="chart-bar-val" style="color:var(--accent-green); font-weight:700;">$3.8k</div>
+            <div class="chart-bar-fill" style="height:100%; background:linear-gradient(180deg, var(--accent-green), rgba(34, 197, 94, 0.4));"></div>
+            <div class="chart-bar-label" style="color:#fff; font-weight:600;">Ago</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLA DE TRANSACCIONES E HISTORIAL DE PAGOS -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom:16px;">
+          <div>
+            <h2 class="card-title">📋 Historial de Transacciones y Movimientos</h2>
+            <div style="font-size:12px; color:var(--text-muted);">Registro detallado de pagos de membresías y asesorías</div>
+          </div>
+          <button class="btn-primary" onclick="abrirModalNuevoPago()">⚡ + Registrar Pago</button>
+        </div>
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Atleta / Cliente</th>
+                <th>Concepto / Servicio</th>
+                <th>Fecha</th>
+                <th>Monto ($)</th>
+                <th>Método</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="table-finances-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. PANEL DE CALCULADORAS MÚLTIPLES -->
+    <section class="view" id="view-calculator">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Panel de Calculadoras Múltiples Biomecánicas</h1>
+            <p class="page-subtitle">Prescripción de TDEE, composición corporal por pliegues, estimación de 1RM y zonas cardíacas</p>
+          </div>
+        </div>
+        <div style="min-width:240px;">
+          <label style="font-size:11px; color:var(--text-muted);">Autocompletar Datos de Atleta:</label>
+          <select id="calc-cliente-select" class="select-field" onchange="autoCompletarCalculadoraCliente(this.value)"></select>
+        </div>
+      </header>
+
+      <!-- BARRA DE PESTAÑAS DE CALCULADORAS -->
+      <div style="display:flex; gap:10px; border-bottom:1px solid var(--border-color); margin-bottom:24px; overflow-x:auto; padding-bottom:8px;">
+        <button class="filter-tab active" id="btn-tab-tdee" onclick="cambiarTabCalculadora('tdee', this)">🔥 Gasto Energético (TDEE / TMB)</button>
+        <button class="filter-tab" id="btn-tab-grasa" onclick="cambiarTabCalculadora('grasa', this)">📏 Composición Corporal (% Grasa)</button>
+        <button class="filter-tab" id="btn-tab-1rm" onclick="cambiarTabCalculadora('1rm', this)">🏋️ 1RM & Zonas de Carga</button>
+        <button class="filter-tab" id="btn-tab-cardio" onclick="cambiarTabCalculadora('cardio', this)">❤️ Zonas Cardíacas (Karvonen)</button>
+      </div>
+
+      <!-- PESTAÑA 1: TDEE Y TMB -->
+      <div id="tab-calc-tdee" class="tab-calc-content">
+        <div class="card">
+          <h3 style="color:var(--accent-green); font-family:var(--font-heading); margin-bottom:16px; font-size:18px;">🔥 Tasa Metabólica Basal (TMB) y Gasto Energético Total (TDEE)</h3>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:16px; margin-bottom:20px;">
+            <div>
+              <label for="calc-tdee-peso">Peso (kg)</label>
+              <input type="number" id="calc-tdee-peso" class="input-field" value="78.5" step="0.5">
+            </div>
+            <div>
+              <label for="calc-tdee-altura">Altura (cm)</label>
+              <input type="number" id="calc-tdee-altura" class="input-field" value="178">
+            </div>
+            <div>
+              <label for="calc-tdee-edad">Edad (años)</label>
+              <input type="number" id="calc-tdee-edad" class="input-field" value="28">
+            </div>
+            <div>
+              <label for="calc-tdee-genero">Género</label>
+              <select id="calc-tdee-genero" class="select-field">
+                <option value="h" selected>Masculino (Mifflin-St Jeor +5)</option>
+                <option value="m">Femenino (Mifflin-St Jeor -161)</option>
+              </select>
+            </div>
+            <div>
+              <label for="calc-tdee-actividad">Factor de Actividad</label>
+              <select id="calc-tdee-actividad" class="select-field">
+                <option value="1.2">Sedentario (1.2)</option>
+                <option value="1.375">Ligero / Moderado (1.375)</option>
+                <option value="1.55" selected>Intenso / Entrenado (1.55)</option>
+                <option value="1.725">Muy Intenso / Atleta (1.725)</option>
+                <option value="1.9">Profesional / Doble Sesión (1.9)</option>
+              </select>
+            </div>
+            <div>
+              <label for="calc-tdee-objetivo">Objetivo Metabólico</label>
+              <select id="calc-tdee-objetivo" class="select-field">
+                <option value="hipertrofia" selected>Hipertrofia (+300 kcal)</option>
+                <option value="definicion">Definición (-400 kcal)</option>
+                <option value="mantenimiento">Mantenimiento (Recomposición)</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="btn-primary" onclick="ejecutarCalcularTDEE()">🔥 Calcular Requerimientos Exactos</button>
+          <div id="res-calc-tdee" style="margin-top:20px;"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 2: COMPOSICIÓN CORPORAL Y % GRASA -->
+      <div id="tab-calc-grasa" class="tab-calc-content hidden">
+        <div class="card">
+          <h3 style="color:#60a5fa; font-family:var(--font-heading); margin-bottom:16px; font-size:18px;">📏 Composición Corporal (Fórmula Marina U.S. Navy y Pliegues)</h3>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:16px; margin-bottom:20px;">
+            <div>
+              <label for="calc-grasa-peso">Peso (kg)</label>
+              <input type="number" id="calc-grasa-peso" class="input-field" value="78.5" step="0.5">
+            </div>
+            <div>
+              <label for="calc-grasa-altura">Altura (cm)</label>
+              <input type="number" id="calc-grasa-altura" class="input-field" value="178">
+            </div>
+            <div>
+              <label for="calc-grasa-cintura">Cintura / Abdominal (cm)</label>
+              <input type="number" id="calc-grasa-cintura" class="input-field" value="82">
+            </div>
+            <div>
+              <label for="calc-grasa-cuello">Cuello (cm)</label>
+              <input type="number" id="calc-grasa-cuello" class="input-field" value="39">
+            </div>
+            <div>
+              <label for="calc-grasa-cadera">Cadera (cm)</label>
+              <input type="number" id="calc-grasa-cadera" class="input-field" value="98">
+            </div>
+            <div>
+              <label for="calc-grasa-genero">Género</label>
+              <select id="calc-grasa-genero" class="select-field">
+                <option value="h" selected>Masculino</option>
+                <option value="m">Femenino</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="btn-primary" style="background:#3b82f6; border-color:#3b82f6;" onclick="ejecutarCalcularGrasa()">📏 Calcular Composición Corporal</button>
+          <div id="res-calc-grasa" style="margin-top:20px;"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: ESTIMACIÓN DE 1RM Y ZONAS DE CARGA -->
+      <div id="tab-calc-1rm" class="tab-calc-content hidden">
+        <div class="card">
+          <h3 style="color:#fbbf24; font-family:var(--font-heading); margin-bottom:16px; font-size:18px;">🏋️ Repetición Máxima Estimada (1RM) y Zonas de Intensidad</h3>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
+            <div>
+              <label for="calc-1rm-ejercicio">Ejercicio Evaluado</label>
+              <input type="text" id="calc-1rm-ejercicio" class="input-field" value="Sentadilla Libre" placeholder="ej: Press Banca, Peso Muerto...">
+            </div>
+            <div>
+              <label for="calc-1rm-carga">Carga Levantada (kg)</label>
+              <input type="number" id="calc-1rm-carga" class="input-field" value="120" step="2.5">
+            </div>
+            <div>
+              <label for="calc-1rm-reps">Repeticiones Logradas (Reps)</label>
+              <input type="number" id="calc-1rm-reps" class="input-field" value="5" min="1" max="12">
+            </div>
+          </div>
+
+          <button class="btn-primary" style="background:#f59e0b; border-color:#f59e0b;" onclick="ejecutarCalcular1RM()">🏋️ Calcular 1RM y Zonas de Carga</button>
+          <div id="res-calc-1rm" style="margin-top:20px;"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 4: ZONAS DE FRECUENCIA CARDÍACA KARVONEN -->
+      <div id="tab-calc-cardio" class="tab-calc-content hidden">
+        <div class="card">
+          <h3 style="color:#ef4444; font-family:var(--font-heading); margin-bottom:16px; font-size:18px;">❤️ Zonas Cardíacas de Entrenamiento (Fórmula Karvonen / Tanaka)</h3>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
+            <div>
+              <label for="calc-cardio-edad">Edad (años)</label>
+              <input type="number" id="calc-cardio-edad" class="input-field" value="28">
+            </div>
+            <div>
+              <label for="calc-cardio-fcr">Frecuencia Cardíaca de Reposo (FCR bpm)</label>
+              <input type="number" id="calc-cardio-fcr" class="input-field" value="62" placeholder="ej: 60 - 70 bpm">
+            </div>
+          </div>
+
+          <button class="btn-primary" style="background:#ef4444; border-color:#ef4444;" onclick="ejecutarCalcularCardio()">❤️ Calcular Zonas Cardíacas Karvonen</button>
+          <div id="res-calc-cardio" style="margin-top:20px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. GENERAR PLAN -->
+    <section class="view" id="view-generate">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Rutina de Recomendación</h1>
+            <p class="page-subtitle">Algoritmo biomecánico para la prescripción de entrenamiento sin riesgo</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="grid-2">
+          <div>
+            <label for="gen-cliente-select">Seleccionar Cliente</label>
+            <select id="gen-cliente-select" class="select-field" style="margin-bottom:16px;" onchange="autoCompletarPerfilCliente(this.value)"></select>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">
+              <div>
+                <label for="gen-objetivo">Objetivo del Plan</label>
+                <select id="gen-objetivo" class="select-field">
+                  <option value="Hipertrofia Especifica">Hipertrofia Específica</option>
+                  <option value="Fuerza Máxima (Powerlifting)">Fuerza Máxima (Powerlifting)</option>
+                  <option value="Definición Estética">Definición Estética</option>
+                  <option value="Recondicionamiento">Rehabilitación & Salud</option>
+                </select>
+              </div>
+              <div>
+                <label for="gen-dias">Días Disponibles por Semana</label>
+                <select id="gen-dias" class="select-field">
+                  <option value="3">3 Días / Semana</option>
+                  <option value="4" selected>4 Días / Semana (Frecuencia 2)</option>
+                  <option value="5">5 Días / Semana (Push-Pull-Legs)</option>
+                  <option value="6">6 Días / Semana (Volumen Avanzado)</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="gen-lesion">Lesión o Condición Médica Detectada</label>
+            <input type="text" id="gen-lesion" class="input-field" placeholder="ej: Lumbalgia L5-S1, Tendinitis Rotuliana..." style="margin-bottom:16px;" oninput="actualizarIndicadorSeveridad()">
+
+            <label for="gen-severidad">Severidad / Restricción Biomecánica</label>
+            <select id="gen-severidad" class="select-field" style="margin-bottom:16px;" onchange="actualizarIndicadorSeveridad()">
+              <option value="ninguna">Sin restricciones (Atleta Sano)</option>
+              <option value="leve">Leve (Evitar molestias menores)</option>
+              <option value="moderada">Moderada (Restringir cargas axiales)</option>
+              <option value="severa">Severa (Protocolo Rehabilitación / Isometría)</option>
+            </select>
+
+            <!-- Restricciones de Patrón de Movimiento Específicas -->
+            <label style="margin-bottom:8px; display:block;">Patrones de Movimiento Restringidos</label>
+            <div class="checkbox-card-grid" style="margin-bottom:20px;">
+              <label class="checkbox-card">
+                <input type="checkbox" id="chk-lumbar" onchange="actualizarIndicadorSeveridad()">
+                <span>Evitar flexión lumbar bajo carga</span>
+              </label>
+              <label class="checkbox-card">
+                <input type="checkbox" id="chk-axial" onchange="actualizarIndicadorSeveridad()">
+                <span>Prohibir compresión vertical / trasnuca</span>
+              </label>
+              <label class="checkbox-card">
+                <input type="checkbox" id="chk-hombro" onchange="actualizarIndicadorSeveridad()">
+                <span>Limitar rotación externa de hombro</span>
+              </label>
+              <label class="checkbox-card">
+                <input type="checkbox" id="chk-rodilla" onchange="actualizarIndicadorSeveridad()">
+                <span>Restringir cizallamiento anterior (>90°)</span>
+              </label>
+            </div>
+
+            <!-- Indicador Dinámico de Severidad Biomecánica -->
+            <div id="gen-severidad-badge-box" style="margin-bottom:20px; padding:12px 14px; border-radius:var(--radius-md); background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.3); display:flex; align-items:center; gap:10px;">
+              <span id="gen-severidad-dot" style="width:10px; height:10px; border-radius:50%; background:#4ade80; display:inline-block; flex-shrink:0;"></span>
+              <div style="font-size:13px; color:#fff;" id="gen-severidad-text">🟢 <strong>Estado Sano:</strong> Cero restricciones articulares. Se permiten cargas axiales libres y progresiones intensas.</div>
+            </div>
+
+            <button class="btn-primary" style="width:100%; justify-content:center; padding:14px;" onclick="analizarYGenerarPlan()">⚡ Analizar biometría y generar recomendación de rutina</button>
+          </div>
+
+          <!-- PANEL DE DIAGNOSTICO BIOMECANICO AVANZADO -->
+          <div style="background:var(--bg-card); padding:24px; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; flex-direction:column; justify-content:space-between;" id="gen-resultado-box">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; color:var(--accent-green); font-family:var(--font-heading); font-size:18px;">📊 Diagnóstico Biomecánico de Carga</h3>
+                <span class="badge badge-green" id="diag-badge-status">Sistema Calibrado</span>
+              </div>
+              <p style="color:var(--text-muted); font-size:13px; margin-top:0; margin-bottom:20px;">Indicadores de estrés articular y tolerancia neuromuscular calculados dinámicamente:</p>
+
+              <!-- GAUGES METRICAS -->
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                    <span style="color:var(--text-muted);">Índice de Estrés Articular</span>
+                    <strong style="color:#4ade80;" id="gauge-estres-val">15% (Bajo)</strong>
+                  </div>
+                  <div class="gauge-track">
+                    <div class="gauge-fill" id="gauge-estres-fill" style="width:15%; background:#4ade80;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                    <span style="color:var(--text-muted);">Tolerancia a la Carga Axial</span>
+                    <strong style="color:#4ade80;" id="gauge-axial-val">95% (Óptima)</strong>
+                  </div>
+                  <div class="gauge-track">
+                    <div class="gauge-fill" id="gauge-axial-fill" style="width:95%; background:#4ade80;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                    <span style="color:var(--text-muted);">Fatiga Neuromuscular Estimada</span>
+                    <strong style="color:#60a5fa;" id="gauge-fatiga-val">RPE 7.5 / 10</strong>
+                  </div>
+                  <div class="gauge-track">
+                    <div class="gauge-fill" id="gauge-fatiga-fill" style="width:75%; background:#60a5fa;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); margin-top:24px;">
+              <div style="font-size:12px; color:var(--text-muted);">🛡️ <strong>Protocolo de Prescripción Activo:</strong></div>
+              <div style="font-size:13px; color:#fff; margin-top:4px;" id="diag-protocolo-desc">Distribución balanceada de volumen semanal con vectores libres y descanso suficiente entre series.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. PLANES -->
+    <section class="view" id="view-plans">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Planes Guardados</h1>
+            <p class="page-subtitle">Historial de programaciones creadas y listas para prescribir</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="card">
+        <div id="plans-list-container" style="display:flex; flex-direction:column; gap:16px;"></div>
+      </div>
+    </section>
+
+    <!-- 7. LESIONES & REHABILITACIÓN CLÍNICA -->
+    <section class="view" id="view-injuries">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Seguimiento de Lesiones y Rehabilitación Clínica</h1>
+            <p class="page-subtitle">Panel clínico de monitoreo, escala de dolor (VAS) y protocolos de restricción biomecánica</p>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="abrirModalLesion()">+ Registrar Condición</button>
+      </header>
+
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+        <input type="text" id="input-buscar-lesion" class="input-field" placeholder="🔍 Buscar por atleta, diagnóstico (ej: Lumbalgia, Tendinitis) o restricción..." onkeyup="filtrarLesionesTexto(this.value)">
+        
+        <div class="filter-tabs" id="injuries-zone-filters" style="margin-bottom:0; overflow-x:auto;">
+          <button class="filter-tab active" onclick="filtrarLesionesZona('todas', this)">Todas las Zonas</button>
+          <button class="filter-tab" onclick="filtrarLesionesZona('columna', this)">🦴 Columna / Lumbar</button>
+          <button class="filter-tab" onclick="filtrarLesionesZona('rodilla', this)">🦵 Rodilla</button>
+          <button class="filter-tab" onclick="filtrarLesionesZona('hombro', this)">💪 Hombro</button>
+          <button class="filter-tab" onclick="filtrarLesionesZona('cadera', this)">🩻 Cadera</button>
+          <button class="filter-tab" onclick="filtrarLesionesZona('tobillo', this)">🦶 Tobillo / Pie</button>
+        </div>
+      </div>
+
+      <div id="injuries-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;"></div>
+    </section>
+
+    <!-- 8. ADULTOS MAYORES & REHABILITACIÓN FUNCIONAL -->
+    <section class="view" id="view-seniors">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Adultos Mayores & Rehabilitación Funcional</h1>
+            <p class="page-subtitle">Prescripción de bajo impacto, fortalecimiento anti-sarcopenia, control osteoarticular y bitácora clínica</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn-secondary" onclick="abrirModalClienteGeriatrico()">+ Registrar Adulto Mayor</button>
+          <button class="btn-primary" style="background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="abrirBitacoraClinica('Carmen Ruiz')">🩺 Bitácora Clínica</button>
+        </div>
+      </header>
+
+      <!-- KPI METRICS GERIÁTRICOS -->
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card" style="border-left:4px solid #38bdf8;">
+          <div class="stat-value" style="color:#38bdf8;" id="metric-seniors-count">1</div>
+          <div class="stat-label">Adultos Mayores Activos</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #4ade80;">
+          <div class="stat-value" style="color:#4ade80;">100%</div>
+          <div class="stat-label">Cargas de Bajo Impacto</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #fbbf24;">
+          <div class="stat-value" style="color:#fbbf24;">2 / 10</div>
+          <div class="stat-label">EVA Promedio de Dolor</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--accent-green);">
+          <div class="stat-value" style="color:var(--accent-green);">12 reps</div>
+          <div class="stat-label">Chair Stand Test Promedio</div>
+        </div>
+      </div>
+
+      <!-- PANEL PRINCIPAL GERIÁTRICO -->
+      <div class="grid-2" style="margin-bottom:24px;">
+        <!-- LISTADO DE ATLETAS GERIÁTRICOS -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title" style="margin:0; font-size:18px; color:#fff;">👴 Directorio de Atletas de la Tercera Edad</h2>
+              <div style="font-size:12px; color:var(--text-muted);">Pacientes con evaluación de movilidad, sarcopenia y tensión arterial</div>
+            </div>
+            <button class="btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="renderSeniorsList()">🔄 Actualizar</button>
+          </div>
+          <div id="seniors-list-container" style="display:flex; flex-direction:column; gap:14px;"></div>
+        </div>
+
+        <!-- PROTOCOLOS CIENTÍFICOS & PREVENCIÓN DE CAÍDAS -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title" style="margin:0; font-size:18px; color:#fff;">📚 Guía de Prescripción & Seguridad Geriátrica</h2>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #38bdf8;">
+              <strong style="color:#38bdf8; font-size:13px;">1. Fortalecimiento Anti-Sarcopenia</strong>
+              <p style="color:var(--text-muted); font-size:12px; margin:4px 0 0 0; line-height:1.4;">
+                Priorizar movimientos en cadena cinética cerrada (Sit-to-Stand, puentes de glúteo y tracciones con bandas). Estimula la síntesis proteica muscular sin sobrecargar cartílagos desgastados.
+              </p>
+            </div>
+
+            <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #4ade80;">
+              <strong style="color:#4ade80; font-size:13px;">2. Estímulo Osteogénico (Osteoporosis / Osteopenia)</strong>
+              <p style="color:var(--text-muted); font-size:12px; margin:4px 0 0 0; line-height:1.4;">
+                Cargas axiales compresivas suaves controladas para fijación de calcio en huesos largos y vértebras. Cero impacto balístico o torsiones bruscas de columna.
+              </p>
+            </div>
+
+            <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #fbbf24;">
+              <strong style="color:#fbbf24; font-size:13px;">3. Prevención de Caídas & Propiocepción</strong>
+              <p style="color:var(--text-muted); font-size:12px; margin:4px 0 0 0; line-height:1.4;">
+                Ejercicios en apoyo tándem, marcha talón-punta y apoyos monopodales asistidos con barandilla para reactivar los reflejos vestibulares y plantares.
+              </p>
+            </div>
+
+            <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #f87171;">
+              <strong style="color:#f87171; font-size:13px;">4. Monitoreo Hemodinámico & Presión Arterial</strong>
+              <p style="color:var(--text-muted); font-size:12px; margin:4px 0 0 0; line-height:1.4;">
+                Evitar maniobras de Valsalva (aguantar la respiración). Fomentar la respiración continua en la fase concéntrica y descansos de 90-120 segundos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. BIBLIOTECA -->
+    <section class="view" id="view-library">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Biblioteca Biomecánica de Ejercicios</h1>
+            <p class="page-subtitle">Guía de ejecución técnica y análisis anatómico</p>
+          </div>
+        </div>
+      </header>
+
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+        <input type="text" id="input-buscar-ejercicio" class="input-field" placeholder="🔍 Buscar ejercicio por nombre, músculo (ej: Cuádriceps, Deltoides, Tríceps) o equipamiento (Barra, Polea, Máquina)..." onkeyup="filtrarBibliotecaTexto(this.value)">
+        
+        <!-- FILTRO 1: GRUPOS MUSCULARES -->
+        <div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">🎯 Grupo Muscular:</div>
+          <div class="filter-tabs" id="library-filters" style="margin-bottom:0; overflow-x:auto; flex-wrap:nowrap; padding-bottom:4px;">
+            <button class="filter-tab active" onclick="filtrarBiblioteca('todos', this)">Todos Músculos</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('cuadriceps', this)">🦵 Cuádriceps</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('isquiotibiales', this)">🦵 Isquiotibiales</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('gluteos', this)">🍑 Glúteos</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('pecho', this)">🛡️ Pecho</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('espalda', this)">🦅 Espalda & Dorsales</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('hombros', this)">💪 Hombros</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('biceps', this)">💪 Bíceps</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('triceps', this)">⚡ Tríceps</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('core', this)">🧱 Abdomen & Core</button>
+            <button class="filter-tab" onclick="filtrarBiblioteca('pantorrillas', this)">🦶 Pantorrillas</button>
+          </div>
+        </div>
+
+        <!-- FILTRO 2: EQUIPAMIENTO & RIESGO -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">⚙️ Equipamiento:</div>
+            <div class="filter-tabs" id="equipment-filters" style="margin-bottom:0; overflow-x:auto;">
+              <button class="filter-tab active" onclick="filtrarEquipamiento('todos', this)">Todo Equipamiento</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Barra', this)">🏋️ Barra</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Mancuerna', this)">🔩 Mancuernas</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Polea', this)">⚙️ Poleas</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Máquina', this)">🦾 Máquinas</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Peso Corporal', this)">🤸 Peso Corporal</button>
+              <button class="filter-tab" onclick="filtrarEquipamiento('Banda', this)">🎗️ Bandas</button>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">⚠️ Nivel de Riesgo:</div>
+            <div class="filter-tabs" id="risk-filters" style="margin-bottom:0;">
+              <button class="filter-tab active" onclick="filtrarRiesgo('todos', this)">Todos</button>
+              <button class="filter-tab" onclick="filtrarRiesgo('Bajo', this)">🟢 Bajo</button>
+              <button class="filter-tab" onclick="filtrarRiesgo('Moderado', this)">🟡 Moderado</button>
+              <button class="filter-tab" onclick="filtrarRiesgo('Alto', this)">🔴 Alto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="library-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;"></div>
+    </section>
+
+    <!-- 9. SUPLEMENTOS -->
+    <section class="view" id="view-supplements">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Guía Científica de Suplementación</h1>
+            <p class="page-subtitle">Protocolos respaldados por la International Society of Sports Nutrition (ISSN)</p>
+          </div>
+        </div>
+      </header>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <h3 style="color:#fff; font-size:18px; margin:0; font-family:var(--font-heading);">Monohidrato de Creatina</h3>
+              <div style="font-size:12px; color:var(--accent-green); font-weight:600; margin-top:2px;">Evidencia Nivel A (Fuerte)</div>
+            </div>
+            <span class="badge badge-green">Rendimiento / ATP</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px; line-height:1.5;">
+            Incrementa los depósitos de fosfocreatina intramuscular, mejorando la potencia en series pesadas y favoreciendo la hidratación celular.
+          </p>
+          <div style="background:var(--bg-surface); padding:10px 12px; border-radius:var(--radius-sm); font-size:12px; border-left:3px solid var(--accent-green);">
+            <strong style="color:#fff;">Protocolo:</strong> 3-5g diarios continuos post-entreno con carbohidratos.
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <h3 style="color:#fff; font-size:18px; margin:0; font-family:var(--font-heading);">Proteína Whey Isolate / Hidrolizada</h3>
+              <div style="font-size:12px; color:var(--accent-green); font-weight:600; margin-top:2px;">Evidencia Nivel A (Fuerte)</div>
+            </div>
+            <span class="badge badge-green">Síntesis MPS</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px; line-height:1.5;">
+            Alta concentración de leucina (~3g por servicio) para la activación óptima de la vía mTOR y recuperación tisular inmediata.
+          </p>
+          <div style="background:var(--bg-surface); padding:10px 12px; border-radius:var(--radius-sm); font-size:12px; border-left:3px solid var(--accent-green);">
+            <strong style="color:#fff;">Protocolo:</strong> 25-35g post-entrenamiento o entre comidas principales.
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <h3 style="color:#fff; font-size:18px; margin:0; font-family:var(--font-heading);">Cafeína Anhidra</h3>
+              <div style="font-size:12px; color:var(--accent-green); font-weight:600; margin-top:2px;">Evidencia Nivel A (Fuerte)</div>
+            </div>
+            <span class="badge badge-green">SNC & Enfoque</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px; line-height:1.5;">
+            Antagonista de los receptores de adenosina. Reduce la percepción de esfuerzo (RPE) y potencia el reclutamiento neuromuscular.
+          </p>
+          <div style="background:var(--bg-surface); padding:10px 12px; border-radius:var(--radius-sm); font-size:12px; border-left:3px solid var(--accent-green);">
+            <strong style="color:#fff;">Protocolo:</strong> 3-6 mg/kg de peso corporal 45-60 min antes de entrenar.
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <h3 style="color:#fff; font-size:18px; margin:0; font-family:var(--font-heading);">Beta-Alanina</h3>
+              <div style="font-size:12px; color:#60a5fa; font-weight:600; margin-top:2px;">Evidencia Nivel A (Buffering)</div>
+            </div>
+            <span class="badge badge-green">Buffer H+</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px; line-height:1.5;">
+            Precursor limitante de la carnosina muscular. Neutraliza los iones H+ retrasando la fatiga en esfuerzos de 60-240 segundos.
+          </p>
+          <div style="background:var(--bg-surface); padding:10px 12px; border-radius:var(--radius-sm); font-size:12px; border-left:3px solid #60a5fa;">
+            <strong style="color:#fff;">Protocolo:</strong> 3.2 - 6.4g/día divididos en tomas de 1.5g para evitar parestesia.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. DIETAS & NUTRICIÓN CIENTÍFICA -->
+    <section class="view" id="view-nutrition">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Gestión de Dietas & Nutrición Científica</h1>
+            <p class="page-subtitle">Prescripción metabólica de macronutrientes, menús diarios y periodización cíclica anti-estancamiento</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn-secondary" style="border-color:#38bdf8; color:#38bdf8;" onclick="abrirModalDietaManual()">
+            ✏️ + Crear Dieta Manual
+          </button>
+          <button class="btn-primary" onclick="navegarA('calculator'); cambiarTabCalculadora('tdee', document.getElementById('btn-tab-tdee'))">
+            ⚡ Generar Dieta Automática (TDEE)
+          </button>
+        </div>
+      </header>
+
+      <!-- TARJETAS DE RESUMEN NUTRICIONAL -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:28px;">
+        <div class="card" style="display:flex; align-items:center; gap:16px;">
+          <div style="width:46px; height:46px; border-radius:var(--radius-md); background:rgba(34, 197, 94, 0.15); display:flex; align-items:center; justify-content:center; font-size:22px;">🥗</div>
+          <div>
+            <div style="font-size:24px; font-weight:700; color:#fff;" id="stat-dietas-activas">0</div>
+            <div style="font-size:12px; color:var(--text-muted);">Dietas Activas Asignadas</div>
+          </div>
+        </div>
+        <div class="card" style="display:flex; align-items:center; gap:16px;">
+          <div style="width:46px; height:46px; border-radius:var(--radius-md); background:rgba(96, 165, 250, 0.15); display:flex; align-items:center; justify-content:center; font-size:22px;">🔥</div>
+          <div>
+            <div style="font-size:24px; font-weight:700; color:#60a5fa;" id="stat-calorias-promedio">2,480 kcal</div>
+            <div style="font-size:12px; color:var(--text-muted);">Calorías Promedio Prescritas</div>
+          </div>
+        </div>
+        <div class="card" style="display:flex; align-items:center; gap:16px;">
+          <div style="width:46px; height:46px; border-radius:var(--radius-md); background:rgba(251, 191, 36, 0.15); display:flex; align-items:center; justify-content:center; font-size:22px;">🥩</div>
+          <div>
+            <div style="font-size:24px; font-weight:700; color:#fbbf24;">2.2 g/kg</div>
+            <div style="font-size:12px; color:var(--text-muted);">Ratio Proteico Promedio</div>
+          </div>
+        </div>
+        <div class="card" style="display:flex; align-items:center; gap:16px;">
+          <div style="width:46px; height:46px; border-radius:var(--radius-md); background:rgba(168, 85, 247, 0.15); display:flex; align-items:center; justify-content:center; font-size:22px;">📈</div>
+          <div>
+            <div style="font-size:24px; font-weight:700; color:#c084fc;">94.2%</div>
+            <div style="font-size:12px; color:var(--text-muted);">Adherencia al Plan Nutricional</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTROS Y BÚSQUEDA DE DIETAS -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="filter-tab active" onclick="filtrarDietas('todos', this)">Todas las Dietas</button>
+          <button class="filter-tab" onclick="filtrarDietas('hipertrofia', this)">Hipertrofia (+Calorías)</button>
+          <button class="filter-tab" onclick="filtrarDietas('definicion', this)">Definición (Déficit)</button>
+          <button class="filter-tab" onclick="filtrarDietas('recomposicion', this)">Recomposición</button>
+        </div>
+        <input type="text" id="input-buscar-dieta" class="input-field" placeholder="🔍 Buscar por atleta o alimento..." style="max-width:280px;" onkeyup="filtrarDietasTexto(this.value)">
+      </div>
+
+      <!-- GRID DE PLANES NUTRICIONALES -->
+      <div id="nutrition-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:20px; margin-bottom:36px;"></div>
+
+      <!-- BIBLIOTECA DE ALIMENTOS BASE & FUENTES LIMPIAS DE MACROS -->
+      <div style="border-top:1px solid var(--border-color); padding-top:28px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="font-size:20px; color:#fff; margin:0; font-family:var(--font-heading);">🥑 Biblioteca de Alimentos Base & Fuentes Limpias</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin:4px 0 0 0;">Tabla de referencia rápida de macronutrientes y equivalencias por cada 100g de porción limpia</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="filter-tab active" onclick="filtrarAlimentosBase('todos', this)">Todos</button>
+            <button class="filter-tab" onclick="filtrarAlimentosBase('proteina', this)">🥩 Proteínas</button>
+            <button class="filter-tab" onclick="filtrarAlimentosBase('carbo', this)">🌾 Carbohidratos</button>
+            <button class="filter-tab" onclick="filtrarAlimentosBase('grasa', this)">🥑 Grasas Saludables</button>
+          </div>
+        </div>
+
+        <div id="alimentos-base-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:16px;"></div>
+      </div>
+    </section>
+
+    <!-- 11. ANALYTICS & EVOLUCIÓN DE RENDIMIENTO Y BIOMETRÍA -->
+    <section class="view" id="view-analytics">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard Pro" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>Analytics de Rendimiento & Biometría</h1>
+            <p class="page-subtitle">Progresión cronológica de peso, % grasa corporal y 1RM en levantamientos principales</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <label for="analytics-cliente-select" style="font-size:12px; color:var(--text-muted); margin:0;">Atleta:</label>
+          <select id="analytics-cliente-select" class="select-field" style="width:240px; margin:0;" onchange="renderAnalyticsAtleta(this.value)"></select>
+          <button class="btn-primary" style="font-size:12px; padding:6px 14px;" onclick="abrirModalRegistrarMetrica()">➕ Registrar Medición</button>
+        </div>
+      </header>
+
+      <!-- TARJETAS RESUMEN DE PROGRESIÓN Y DELTAS -->
+      <div id="analytics-summary-cards" class="stats-grid" style="margin-bottom:24px;"></div>
+
+      <!-- ALERTA INTELIGENTE DE ESTANCAMIENTO O SOBRECARGA DEL ATLETA SELECCIONADO -->
+      <div id="analytics-alert-container" style="margin-bottom:24px;"></div>
+
+      <!-- GRID DE GRÁFICAS INTERACTIVAS -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap:20px; margin-bottom:24px;">
+        <!-- GRÁFICA 1: COMPOSICIÓN CORPORAL (PESO & % GRASA) -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <h3 class="card-title" style="font-size:16px; margin:0; color:#fff;">⚖️ Composición Corporal: Peso vs % Grasa</h3>
+              <div style="font-size:12px; color:var(--text-muted);">Evolución mensual del peso (kg) y porcentaje graso</div>
+            </div>
+            <div style="display:flex; gap:12px; font-size:11px;">
+              <span style="color:#38bdf8; font-weight:600;">● Peso (kg)</span>
+              <span style="color:#fbbf24; font-weight:600;">● % Grasa</span>
+            </div>
+          </div>
+          <div id="chart-biometria-container" style="min-height:260px; position:relative;"></div>
+        </div>
+
+        <!-- GRÁFICA 2: PROGRESIÓN DE FUERZA MÁXIMA (1RM) -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <h3 class="card-title" style="font-size:16px; margin:0; color:var(--accent-green);">🏋️ Progresión de Fuerza Máxima (1RM Estimado)</h3>
+              <div style="font-size:12px; color:var(--text-muted);">Seguimiento de carga máxima en los levantamientos clave (kg)</div>
+            </div>
+            <div style="display:flex; gap:12px; font-size:11px;">
+              <span style="color:#4ade80; font-weight:600;">● Sentadilla</span>
+              <span style="color:#60a5fa; font-weight:600;">● Press Banca</span>
+              <span style="color:#f87171; font-weight:600;">● Peso Muerto</span>
+            </div>
+          </div>
+          <div id="chart-1rm-container" style="min-height:260px; position:relative;"></div>
+        </div>
+      </div>
+
+      <!-- HISTORIAL DE MEDICIONES TABULAR CON AUDITORÍA -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title" style="font-size:16px; margin:0; color:#fff;">📋 Historial Cronológico de Mediciones & Cargas</h3>
+            <div style="font-size:12px; color:var(--text-muted);">Registro detallado por mesociclos para auditoría biomecánica</div>
+          </div>
+          <button class="btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="exportarReporteAnalyticsCSV()">📥 Exportar Datos</button>
+        </div>
+        <div id="analytics-table-container" style="overflow-x:auto;"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================================== -->
+    <!-- 🏆 9. PORTAL EXCLUSIVO PARA EL ATLETA (VISTA PERSONALIZADA DE ALUMNO) -->
+    <!-- ============================================================================== -->
+    <section class="view" id="view-athlete-portal" style="max-width: 1100px; margin: 0 auto; padding-bottom: 40px;">
+      <!-- CABECERA PERSONALIZADA DEL ATLETA -->
+      <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(56, 189, 248, 0.08) 100%); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div id="athlete-portal-avatar" style="width: 58px; height: 58px; border-radius: 50%; background: rgba(34, 197, 94, 0.2); color: var(--accent-green); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; border: 2px solid var(--accent-green);">
+            CM
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <h1 id="athlete-portal-nombre" style="margin: 0; font-size: 22px; color: #fff;">Carlos Mendoza</h1>
+              <span class="badge badge-green" id="athlete-portal-badge-membresia">🟢 Membresía Activa</span>
+            </div>
+            <p id="athlete-portal-subtitulo" style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
+              🎯 <span id="athlete-portal-objetivo">Hipertrofia Muscular</span> • 🏢 <span id="athlete-portal-gym">FitPro Central Hub</span> • 🏋️ Entrenador: <strong style="color: #38bdf8;" id="athlete-portal-coach">Coach Master Pro</strong>
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-color: #38bdf8; color: #38bdf8;" onclick="abrirModalCambiarPasswordManual()">
+            🔑 Cambiar Mi Contraseña
+          </button>
+          <button type="button" class="btn-logout" style="padding: 8px 14px; font-size: 12px;" onclick="cerrarSesionSupabaseAuth(event)">
+            🚪 Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      <!-- TABS DE NAVEGACIÓN DENTRO DEL PORTAL DEL ATLETA -->
+      <div class="modal-tab-nav" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <button class="modal-tab-btn active" id="tab-portal-btn-rutina" onclick="cambiarPestañaPortalAtleta('rutina')">🏋️ Mi Rutina Biomecánica</button>
+        <button class="modal-tab-btn" id="tab-portal-btn-dieta" onclick="cambiarPestañaPortalAtleta('dieta')">🥗 Mi Plan Nutricional & Macros</button>
+        <button class="modal-tab-btn" id="tab-portal-btn-medidas" onclick="cambiarPestañaPortalAtleta('medidas')">📊 Mis Medidas & Progreso</button>
+      </div>
+
+      <!-- CONTENIDO 1: RUTINA BIOMECÁNICA DEL ATLETA -->
+      <div id="tab-portal-content-rutina">
+        <div id="athlete-portal-rutina-container">
+          <!-- Renderizado dinámico de la rutina del atleta -->
+        </div>
+      </div>
+
+      <!-- CONTENIDO 2: PLAN NUTRICIONAL & MACROS -->
+      <div id="tab-portal-content-dieta" class="hidden">
+        <div id="athlete-portal-dieta-container">
+          <!-- Renderizado dinámico de la dieta del atleta -->
+        </div>
+      </div>
+
+      <!-- CONTENIDO 3: MEDIDAS Y EVOLUCIÓN -->
+      <div id="tab-portal-content-medidas" class="hidden">
+        <div id="athlete-portal-medidas-container">
+          <!-- Renderizado dinámico de medidas y evolución -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL NUEVO CLIENTE PRO -->
+  <div class="modal-overlay hidden" id="modal-cliente">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);">Registrar Expediente de Atleta</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalCliente()">✕</button>
+      </div>
+
+      <!-- PESTAÑAS NAVEGACION DENTRO DEL MODAL -->
+      <div class="modal-tab-nav">
+        <button class="modal-tab-btn active" id="tab-cli-btn-personal" onclick="cambiarPestañaModalCliente('personal')">👤 Datos Personales</button>
+        <button class="modal-tab-btn" id="tab-cli-btn-biometria" onclick="cambiarPestañaModalCliente('biometria')">📏 Medidas Biométricas</button>
+        <button class="modal-tab-btn" id="tab-cli-btn-salud" onclick="cambiarPestañaModalCliente('salud')">🚑 Lesiones & Salud</button>
+        <button class="modal-tab-btn" id="tab-cli-btn-geriatria" onclick="cambiarPestañaModalCliente('geriatria')">👴 Evaluación Adulto Mayor</button>
+      </div>
+
+      <!-- PESTAÑA 1: DATOS PERSONALES -->
+      <div id="tab-cli-content-personal">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:16px;">
+          <div>
+            <label for="modal-nombre">Nombre Completo *</label>
+            <input type="text" id="modal-nombre" class="input-field" placeholder="ej: Carlos Mendoza">
+          </div>
+          <div>
+            <label for="modal-email">📧 Correo Electrónico (Acceso App Móvil) *</label>
+            <input type="email" id="modal-email" class="input-field" placeholder="ej: atleta@ejemplo.com">
+          </div>
+          <div>
+            <label for="modal-password">🔒 Contraseña App Móvil <span style="color:#38bdf8; font-size:11px;">(Autogenerada por defecto)</span></label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input type="password" id="modal-password" class="input-field" placeholder="Dejar en blanco para autogenerar clave temporal" autocomplete="new-password" style="padding-right:38px;">
+              <button type="button" class="password-toggle-btn" style="position:absolute; right:10px; background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;" onclick="alternarVisibilidadPasswordAtleta()" title="Mostrar/Ocultar Contraseña">👁️</button>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">✨ Si se deja vacía, se creará una clave segura con cambio obligatorio (must_change_password).</div>
+          </div>
+          <div>
+            <label for="modal-telefono">📱 Teléfono / WhatsApp</label>
+            <input type="tel" id="modal-telefono" class="input-field" placeholder="ej: +52 55 1234 5678">
+          </div>
+          <div>
+            <label for="modal-edad">Edad (Años)</label>
+            <input type="number" id="modal-edad" class="input-field" placeholder="ej: 28" value="28">
+          </div>
+          <div>
+            <label for="modal-genero">Género</label>
+            <select id="modal-genero" class="select-field">
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+          <div>
+            <label for="modal-objetivo">Objetivo Principal</label>
+            <select id="modal-objetivo" class="select-field">
+              <option value="Hipertrofia">Hipertrofia Muscular</option>
+              <option value="Definición">Pérdida de Grasa / Definición</option>
+              <option value="Fuerza">Fuerza Máxima (Powerlifting)</option>
+              <option value="Adulto Mayor / Fuerza Funcional">👴 Adulto Mayor / Fuerza Funcional</option>
+              <option value="Rehabilitación Articular">🩹 Rehabilitación Articular & Postural</option>
+            </select>
+          </div>
+          <div>
+            <label for="modal-nivel">Nivel de Experiencia</label>
+            <select id="modal-nivel" class="select-field">
+              <option value="Principiante">Principiante (0-1 años)</option>
+              <option value="Intermedio" selected>Intermedio (1-3 años)</option>
+              <option value="Avanzado">Avanzado (+3 años)</option>
+            </select>
+          </div>
+          <div>
+            <label for="modal-membresia">Estado de Membresía</label>
+            <select id="modal-membresia" class="select-field">
+              <option value="activa" selected>🟢 Membresía Activa</option>
+              <option value="por_vencer">🟡 Por Vencer (Próximos Días)</option>
+              <option value="vencida">🔴 Membresía Vencida</option>
+            </select>
+          </div>
+          <div>
+            <label for="modal-entrenador">Entrenador Responsable</label>
+            <select id="modal-entrenador" class="select-field">
+              <option value="Coach Master Pro" selected>🏋️ Coach Master Pro</option>
+              <option value="Lic. Roberto Silva">🩺 Lic. Roberto Silva (Rehab)</option>
+              <option value="Coach Elena Vega">🥗 Coach Elena Vega (Nutri/Hipertrofia)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 2: MEDIDAS BIOMETRICAS POR EXTREMIDAD -->
+      <div id="tab-cli-content-biometria" class="hidden">
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Métricas corporales iniciales e índices de composición:</div>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:16px;">
+          <div>
+            <label for="modal-peso">Peso (kg)</label>
+            <input type="number" step="0.1" id="modal-peso" class="input-field" placeholder="ej: 78.5" value="78.5">
+          </div>
+          <div>
+            <label for="modal-altura">Estatura (cm)</label>
+            <input type="number" id="modal-altura" class="input-field" placeholder="ej: 178" value="178">
+          </div>
+          <div>
+            <label for="modal-grasa">% Grasa Corporal</label>
+            <input type="number" step="0.1" id="modal-grasa" class="input-field" placeholder="ej: 15.2" value="15.2">
+          </div>
+          <div>
+            <label for="modal-musculo">% Masa Muscular</label>
+            <input type="number" step="0.1" id="modal-musculo" class="input-field" placeholder="ej: 44.0" value="44.0">
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">Perímetros Centrales (cm):</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px;">
+          <div>
+            <label for="modal-perim-cintura">Cintura (cm)</label>
+            <input type="number" id="modal-perim-cintura" class="input-field" placeholder="ej: 82" value="82">
+          </div>
+          <div>
+            <label for="modal-perim-pecho">Pecho (cm)</label>
+            <input type="number" id="modal-perim-pecho" class="input-field" placeholder="ej: 104" value="104">
+          </div>
+          <div>
+            <label for="modal-perim-cadera">Cadera (cm)</label>
+            <input type="number" id="modal-perim-cadera" class="input-field" placeholder="ej: 98" value="98">
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:var(--accent-green); font-weight:600; margin-bottom:8px;">📐 Segmentación por Extremidad (Bilateral Izquierda / Derecha):</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:20px;">
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--text-muted);">Brazo Izquierdo (cm)</label>
+            <input type="number" step="0.5" id="modal-brazo-izq" class="input-field" placeholder="ej: 37.5" value="37.5">
+          </div>
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--accent-green);">Brazo Derecho (cm)</label>
+            <input type="number" step="0.5" id="modal-brazo-der" class="input-field" placeholder="ej: 38.0" value="38.0">
+          </div>
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--text-muted);">Muslo Izquierdo (cm)</label>
+            <input type="number" step="0.5" id="modal-muslo-izq" class="input-field" placeholder="ej: 59.5" value="59.5">
+          </div>
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--accent-green);">Muslo Derecho (cm)</label>
+            <input type="number" step="0.5" id="modal-muslo-der" class="input-field" placeholder="ej: 60.0" value="60.0">
+          </div>
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--text-muted);">Pantorrilla Izquierda (cm)</label>
+            <input type="number" step="0.5" id="modal-pantorrilla-izq" class="input-field" placeholder="ej: 38.0" value="38.0">
+          </div>
+          <div style="background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <label style="font-size:11px; color:var(--accent-green);">Pantorrilla Derecha (cm)</label>
+            <input type="number" step="0.5" id="modal-pantorrilla-der" class="input-field" placeholder="ej: 38.5" value="38.5">
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: LESIONES Y ENFERMEDADES DINAMICAS -->
+      <div id="tab-cli-content-salud" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-size:13px; color:#fff; font-weight:600;">🚑 Lesiones y Diagnósticos Articulares Específicos:</div>
+          <button class="btn-secondary" style="font-size:12px; padding:4px 10px;" onclick="agregarFilaLesionModal()">+ Añadir lesión</button>
+        </div>
+        
+        <div id="modal-lesiones-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+          <div class="fila-lesion-modal" style="display:flex; gap:10px; align-items:center;">
+            <input type="text" class="input-field input-lesion-condicion" placeholder="ej: Lumbalgia L5-S1, Tendinitis Hombro..." style="flex:2;">
+            <select class="select-field input-lesion-severidad" style="flex:1;">
+              <option value="leve">Leve (Monitoreo)</option>
+              <option value="moderada" selected>Moderada (Descarga Axial)</option>
+              <option value="severa">Severa (Rehabilitación Isométrica)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">🏥 Condiciones Médicas y Enfermedades Concurrentes:</div>
+        <div class="checkbox-card-grid" style="margin-bottom:12px;">
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-enfermedad" value="Hipertensión Arterial">
+            <span>Hipertensión Arterial</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-enfermedad" value="Asma Bronquial">
+            <span>Asma Bronquial</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-enfermedad" value="Diabetes Tipo 2">
+            <span>Diabetes Tipo 2</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-enfermedad" value="Hipotiroidismo">
+            <span>Hipotiroidismo</span>
+          </label>
+        </div>
+
+        <div id="container-enfermedades-personalizadas" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
+
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+          <input type="text" id="input-nueva-enfermedad" class="input-field" placeholder="Escribir otra condición médica (ej: Arritmia, Hernia Hiatal)..." style="flex:1;">
+          <button class="btn-secondary" style="white-space:nowrap; padding:8px 14px; font-size:12px;" onclick="agregarEnfermedadPersonalizada()">+ Añadir enfermedad</button>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 4: EVALUACIÓN ESPECIALIZADA ADULTO MAYOR & REHABILITACIÓN FUNCIONAL -->
+      <div id="tab-cli-content-geriatria" class="hidden">
+        <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); padding:14px; border-radius:var(--radius-md); margin-bottom:18px;">
+          <div style="color:#38bdf8; font-weight:700; font-size:14px; margin-bottom:4px;">👴 Protocolo Clínico Geriátrico & Rehabilitación Funcional</div>
+          <div style="color:var(--text-muted); font-size:12px; line-height:1.4;">
+            Parámetros de seguridad neuromuscular para prescribir cargas de bajo impacto, prevención de caídas y estimulación anti-sarcopenia.
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+          <div>
+            <label for="modal-ger-movilidad">Movilidad Articular (ROM / Rigidez)</label>
+            <select id="modal-ger-movilidad" class="select-field">
+              <option value="funcional">🟢 Movilidad Funcional Completa (Sin dolor)</option>
+              <option value="moderada" selected>🟡 Rigidez Moderada (Matutina / Articular)</option>
+              <option value="limitada">🔴 Limitación Severa / Rango Acortado</option>
+            </select>
+          </div>
+          <div>
+            <label for="modal-ger-equilibrio">Equilibrio & Riesgo de Caídas (Test Tinetti / Berg)</label>
+            <select id="modal-ger-equilibrio" class="select-field">
+              <option value="bajo">🟢 Bajo Riesgo / Marcha Estable</option>
+              <option value="moderado" selected>🟡 Riesgo Moderado (Inestabilidad ocasional)</option>
+              <option value="alto">🔴 Alto Riesgo de Caídas (Requiere Apoyo)</option>
+            </select>
+          </div>
+          <div>
+            <label for="modal-ger-sarcopenia">Grado de Sarcopenia (Fuerza / SARC-F)</label>
+            <select id="modal-ger-sarcopenia" class="select-field">
+              <option value="no">🟢 Sin Sarcopenia Aparente (Fuerza conservada)</option>
+              <option value="leve" selected>🟡 Sarcopenia Leve / Fatiga Precoz</option>
+              <option value="moderada">🔴 Sarcopenia Moderada a Severa</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">🦴 Patologías Óseas y Osteoarticulares:</div>
+        <div class="checkbox-card-grid" style="margin-bottom:16px;">
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-patologia-osea" value="Osteoporosis">
+            <span>🦴 Osteoporosis</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-patologia-osea" value="Osteopenia">
+            <span>🦴 Osteopenia</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-patologia-osea" value="Artrosis de Rodilla / Cadera">
+            <span>🩹 Artrosis Rodilla / Cadera</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-patologia-osea" value="Estenosis Lumbar">
+            <span>⚠️ Estenosis Lumbar / Columna</span>
+          </label>
+          <label class="checkbox-card">
+            <input type="checkbox" class="chk-patologia-osea" value="Prótesis / Reemplazo Articular">
+            <span>🔩 Prótesis / Reemplazo</span>
+          </label>
+        </div>
+
+        <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">❤️ Control de Tensión Arterial & Seguridad Cardiovascular:</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:20px;">
+          <div>
+            <label for="modal-ger-pa-sistolica">Presión Sistólica (mmHg)</label>
+            <input type="number" id="modal-ger-pa-sistolica" class="input-field" placeholder="ej: 125" value="125">
+          </div>
+          <div>
+            <label for="modal-ger-pa-diastolica">Presión Diastólica (mmHg)</label>
+            <input type="number" id="modal-ger-pa-diastolica" class="input-field" placeholder="ej: 80" value="80">
+          </div>
+          <div>
+            <label for="modal-ger-medicacion">Medicación Cardiovascular / Tensión</label>
+            <select id="modal-ger-medicacion" class="select-field">
+              <option value="controlada">🟢 Tensión Controlada con Fármaco</option>
+              <option value="sin_farmaco">🟢 Normotenso (Sin medicación)</option>
+              <option value="en_ajuste">🟡 En ajuste terapéutico</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px; margin-top:8px;">
+        <button class="btn-secondary" onclick="cerrarModalCliente()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarCliente()">💾 Guardar Expediente Completo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RESULTADO PLAN GENERADO -->
+  <div class="modal-overlay hidden" id="modal-plan-resultado">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);">⚡ Plan Prescrito con Motor Biomecánico</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalPlan()">✕</button>
+      </div>
+      <div id="modal-plan-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRAR LESIÓN -->
+  <div class="modal-overlay hidden" id="modal-lesion">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#f87171;">🚑 Registrar Condición / Lesión</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalLesion()">✕</button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="modal-lesion-cliente">Atleta / Cliente</label>
+        <select id="modal-lesion-cliente" class="select-field"></select>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:16px;">
+        <div>
+          <label for="modal-lesion-condicion">Condición Médica o Diagnóstico</label>
+          <input type="text" id="modal-lesion-condicion" class="input-field" placeholder="ej: Lumbalgia L5-S1, Tendinitis Rotuliana...">
+        </div>
+        <div>
+          <label for="modal-lesion-zona">Zona Articular</label>
+          <select id="modal-lesion-zona" class="select-field">
+            <option value="columna">🦴 Columna / Lumbar</option>
+            <option value="rodilla">🦵 Rodilla / Menisco</option>
+            <option value="hombro">💪 Hombro / Manguito</option>
+            <option value="cadera">🩻 Cadera / Pelvis</option>
+            <option value="tobillo">🦶 Tobillo / Aquiles</option>
+            <option value="otro">🩹 Otra Zona</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">
+        <div>
+          <label for="modal-lesion-severidad">Severidad Biomecánica</label>
+          <select id="modal-lesion-severidad" class="select-field">
+            <option value="leve">Leve (Molestia articular menor)</option>
+            <option value="moderada" selected>Moderada (Restricción de cargas axiales)</option>
+            <option value="severa">Severa (Protocolo Rehabilitación / Isometría)</option>
+          </select>
+        </div>
+        <div>
+          <label for="modal-lesion-eva" style="display:flex; justify-content:space-between; font-size:12px;">
+            <span>Escala de Dolor (VAS 1-10):</span>
+            <strong id="lbl-lesion-eva" style="color:#fbbf24;">4 / 10 (Moderado)</strong>
+          </label>
+          <input type="range" id="modal-lesion-eva" min="1" max="10" value="4" class="input-field" style="padding:0; cursor:pointer;" oninput="actualizarTextoLesionEva(this.value)">
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="modal-lesion-contraindicados">🚫 Ejercicios Contraindicados Automáticos</label>
+        <input type="text" id="modal-lesion-contraindicados" class="input-field" placeholder="ej: Sentadillas libres, Peso muerto convencional, Press militar trasnuca">
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <label for="modal-lesion-recomendaciones">Recomendaciones & Protocolos Sustitutos</label>
+        <textarea id="modal-lesion-recomendaciones" class="input-field" rows="2" placeholder="ej: Priorizar prensa guiada a 90°, trabajo isométrico de vasto interno y descargas axiales."></textarea>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn-secondary" onclick="cerrarModalLesion()">Cancelar</button>
+        <button class="btn-primary" style="background:var(--danger); color:#fff;" onclick="guardarLesion()">Guardar Condición Clínica</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE DE METRICAS DEL DASHBOARD -->
+  <div class="modal-overlay hidden" id="modal-stat-detalle">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--text-main);" id="modal-stat-title">Detalle de Métrica</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalStat()">✕</button>
+      </div>
+      <div id="modal-stat-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL EXPEDIENTE DETALLADO DEL ATLETA -->
+  <div class="modal-overlay hidden" id="modal-cliente-detalle">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);" id="modal-detalle-nombre">Expediente del Atleta</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarDetalleCliente()">✕</button>
+      </div>
+      <div id="modal-detalle-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DISEÑO Y CONFIGURACIÓN MANUAL DE PLAN -->
+  <div class="modal-overlay hidden" id="modal-plan-manual">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#60a5fa;">✏️ Configurar y Diseñar Plan Manualmente</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalPlanManual()">✕</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="manual-cliente-select">Atleta / Cliente *</label>
+          <select id="manual-cliente-select" class="select-field"></select>
+        </div>
+        <div>
+          <label for="manual-metodo">Nombre / Metodología del Plan</label>
+          <input type="text" id="manual-metodo" class="input-field" placeholder="ej: Rutina Personalizada Fase 1 - Fuerza" value="Plan Diseñado Manualmente">
+        </div>
+        <div>
+          <label for="manual-objetivo">Objetivo Asociado</label>
+          <select id="manual-objetivo" class="select-field">
+            <option value="Hipertrofia Especifica">Hipertrofia Específica</option>
+            <option value="Fuerza Máxima (Powerlifting)">Fuerza Máxima</option>
+            <option value="Definición Estética">Definición Estética</option>
+            <option value="Recondicionamiento">Rehabilitación & Salud</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:14px; color:#fff; font-weight:600;">🏋️ Ejercicios y Prescripción por Filas:</div>
+        <button class="btn-secondary" style="font-size:12px; padding:4px 10px;" onclick="agregarFilaEjercicioManual()">+ Añadir Ejercicio</button>
+      </div>
+
+      <div id="manual-ejercicios-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px; max-height:320px; overflow-y:auto; padding-right:6px;">
+        <!-- Fila Inicial por Defecto -->
+        <div class="fila-ejercicio-manual" style="display:flex; gap:10px; align-items:center; background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+          <input type="text" class="input-field input-ejercicio-nombre" placeholder="Nombre Ejercicio (ej: Press Inclinado)" style="flex:2;">
+          <input type="text" class="input-field input-ejercicio-series" placeholder="Series x Reps (ej: 4x10)" style="flex:1;">
+          <input type="text" class="input-field input-ejercicio-carga" placeholder="Carga / RPE (ej: 75kg RPE 8)" style="flex:1;">
+          <input type="text" class="input-field input-ejercicio-nota" placeholder="Táctica / Indicaciones" style="flex:1.5;">
+          <button style="background:transparent; border:none; color:var(--danger); font-size:18px; cursor:pointer;" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+        <button class="btn-secondary" onclick="cerrarModalPlanManual()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarPlanManual()">💾 Guardar Plan en Cartera del Atleta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRAR PAGO Y COBRO FINANCIERO -->
+  <div class="modal-overlay hidden" id="modal-pago">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);">⚡ Registrar Transacción o Cobro</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalNuevoPago()">✕</button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="pago-cliente-select">Atleta / Cliente *</label>
+        <select id="pago-cliente-select" class="select-field"></select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="pago-concepto">Concepto de Cobro / Servicio</label>
+        <select id="pago-concepto" class="select-field">
+          <option value="Membresía Mensual Pro">Membresía Mensual Pro</option>
+          <option value="Asesoría Biomecánica & Nutrición">Asesoría Biomecánica & Nutrición</option>
+          <option value="Plan Personalizado de Entrenamiento">Plan Personalizado de Entrenamiento</option>
+          <option value="Evaluación Antropométrica">Evaluación Antropométrica</option>
+        </select>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">
+        <div>
+          <label for="pago-monto">Monto ($ USD) *</label>
+          <input type="number" step="5" id="pago-monto" class="input-field" placeholder="ej: 75.00" value="75.00">
+        </div>
+        <div>
+          <label for="pago-metodo">Método de Pago</label>
+          <select id="pago-metodo" class="select-field">
+            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Tarjeta de Crédito / Débito">Tarjeta de Crédito / Débito</option>
+            <option value="Stripe / PayPal">Stripe / PayPal</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:24px;">
+        <div>
+          <label for="pago-estado">Estado del Pago</label>
+          <select id="pago-estado" class="select-field">
+            <option value="pagado" selected>🟢 Pagado (Regularizado)</option>
+            <option value="pendiente">🟡 Pendiente por Cobrar</option>
+            <option value="atrasado">🔴 Atrasado / Moroso</option>
+          </select>
+        </div>
+        <div>
+          <label for="pago-fecha">Fecha del Pago</label>
+          <input type="date" id="pago-fecha" class="input-field">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn-secondary" onclick="cerrarModalNuevoPago()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarNuevoPago()">💾 Guardar Transacción</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CREADOR MANUAL DE DIETAS -->
+  <div class="modal-overlay hidden" id="modal-dieta-manual">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#38bdf8;">✏️ Creador Manual de Dietas & Nutrición</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalDietaManual()">✕</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="dieta-cliente-select">Atleta / Cliente *</label>
+          <select id="dieta-cliente-select" class="select-field"></select>
+        </div>
+        <div>
+          <label for="dieta-nombre">Nombre del Plan Nutricional</label>
+          <input type="text" id="dieta-nombre" class="input-field" placeholder="ej: Plan Alta Proteína & Carga" value="Plan Nutricional Personalizado">
+        </div>
+        <div>
+          <label for="dieta-objetivo">Objetivo Metabólico</label>
+          <select id="dieta-objetivo" class="select-field">
+            <option value="Hipertrofia">Hipertrofia (+Superávit)</option>
+            <option value="Definición">Definición (-Déficit)</option>
+            <option value="Recomposición">Recomposición Corporal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- METRICAS DE MACRONUTRIENTES OBJETIVO -->
+      <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">🎯 Metas Diarias de Macronutrientes:</div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-bottom:16px;">
+        <div>
+          <label for="dieta-kcal" style="font-size:11px; color:#fff;">Calorías Totales (kcal)</label>
+          <input type="number" id="dieta-kcal" class="input-field" placeholder="ej: 2500" value="2500">
+        </div>
+        <div>
+          <label for="dieta-proteina" style="font-size:11px; color:#4ade80;">Proteínas (g)</label>
+          <input type="number" id="dieta-proteina" class="input-field" placeholder="ej: 175" value="175">
+        </div>
+        <div>
+          <label for="dieta-carbo" style="font-size:11px; color:#60a5fa;">Carbohidratos (g)</label>
+          <input type="number" id="dieta-carbo" class="input-field" placeholder="ej: 280" value="280">
+        </div>
+        <div>
+          <label for="dieta-grasa" style="font-size:11px; color:#fbbf24;">Grasas (g)</label>
+          <input type="number" id="dieta-grasa" class="input-field" placeholder="ej: 70" value="70">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:14px; color:#fff; font-weight:600;">🍲 Tiempos de Comida y Menús por Filas:</div>
+        <button class="btn-secondary" style="font-size:12px; padding:4px 10px;" onclick="agregarFilaComidaManual()">+ Añadir Comida</button>
+      </div>
+
+      <div id="manual-comidas-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px; max-height:280px; overflow-y:auto; padding-right:6px;">
+        <!-- Fila Inicial por Defecto -->
+        <div class="fila-comida-manual" style="display:flex; gap:10px; align-items:center; background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+          <input type="text" class="input-field input-comida-tiempo" placeholder="Tiempo (ej: Desayuno 8:00 AM)" style="flex:1.2;" value="🌅 Desayuno (8:00 AM)">
+          <input type="text" class="input-field input-comida-alimento" placeholder="Alimentos & Gramaje" style="flex:2.5;" value="100g Avena integral + 4 Huevos revueltos + 1 Plátano">
+          <input type="text" class="input-field input-comida-macros" placeholder="Macros / Kcal" style="flex:1.8;" value="650 kcal • 38g P / 75g C / 18g G">
+          <button style="background:transparent; border:none; color:var(--danger); font-size:18px; cursor:pointer;" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+        <button class="btn-secondary" onclick="cerrarModalDietaManual()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarDietaManual()">💾 Guardar Dieta en Cartera del Atleta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE & RESULTADO DE DIETA -->
+  <div class="modal-overlay hidden" id="modal-dieta-resultado">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);" id="modal-dieta-titulo">🥗 Plan Nutricional Científico</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarDetalleDieta()">✕</button>
+      </div>
+      <div id="modal-dieta-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL SUBIR DICTAMEN MÉDICO O ADJUNTAR DIAGNÓSTICO -->
+  <div class="modal-overlay hidden" id="modal-subir-dictamen">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#38bdf8;">📁 Adjuntar Dictamen Médico & Diagnóstico</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalSubirDictamen()">✕</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="modal-doc-cliente">Atleta / Paciente</label>
+          <select id="modal-doc-cliente" class="select-field"></select>
+        </div>
+        <div>
+          <label for="modal-doc-tipo">Tipo de Documento Médico</label>
+          <select id="modal-doc-tipo" class="select-field">
+            <option value="Resonancia Magnética (RMN)">🩻 Resonancia Magnética (RMN)</option>
+            <option value="Radiografía / Imagen">🦴 Radiografía / Rayos X</option>
+            <option value="Dictamen / Alta Fisioterapéutica">🩹 Dictamen / Alta Fisioterapéutica</option>
+            <option value="Informe Traumatológico">🩺 Informe Traumatológico / Ortopedia</option>
+            <option value="Autorización Médica Geriátrica">👴 Autorización Médica Geriátrica</option>
+            <option value="Analítica / Prueba Esfuerzo">❤️ Analítica Sanguínea / Prueba Esfuerzo</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="modal-doc-titulo">Título / Diagnóstico Principal del Estudio</label>
+          <input type="text" id="modal-doc-titulo" class="input-field" placeholder="ej: RMN Lumbar L5-S1 - Control Post-Tratamiento">
+        </div>
+        <div>
+          <label for="modal-doc-fecha">Fecha del Dictamen</label>
+          <input type="date" id="modal-doc-fecha" class="input-field">
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="modal-doc-medico">Médico Especialista / Centro de Salud</label>
+        <input type="text" id="modal-doc-medico" class="input-field" placeholder="ej: Dr. Manuel Santos (Traumatología y Deporte) - Clínica San Rafael">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="modal-doc-file">Cargar Archivo Digital (PDF, Imagen, Radiografía)</label>
+        <input type="file" id="modal-doc-file" accept=".pdf,image/*,.doc,.docx" class="input-field" style="padding:8px;" onchange="procesarArchivoMedicoSeleccionado(this)">
+        <div id="modal-doc-file-status" style="font-size:12px; color:var(--text-muted); margin-top:4px;">Formatos admitidos: PDF, JPG, PNG, WEBP, DOCX (Hasta 25MB)</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="modal-doc-notas">Conclusiones Médicas & Pautas de Entrenamiento</label>
+        <textarea id="modal-doc-notas" class="input-field" rows="3" placeholder="ej: Paciente autorizado para readaptación de fuerza. Se contraindica la compresión vertical axial sobre 30kg. Foco en isometría y cadena cerrada."></textarea>
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <label class="checkbox-card" style="padding:12px;">
+          <input type="checkbox" id="modal-doc-restriccion" checked>
+          <span style="font-size:13px; color:#fff;">⚠️ Conectar automáticamente con el Motor Biomecánico para restringir ejercicios de riesgo</span>
+        </label>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+        <button class="btn-secondary" onclick="cerrarModalSubirDictamen()">Cancelar</button>
+        <button class="btn-primary" style="background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="guardarDocumentoMedico()">💾 Guardar & Respaldar Dictamen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VISOR DE DOCUMENTO MÉDICO ADJUNTO -->
+  <div class="modal-overlay hidden" id="modal-visor-documento">
+    <div class="modal-content modal-content-lg" style="max-width:850px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">📑</span>
+          <h2 style="font-family:var(--font-heading); margin:0; font-size:20px; color:#fff;" id="modal-visor-doc-titulo">Visor Clínico de Dictamen</h2>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarVisorDocumento()">✕</button>
+      </div>
+
+      <div id="modal-visor-doc-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL BITÁCORA CLÍNICA Y EVOLUCIÓN GERIÁTRICA -->
+  <div class="modal-overlay hidden" id="modal-bitacora-clinica">
+    <div class="modal-content modal-content-lg">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#38bdf8;" id="modal-bitacora-titulo">🩺 Bitácora Clínica de Seguimiento Geriátrico & Rehabilitación</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalBitacora()">✕</button>
+      </div>
+
+      <div id="modal-bitacora-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRAR MEDICIÓN MENSUAL / 1RM -->
+  <div class="modal-overlay hidden" id="modal-registrar-metrica">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:var(--accent-green);">📈 Registrar Nueva Medición & Cargas</h2>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalRegistrarMetrica()">✕</button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="metrica-cliente-select">Atleta / Cliente</label>
+        <select id="metrica-cliente-select" class="select-field"></select>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="metrica-fecha">Fecha de Evaluación</label>
+          <input type="date" id="metrica-fecha" class="input-field">
+        </div>
+        <div>
+          <label for="metrica-mesociclo">Mesociclo #</label>
+          <input type="number" id="metrica-mesociclo" class="input-field" value="3" min="1">
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:16px;">
+        <div>
+          <label for="metrica-peso">Peso Corporal (kg)</label>
+          <input type="number" id="metrica-peso" class="input-field" step="0.1" placeholder="ej: 82.5">
+        </div>
+        <div>
+          <label for="metrica-grasa">% Grasa Corporal</label>
+          <input type="number" id="metrica-grasa" class="input-field" step="0.1" placeholder="ej: 14.5">
+        </div>
+      </div>
+
+      <div style="font-size:13px; color:#fff; font-weight:600; margin-bottom:8px;">🏋️ Cargas Máximas 1RM Estimadas (kg):</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:20px;">
+        <div>
+          <label for="metrica-1rm-sentadilla" style="color:#4ade80; font-size:11px;">Sentadilla (1RM)</label>
+          <input type="number" id="metrica-1rm-sentadilla" class="input-field" placeholder="140">
+        </div>
+        <div>
+          <label for="metrica-1rm-banca" style="color:#60a5fa; font-size:11px;">Press Banca (1RM)</label>
+          <input type="number" id="metrica-1rm-banca" class="input-field" placeholder="105">
+        </div>
+        <div>
+          <label for="metrica-1rm-muerto" style="color:#f87171; font-size:11px;">Peso Muerto (1RM)</label>
+          <input type="number" id="metrica-1rm-muerto" class="input-field" placeholder="170">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+        <button class="btn-secondary" onclick="cerrarModalRegistrarMetrica()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarNuevaMetrica()">💾 Guardar Medición</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE ACCIONES PROACTIVAS (DELOAD, RENOVACIÓN, ETC) -->
+  <div class="modal-overlay hidden" id="modal-confirmacion-accion">
+    <div class="modal-content" style="max-width: 520px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div id="modal-conf-icono-box" style="width:42px; height:42px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:22px; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); flex-shrink:0;">⚡</div>
+          <div>
+            <h2 style="font-family:var(--font-heading); margin:0; font-size:18px; color:#fff;" id="modal-conf-titulo">Confirmar Intervención Proactiva</h2>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;" id="modal-conf-subtitulo">Ajuste biomecánico programado para el atleta</div>
+          </div>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalConfirmacionAccion()">✕</button>
+      </div>
+
+      <!-- STATUS & SEVERIDAD BADGE -->
+      <div id="modal-conf-badge-container" style="margin-bottom:14px;"></div>
+
+      <!-- DESGLOSE TÉCNICO -->
+      <div id="modal-conf-desglose" style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px; font-size:13px; line-height:1.5;"></div>
+
+  <!-- MODAL DE INSTRUCCIÓN DE ADJUNCIÓN MANUAL WHATSAPP -->
+  <div class="modal-overlay hidden" id="modal-instruccion-whatsapp" style="z-index: 100050;">
+    <div class="modal-content" style="max-width: 520px; border-top: 4px solid #22c55e;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:44px; height:44px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:22px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); flex-shrink:0;">📲</div>
+          <div>
+            <h2 style="font-family:var(--font-heading); margin:0; font-size:18px; color:#fff;" id="modal-wa-titulo">PDF Descargado & Chat Abierto</h2>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Paso final para compartir la pauta con tu atleta</div>
+          </div>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalInstruccionWhatsApp()">✕</button>
+      </div>
+
+      <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25); border-radius:var(--radius-md); padding:14px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; color:#4ade80; font-weight:700; font-size:14px; margin-bottom:6px;">
+          <span>✅</span> <span id="modal-wa-nombre-archivo">Plan_Entrenamiento.pdf</span>
+        </div>
+        <div style="color:#e4e4e7; font-size:13px; line-height:1.5;">
+          <strong>¡PDF generado y descargado con éxito!</strong> Se ha abierto el chat de WhatsApp con el mensaje estructurado.
+        </div>
+      </div>
+
+      <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px; font-size:13px; line-height:1.6;">
+        <div style="font-weight:700; color:#fff; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span>📎</span> Instrucción para el Entrenador:
+        </div>
+        <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #22c55e; color:#e4e4e7; font-size:13.5px; line-height:1.5;">
+          👉 <strong>Por favor, arrastra o adjunta el archivo PDF recién descargado para enviarlo a tu atleta</strong> en la pestaña o ventana de WhatsApp que se acaba de abrir.
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:14px;">
+        <button class="btn-secondary" onclick="cerrarModalInstruccionWhatsApp()">Cerrar</button>
+        <button class="btn-primary" style="background:#22c55e; border-color:#22c55e; color:#000; font-weight:700;" onclick="cerrarModalInstruccionWhatsApp()">✅ ¡Entendido! Ir a WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ENVÍO POR CORREO ELECTRÓNICO ESTABLE Y SEGURO -->
+  <div class="modal-overlay hidden" id="modal-envio-email" style="z-index: 100060;">
+    <div class="modal-content" style="max-width: 540px; border-top: 4px solid #38bdf8;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:44px; height:44px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:22px; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); flex-shrink:0;">📧</div>
+          <div>
+            <h2 style="font-family:var(--font-heading); margin:0; font-size:18px; color:#fff;" id="modal-email-titulo">Enviar Documento por Correo</h2>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Opciones de envío seguro sin bloquear el navegador</div>
+          </div>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalEnvioEmail()">✕</button>
+      </div>
+
+      <!-- BADGE ARCHIVO DESCARGADO -->
+      <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:var(--radius-md); padding:14px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px; color:#38bdf8; font-weight:700; font-size:13.5px; margin-bottom:4px;">
+          <span>📄</span> <span id="modal-email-archivo-nombre">Plan_Entrenamiento.pdf</span>
+        </div>
+        <div style="color:#cbd5e1; font-size:12.5px; line-height:1.4;">
+          El archivo se ha <strong>generado y descargado automáticamente</strong> en tu equipo.
+        </div>
+      </div>
+
+      <!-- DESTINATARIO Y ASUNTO -->
+      <div style="background:var(--bg-card); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;">
+          <span style="color:var(--text-muted);">Destinatario:</span>
+          <strong style="color:#fff;" id="modal-email-destinatario">atleta@ejemplo.com</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--text-muted);">Asunto:</span>
+          <span style="color:#38bdf8; font-weight:600;" id="modal-email-asunto">Plan de Entrenamiento Oficial</span>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN DE CORREO -->
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <button class="btn-primary" style="justify-content:center; padding:12px; background:#38bdf8; border-color:#38bdf8; color:#000; font-weight:700;" onclick="ejecutarEnvioMailtoDirecto()">
+          📧 Abrir en Aplicación de Correo (Outlook / Mail)
+        </button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <button class="btn-secondary" style="justify-content:center; padding:10px; font-size:12px; color:#ea4335; border-color:rgba(234,67,53,0.4);" onclick="abrirGmailWebDirecto()">
+            🌐 Abrir en Gmail Web
+          </button>
+          <button class="btn-secondary" style="justify-content:center; padding:10px; font-size:12px; color:#0078d4; border-color:rgba(0,120,212,0.4);" onclick="abrirOutlookWebDirecto()">
+            🌐 Abrir en Outlook Web
+          </button>
+        </div>
+        <button class="btn-secondary" style="justify-content:center; padding:10px; font-size:12.5px; color:#a78bfa; border-color:rgba(167,139,250,0.4);" onclick="copiarMensajeEmailAlPortapapeles()">
+          📋 Copiar Texto del Mensaje al Portapapeles
+        </button>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; border-top:1px solid var(--border-color); padding-top:12px;">
+        <button class="btn-secondary" onclick="cerrarModalEnvioEmail()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE DESCARGA E INSTALACIÓN DE APP ANDROID (APK & PWA) -->
+  <div class="modal-overlay hidden" id="modal-descarga-apk" style="z-index: 100070;">
+    <div class="modal-content" style="max-width: 560px; border-top: 4px solid #10b981;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:46px; height:46px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:24px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); flex-shrink:0;">📲</div>
+          <div>
+            <h2 style="font-family:var(--font-heading); margin:0; font-size:18px; color:#fff;">Instalar FitPro Suite en Android</h2>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Aplicación nativa APK y Progressive Web App</div>
+          </div>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalDescargaAPK()">✕</button>
+      </div>
+
+      <!-- TARJETA OPCIÓN 1: DESCARGA DIRECTA APK -->
+      <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25); border-radius:var(--radius-md); padding:16px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:700; color:#10b981; font-size:14px;">📦 Paquete APK Firmado (Release)</span>
+          <span class="badge badge-green" style="font-size:10px;">Versión 1.0.0</span>
+        </div>
+        <p style="font-size:12.5px; color:#cbd5e1; margin-bottom:12px; line-height:1.4;">
+          Instala directamente el paquete <strong>android-app-release.apk</strong> en cualquier teléfono Android para acceso total con aceleración por hardware.
+        </p>
+        <a href="./android-app-release.apk" download="android-app-release.apk" class="btn-primary" style="display:flex; justify-content:center; width:100%; text-decoration:none; background:#10b981; border-color:#10b981; color:#000; font-weight:700; padding:11px;" onclick="notificarDescargaIniciada()">
+          📥 Descargar android-app-release.apk (~15 MB)
+        </a>
+      </div>
+
+      <!-- TARJETA OPCIÓN 2: INSTALAR PWA CHROME -->
+      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:700; color:#38bdf8; font-size:14px;">⚡ Instalación Instantánea PWA</span>
+          <span class="badge badge-primary" style="font-size:10px;">Sin Descarga</span>
+        </div>
+        <p style="font-size:12.5px; color:#cbd5e1; margin-bottom:12px; line-height:1.4;">
+          Añade FitPro a tu pantalla de inicio directamente desde Google Chrome sin descargas adicionales.
+        </p>
+        <button class="btn-secondary" style="width:100%; justify-content:center; border-color:#38bdf8; color:#38bdf8; padding:10px; font-weight:600;" onclick="ejecutarInstalacionPwa()">
+          📱 Instalar en Pantalla de Inicio (PWA)
+        </button>
+      </div>
+
+      <!-- INSTRUCCIONES DE INSTALACIÓN ANDROID -->
+      <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border-left:3px solid #f59e0b; margin-bottom:16px; font-size:12px; color:#e4e4e7; line-height:1.5;">
+        <strong>💡 ¿Primera vez instalando un APK?</strong><br/>
+        Al abrir el archivo en tu celular, si Android te solicita permisos, presiona <em>"Ajustes"</em> y activa <em>"Permitir la instalación de apps de esta fuente"</em>.
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; border-top:1px solid var(--border-color); padding-top:12px;">
+        <button class="btn-secondary" onclick="cerrarModalDescargaAPK()">Entendido / Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL OBLIGATORIO: CAMBIO DE CONTRASEÑA EN PRIMER INICIO (WEB / PWA) -->
+  <div class="modal-overlay hidden" id="modal-cambiar-password-obligatorio" style="z-index: 100099; background: rgba(9, 13, 22, 0.95); backdrop-filter: blur(8px);">
+    <div class="modal-content" style="max-width: 480px; border-top: 4px solid #38bdf8; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">🔐</div>
+        <h2 style="font-family: var(--font-heading); margin: 0; font-size: 20px; color: #fff;">Actualización Obligatoria de Contraseña</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Por seguridad, debes establecer una contraseña personal antes de acceder a tus rutinas, dietas y mediciones biomédicas.</p>
+      </div>
+
+      <div id="cambio-pwd-error-box" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: var(--radius-sm); padding: 10px; margin-bottom: 16px; color: #f87171; font-size: 12.5px;"></div>
+
+      <div style="margin-bottom: 16px;">
+        <label for="input-nuevo-password-web" style="display: block; font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Nueva Contraseña Personal *</label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="password" id="input-nuevo-password-web" class="input-field" placeholder="Mínimo 6 caracteres" style="padding-right: 40px;">
+          <button type="button" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;" onclick="alternarVisibilidadInput('input-nuevo-password-web')">👁️</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label for="input-confirmar-password-web" style="display: block; font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Confirmar Nueva Contraseña *</label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="password" id="input-confirmar-password-web" class="input-field" placeholder="Repite tu contraseña" style="padding-right: 40px;">
+          <button type="button" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;" onclick="alternarVisibilidadInput('input-confirmar-password-web')">👁️</button>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 20px; font-size: 12px; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+          <span style="color: #22c55e;">✓</span> Mínimo 6 caracteres alfanuméricos
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="color: #22c55e;">✓</span> Encriptación y resguardo seguro en Supabase
+        </div>
+      </div>
+
+      <button type="button" id="btn-guardar-password-obligatorio" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px; font-weight: 700;" onclick="ejecutarCambioPasswordObligatorioWeb()">
+        🔒 Guardar y Entrar a FitPro Suite Pro
+      </button>
+    </div>
+  </div>
+
+  </div><!-- /#app-layout -->
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

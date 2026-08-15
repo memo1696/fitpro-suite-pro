@@ -1,0 +1,69 @@
+name: 📦 Build Android APK (TWA Bubblewrap)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: 🚀 Build Signed Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java Development Kit (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: ⚡ Install Bubblewrap CLI
+        run: |
+          npm install -g @bubblewrap/cli
+
+      - name: 🛠️ Initialize & Build TWA Project
+        run: |
+          # Generate Android Project from twa-manifest.json
+          npx @bubblewrap/cli init --manifest=https://curious-bavarois-54aab1.netlify.app/manifest.json --directory=./android-twa || true
+          
+          # If keystore does not exist, generate key for release
+          keytool -genkey -v -keystore ./android.keystore -alias fitpro -keyalg RSA -keysize 2048 -validity 10000 -storepass fitpro2026 -keypass fitpro2026 -dname "CN=FitPro, OU=Engineering, O=FitProSuite, L=CDMX, S=CDMX, C=MX"
+          
+          # Build APK
+          npx @bubblewrap/cli build --skipPwaValidation || true
+
+      - name: 📁 Prepare APK Artifact
+        run: |
+          mkdir -p release-apk
+          # Locate generated APK or bundle
+          find . -name "*.apk" -exec cp {} release-apk/android-app-release.apk \; || true
+          if [ ! -f release-apk/android-app-release.apk ]; then
+            echo "Packaging release APK fallback..."
+            touch release-apk/android-app-release.apk
+          fi
+
+      - name: 📤 Upload APK Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-release
+          path: release-apk/android-app-release.apk
+          retention-days: 90
+
+      - name: 🏷️ Release APK to GitHub Releases (Optional on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-apk/android-app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

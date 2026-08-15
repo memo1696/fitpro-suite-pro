@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "FitPro Atleta",
+    "slug": "fitpro-suite-athlete",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#090d16",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fitprosuite.athlete"
+    },
+    "android": {
+      "package": "com.fitprosuite.athlete",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#090d16"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fitpro-suite-athlete-pro"
+      }
+    }
+  }
+}

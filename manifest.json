@@ -1,0 +1,49 @@
+{
+  "name": "FitPro Suite Pro — Biomechanical & SaaS Training Suite",
+  "short_name": "FitPro Suite",
+  "description": "Plataforma profesional para entrenadores y gimnasios de prescripción biomecánica, nutrición y gestión de atletas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "categories": [
+    "fitness",
+    "sports",
+    "health",
+    "productivity",
+    "medical"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Atleta",
+      "short_name": "Atleta",
+      "description": "Registrar un nuevo atleta",
+      "url": "./index.html#clientes",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Motor Biomecánico",
+      "short_name": "Rutinas",
+      "description": "Prescribir rutina inteligente",
+      "url": "./index.html#planes",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    }
+  ]
+}
