@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitpro-suite-pro-v1.0.0';
+const CACHE_NAME = 'fitpro-suite-pro-v2.2.0-live';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -12,42 +12,43 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Forzar activación inmediata del nuevo Service Worker
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ FitPro PWA Service Worker: Cacheando recursos esenciales...');
+      console.log('⚡ FitPro PWA Service Worker: Cacheando versión 2.2.0...');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('Advertencia en precache PWA:', err);
       });
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Purgar todas las cachés anteriores de inmediato
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('🧹 Limpiando caché antigua de FitPro:', key);
+            console.log('🧹 Purgando caché antigua de celular/PC:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Manejo de peticiones de red con fallback a caché
   if (event.request.method !== 'GET') return;
   
-  // Ignorar peticiones directas de Supabase auth/api para no cachear datos sensibles
+  // No cachear llamadas a Supabase API
   if (event.request.url.includes('supabase.co')) {
     return;
   }
 
+  // Network-First para HTML, JS y CSS para asegurar que los celulares siempre reciban la última versión
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
