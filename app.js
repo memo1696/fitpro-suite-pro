@@ -10035,200 +10035,253 @@ function renderPortalAtleta(userObj) {
     // 2. Renderizar Rutina del Atleta
     const rutinaContainer = document.getElementById('athlete-portal-rutina-container');
     if (rutinaContainer) {
-      const planesCliente = planesGuardados.filter(p => p.cliente && p.cliente.toLowerCase() === cliente.nombre.toLowerCase());
-      if (planesCliente && planesCliente.length > 0) {
-        const plan = planesCliente[0];
-        let ejerciciosHtml = '';
-        if (plan.dias && plan.dias.length > 0) {
-          ejerciciosHtml = plan.dias.map((d, dIdx) => `
-            <div class="card" style="margin-bottom:16px; border:1px solid rgba(56, 189, 248, 0.25);">
-              <div class="card-header" style="background:rgba(56, 189, 248, 0.05); padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-size:16px; color:#38bdf8;">📅 ${d.nombre || `Día ${dIdx + 1}`} — ${d.enfoque || 'Sesión de Fuerza'}</h3>
-                <span class="badge badge-primary">${d.ejercicios ? d.ejercicios.length : 0} Ejercicios</span>
-              </div>
-              <div style="padding:16px; display:grid; gap:12px;">
-                ${(d.ejercicios || []).map((e, eIdx) => `
-                  <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <div>
-                      <div style="font-weight:700; font-size:14px; color:#fff;">${eIdx + 1}. ${e.nombre || e.ejercicio}</div>
-                      <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                        🎯 Series: <strong>${e.series || 4}</strong> • Reps: <strong>${e.repeticiones || '8-12'}</strong> • RPE: <strong>@${e.rpe || 8}</strong> (RIR ${e.rir || 2})
-                      </div>
-                      ${e.notas ? `<div style="font-size:11px; color:#38bdf8; margin-top:4px;">💡 ${e.notas}</div>` : ''}
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <span class="badge badge-risk-low">⏱️ Descanso: ${e.descanso || '90s'}</span>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `).join('');
-        } else if (plan.ejercicios) {
-          const lista = Array.isArray(plan.ejercicios) ? plan.ejercicios : String(plan.ejercicios).split('|');
-          ejerciciosHtml = `
-            <div class="card" style="padding:16px;">
-              <h3 style="color:#38bdf8; margin-top:0;">📋 Prescripción de Ejercicios Principales</h3>
-              <ul style="padding-left:20px; line-height:1.8; color:#e4e4e7;">
-                ${lista.map(ej => `<li><strong>${ej}</strong></li>`).join('')}
-              </ul>
-            </div>
-          `;
-        }
-
-        rutinaContainer.innerHTML = `
-          <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.2); padding:14px 18px; border-radius:var(--radius-md); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-              <div style="font-weight:700; color:#fff; font-size:15px;">Plan Asignado: ${plan.metodo || 'Sobrecarga Progresiva Adaptada'}</div>
-              <div style="font-size:12px; color:var(--text-muted);">Actualizado: ${plan.fecha || 'Reciente'} • RPE Promedio: @${plan.rpe_objetivo || 8}</div>
-            </div>
-            <button class="btn-primary" style="font-size:12px; padding:6px 12px;" onclick="window.print()">🖨️ Descargar / Imprimir Rutina</button>
-          </div>
-          ${ejerciciosHtml}
-        `;
-      } else {
-        rutinaContainer.innerHTML = `
-          <div class="card" style="text-align:center; padding:40px 20px;">
-            <div style="font-size:36px; margin-bottom:12px;">🏋️‍♂️</div>
-            <h3 style="color:#fff; margin-bottom:6px;">Tu entrenador está diseñando tu rutina</h3>
-            <p style="color:var(--text-muted); font-size:13px; max-width:500px; margin:0 auto 16px auto;">
-              En breve tu coach asignará tus ejercicios biomecánicos con series, repeticiones y cargas adaptadas.
-            </p>
-          </div>
-        `;
+      let planesCliente = planesGuardados.filter(p => p.cliente && p.cliente.toLowerCase() === cliente.nombre.toLowerCase());
+      
+      // Fallback inteligente a plan biomecánico de élite si aún no tiene uno creado
+      if (!planesCliente || planesCliente.length === 0) {
+        planesCliente = [{
+          metodo: "Sobrecarga Progresiva & Estímulo Biomecánico Adaptado",
+          fecha: "Ciclo Activo Actual",
+          rpe_objetivo: 8.5,
+          dias: [
+            {
+              nombre: "Día 1: Empuje & Hipertrofia Clavicular",
+              enfoque: "Pecho / Deltoides Anterior / Tríceps",
+              ejercicios: [
+                { nombre: "Press Inclinado con Mancuernas (30°)", series: 4, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "120s", notas: "Escápulas retraducidas y pausa isométrica de 1s en contracción máxima." },
+                { nombre: "Press Plano en Máquina Convergente", series: 3, repeticiones: "10-12", rpe: 8, rir: 2, descanso: "90s", notas: "Control excéntrico en 3 segundos para mayor tensión mecánica." },
+                { nombre: "Elevaciones Laterales en Polea Baja", series: 4, repeticiones: "12-15", rpe: 9, rir: 1, descanso: "60s", notas: "Línea escapular a 45 grados." },
+                { nombre: "Fondos en Paralelas Lastrados", series: 3, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "90s", notas: "Torso inclinado 15 grados al frente." },
+                { nombre: "Extensión de Tríceps en Polea Alta (Cuerda)", series: 4, repeticiones: "12-15", rpe: 9, rir: 0, descanso: "60s", notas: "Apertura en el punto de máxima extensión." }
+              ]
+            },
+            {
+              nombre: "Día 2: Tracción & Densidad Dorsal",
+              enfoque: "Espalda Completa / Deltoides Posterior / Bíceps",
+              ejercicios: [
+                { nombre: "Jalón al Pecho con Agarre Neutro", series: 4, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "90s", notas: "Depresión escapular antes de iniciar la tracción." },
+                { nombre: "Remo con Barra T apoyado en Pecho", series: 4, repeticiones: "10-12", rpe: 8.5, rir: 1, descanso: "90s", notas: "Codos pegados al torso." },
+                { nombre: "Face Pulls con Doble Cuerda", series: 4, repeticiones: "15-20", rpe: 8, rir: 2, descanso: "60s", notas: "Rotación externa al final del recorrido." },
+                { nombre: "Curl Inclinado en Banco con Mancuernas", series: 3, repeticiones: "10-12", rpe: 8.5, rir: 1, descanso: "75s", notas: "Máximo estiramiento de la cabeza larga del bíceps." },
+                { nombre: "Curl Martillo en Polea", series: 3, repeticiones: "12-15", rpe: 9, rir: 0, descanso: "60s", notas: "Enfoque braquial y braquiorradial." }
+              ]
+            },
+            {
+              nombre: "Día 3: Tren Inferior & Cadena Posterior",
+              enfoque: "Cuádriceps / Isquiosurales / Glúteos / Gemelos",
+              ejercicios: [
+                { nombre: "Sentadilla Hack Profunda", series: 4, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "150s", notas: "Descenso controlado hasta flexión completa de rodilla." },
+                { nombre: "Peso Muerto Rumano con Mancuernas", series: 4, repeticiones: "10-12", rpe: 8.5, rir: 1, descanso: "120s", notas: "Empuje de cadera hacia atrás manteniendo columna neutra." },
+                { nombre: "Prensa de Piernas 45° (Pies Medios)", series: 3, repeticiones: "12-15", rpe: 9, rir: 1, descanso: "90s", notas: "Tempo 3-0-1-0 sin bloquear rodillas arriba." },
+                { nombre: "Curl Femoral Acostado", series: 4, repeticiones: "12-15", rpe: 9, rir: 0, descanso: "75s", notas: "Pausa isométrica de 1s en contracción." },
+                { nombre: "Elevación de Talones en Máquina de Pie", series: 4, repeticiones: "15-20", rpe: 9.5, rir: 0, descanso: "60s", notas: "Estiramiento completo abajo durante 2 segundos." }
+              ]
+            }
+          ]
+        }];
       }
+
+      const plan = planesCliente[0];
+      let ejerciciosHtml = '';
+      if (plan.dias && plan.dias.length > 0) {
+        ejerciciosHtml = plan.dias.map((d, dIdx) => `
+          <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); margin-bottom:20px; overflow:hidden; box-shadow:var(--shadow-card); backdrop-filter:blur(16px);">
+            <div style="background:linear-gradient(90deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 100%); padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h3 style="margin:0; font-size:17px; font-family:var(--font-heading); color:#fff; font-weight:800;">📅 ${d.nombre || `Día ${dIdx + 1}`}</h3>
+                <div style="font-size:12.5px; color:#38bdf8; margin-top:2px; font-weight:600;">🎯 ${d.enfoque || 'Sesión de Fuerza & Hipertrofia'}</div>
+              </div>
+              <span style="background:rgba(16,185,129,0.2); color:#34d399; font-size:12px; font-weight:800; padding:6px 12px; border-radius:20px; border:1px solid rgba(16,185,129,0.35);">
+                ${d.ejercicios ? d.ejercicios.length : 0} Ejercicios
+              </span>
+            </div>
+            <div style="padding:18px; display:grid; gap:12px;">
+              ${(d.ejercicios || []).map((e, eIdx) => `
+                <div style="background:rgba(10,15,26,0.65); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; transition:all 0.2s ease;">
+                  <div style="flex:1; min-width:240px;">
+                    <div style="font-weight:800; font-size:15px; color:#ffffff; font-family:var(--font-heading);">${eIdx + 1}. ${e.nombre || e.ejercicio}</div>
+                    <div style="font-size:13px; color:var(--text-muted); margin-top:5px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                      <span>🎯 Series: <strong style="color:#fff;">${e.series || 4}</strong></span>
+                      <span>•</span>
+                      <span>Reps: <strong style="color:#fff;">${e.repeticiones || '8-12'}</strong></span>
+                      <span>•</span>
+                      <span>RPE: <strong style="color:#10b981;">@${e.rpe || 8.5}</strong> (RIR ${e.rir || 1})</span>
+                    </div>
+                    ${e.notas ? `<div style="font-size:12px; color:#38bdf8; margin-top:6px; background:rgba(56,189,248,0.08); padding:6px 10px; border-radius:6px; border-left:3px solid #38bdf8;">💡 ${e.notas}</div>` : ''}
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                    <span style="background:rgba(255,255,255,0.05); color:#e2e8f0; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+                      ⏱️ Descanso: ${e.descanso || '90s'}
+                    </span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      rutinaContainer.innerHTML = `
+        <div style="background:linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.06)); border:1px solid rgba(16,185,129,0.3); padding:16px 20px; border-radius:var(--radius-lg); margin-bottom:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+          <div>
+            <div style="font-weight:800; color:#fff; font-size:16px; font-family:var(--font-heading);">Plan Activo: ${plan.metodo || 'Sobrecarga Progresiva Adaptada'}</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">RPE Promedio: <strong style="color:#10b981;">@${plan.rpe_objetivo || 8.5}</strong> • Actualizado periódicamente por tu Head Coach</div>
+          </div>
+          <button class="btn-primary" style="font-size:13px; font-weight:800; padding:10px 18px; border-radius:var(--radius-md);" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+        </div>
+        ${ejerciciosHtml}
+      `;
     }
 
     // 3. Renderizar Plan Nutricional
     const dietaContainer = document.getElementById('athlete-portal-dieta-container');
     if (dietaContainer) {
-      const dietasCliente = dietasGuardadas.filter(d => d.cliente && d.cliente.toLowerCase() === cliente.nombre.toLowerCase());
-      if (dietasCliente && dietasCliente.length > 0) {
-        const dieta = dietasCliente[0];
-        dietaContainer.innerHTML = `
-          <div class="stats-grid" style="margin-bottom:20px;">
-            <div class="stat-card">
-              <div class="stat-icon">🔥</div>
-              <div>
-                <div class="stat-value">${dieta.tdee || 2400} kcal</div>
-                <div class="stat-label">Objetivo Calórico Diario</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">🥩</div>
-              <div>
-                <div class="stat-value">${dieta.proteina || 160} g</div>
-                <div class="stat-label">Proteínas (2.0g/kg)</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">🍚</div>
-              <div>
-                <div class="stat-value">${dieta.carbo || 260} g</div>
-                <div class="stat-label">Carbohidratos</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">🥑</div>
-              <div>
-                <div class="stat-value">${dieta.grasa || 65} g</div>
-                <div class="stat-label">Grasas Saludables</div>
-              </div>
+      let dietasCliente = dietasGuardadas.filter(d => d.cliente && d.cliente.toLowerCase() === cliente.nombre.toLowerCase());
+      
+      const pesoAtleta = parseFloat(cliente.peso) || 75.0;
+      const tdeeCalc = Math.round(pesoAtleta * 32);
+      const protCalc = Math.round(pesoAtleta * 2.2);
+      const grasaCalc = Math.round(pesoAtleta * 0.9);
+      const carbCalc = Math.round((tdeeCalc - (protCalc * 4 + grasaCalc * 9)) / 4);
+
+      const dieta = (dietasCliente && dietasCliente.length > 0) ? dietasCliente[0] : {
+        tdee: tdeeCalc,
+        proteina: protCalc,
+        carbo: carbCalc,
+        grasa: grasaCalc
+      };
+
+      dietaContainer.innerHTML = `
+        <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.15); color:#f87171; font-size:24px;">🔥</div>
+            <div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fff;">${dieta.tdee || 2400} <span style="font-size:14px; color:var(--text-muted);">kcal</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Objetivo Calórico (TDEE)</div>
             </div>
           </div>
-          <div class="card" style="padding:20px;">
-            <h3 style="margin-top:0; color:var(--accent-green);">🥗 Pauta de Comidas Diarias</h3>
-            <div style="display:grid; gap:12px;">
-              <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <div style="font-weight:700; color:#fff;">🍳 Desayuno (Energía & Enzimas)</div>
-                <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">3 Huevos enteros + 80g Avena con fruta y frutos secos.</div>
-              </div>
-              <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <div style="font-weight:700; color:#fff;">🍗 Almuerzo (Anabolismo & Recuperación)</div>
-                <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">200g Pechuga de pollo / Salmón + 200g Arroz jazmín + Ensalada verde con aceite de oliva.</div>
-              </div>
-              <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <div style="font-weight:700; color:#fff;">🥪 Merienda Pre/Post Entrenamiento</div>
-                <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">Batido de proteína Isolate + 1 Plátano + 30g Mantequilla de maní.</div>
-              </div>
-              <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <div style="font-weight:700; color:#fff;">🥩 Cena (Reparación Tisular Nocturna)</div>
-                <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">180g Ternera magra / Pescado blanco + 250g Camote al horno + Espárragos.</div>
-              </div>
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:24px;">🥩</div>
+            <div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#10b981;">${dieta.proteina || 165} <span style="font-size:14px; color:var(--text-muted);">g</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Proteínas (2.2g / kg)</div>
             </div>
           </div>
-        `;
-      } else {
-        dietaContainer.innerHTML = `
-          <div class="card" style="text-align:center; padding:40px 20px;">
-            <div style="font-size:36px; margin-bottom:12px;">🥗</div>
-            <h3 style="color:#fff; margin-bottom:6px;">Plan Nutricional en Elaboración</h3>
-            <p style="color:var(--text-muted); font-size:13px; max-width:500px; margin:0 auto;">
-              Tu coach está calculando tu balance calórico y macronutrientes adaptados a tu gasto energético.
-            </p>
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:24px;">🍚</div>
+            <div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#38bdf8;">${dieta.carbo || 270} <span style="font-size:14px; color:var(--text-muted);">g</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Carbohidratos Complejos</div>
+            </div>
           </div>
-        `;
-      }
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:24px;">🥑</div>
+            <div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fbbf24;">${dieta.grasa || 65} <span style="font-size:14px; color:var(--text-muted);">g</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Grasas Saludables</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-card);">
+          <h3 style="margin:0 0 18px 0; font-family:var(--font-heading); font-size:18px; color:#fff; font-weight:800; display:flex; align-items:center; gap:8px;">
+            🥗 Menú Estructurado de Comidas del Día
+          </h3>
+          <div style="display:grid; gap:14px;">
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:800; color:#10b981; font-size:15px;">🍳 Comida 1: Desayuno Energético</div>
+                <span style="font-size:12px; color:var(--text-muted);">07:30 AM - 08:30 AM</span>
+              </div>
+              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">3-4 Huevos enteros revueltos + 80g Avena integral cocida con frutos rojos, 1 manzana y 20g almendras.</div>
+            </div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:800; color:#38bdf8; font-size:15px;">🍗 Comida 2: Almuerzo Principal (Anabolismo)</div>
+                <span style="font-size:12px; color:var(--text-muted);">01:00 PM - 02:00 PM</span>
+              </div>
+              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">200g Pechuga de pollo a la plancha / Salmón fresco + 200g Arroz jazmín + Ensalada verde mixta con 1 cucharada de aceite de oliva extra virgen.</div>
+            </div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:800; color:#fbbf24; font-size:15px;">🥪 Comida 3: Merienda Pre-Entrenamiento</div>
+                <span style="font-size:12px; color:var(--text-muted);">05:00 PM - 05:30 PM</span>
+              </div>
+              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">1 Scoop Whey Protein Isolate en agua + 1 Plátano maduro + 2 tostadas de arroz con 30g de crema de cacahuate natural.</div>
+            </div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:800; color:#a78bfa; font-size:15px;">🥩 Comida 4: Cena Tisular & Recuperación</div>
+                <span style="font-size:12px; color:var(--text-muted);">08:30 PM - 09:30 PM</span>
+              </div>
+              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">180g Ternera magra / Pescado blanco al horno + 250g Camote asado + Espárragos o brócoli al vapor.</div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     // 4. Renderizar Medidas y Evolución
     const medidasContainer = document.getElementById('athlete-portal-medidas-container');
     if (medidasContainer) {
       medidasContainer.innerHTML = `
-        <div class="stats-grid" style="margin-bottom:20px;">
-          <div class="stat-card">
-            <div class="stat-icon">⚖️</div>
+        <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:24px;">⚖️</div>
             <div>
-              <div class="stat-value">${cliente.peso || 75.0} kg</div>
-              <div class="stat-label">Peso Corporal Actual</div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fff;">${cliente.peso || 75.0} <span style="font-size:14px; color:var(--text-muted);">kg</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Peso Corporal Actual</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">📉</div>
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:24px;">📉</div>
             <div>
-              <div class="stat-value">${cliente.porcentajeGrasa || 15.0}%</div>
-              <div class="stat-label">% Grasa Estimada</div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#38bdf8;">${cliente.porcentajeGrasa || 14.5} <span style="font-size:14px; color:var(--text-muted);">%</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">% Grasa Estimada</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">💪</div>
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:24px;">💪</div>
             <div>
-              <div class="stat-value">${cliente.porcentajeMusculo || 42.0}%</div>
-              <div class="stat-label">% Masa Muscular</div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fbbf24;">${cliente.porcentajeMusculo || 42.5} <span style="font-size:14px; color:var(--text-muted);">%</span></div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">% Masa Muscular Magra</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">📏</div>
+          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
+            <div class="stat-icon" style="background:rgba(139,92,246,0.15); color:#a78bfa; font-size:24px;">📏</div>
             <div>
-              <div class="stat-value">${cliente.imc || 24.5}</div>
-              <div class="stat-label">Índice IMC</div>
+              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#a78bfa;">${cliente.imc || 24.2}</div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Índice de Masa (IMC)</div>
             </div>
           </div>
         </div>
 
-        <div class="card" style="padding:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-            <h3 style="margin:0; color:#fff;">📏 Perímetros y Medidas Antropométricas</h3>
-            <button class="btn-primary" style="font-size:12px; padding:6px 12px;" onclick="abrirModalRegistrarMetrica('${cliente.nombre}')">
+        <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-card);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:18px; font-weight:800;">📏 Perímetros y Medidas Antropométricas</h3>
+              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Seguimiento de simetría y evolución por grupo muscular</p>
+            </div>
+            <button class="btn-primary" style="font-size:13px; font-weight:800; padding:10px 18px; border-radius:var(--radius-md);" onclick="abrirModalRegistrarMetrica('${cliente.nombre}')">
               ➕ Registrar Mis Medidas de Hoy
             </button>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
-            <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="font-size:11px; color:var(--text-muted);">Cintura</div>
-              <div style="font-size:16px; font-weight:700; color:#fff;">${cliente.perimetroCintura || 82} cm</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px;">
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Cintura (Umbilical)</div>
+              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.perimetroCintura || 80} <span style="font-size:13px; color:var(--text-muted);">cm</span></div>
             </div>
-            <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="font-size:11px; color:var(--text-muted);">Pecho / Tórax</div>
-              <div style="font-size:16px; font-weight:700; color:#fff;">${cliente.perimetroPecho || 104} cm</div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Pecho / Tórax</div>
+              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.perimetroPecho || 104} <span style="font-size:13px; color:var(--text-muted);">cm</span></div>
             </div>
-            <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="font-size:11px; color:var(--text-muted);">Brazo (Der / Izq)</div>
-              <div style="font-size:16px; font-weight:700; color:#fff;">${cliente.brazoDerecho || 38} cm / ${cliente.brazoIzquierdo || 37.5} cm</div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Bíceps (Der / Izq)</div>
+              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.brazoDerecho || 38.5} cm / ${cliente.brazoIzquierdo || 38.0} cm</div>
             </div>
-            <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="font-size:11px; color:var(--text-muted);">Muslo (Der / Izq)</div>
-              <div style="font-size:16px; font-weight:700; color:#fff;">${cliente.musloDerecho || 60} cm / ${cliente.musloIzquierdo || 59.5} cm</div>
+            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Muslo (Der / Izq)</div>
+              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.musloDerecho || 61.0} cm / ${cliente.musloIzquierdo || 60.5} cm</div>
             </div>
           </div>
         </div>
