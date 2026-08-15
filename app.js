@@ -10265,6 +10265,60 @@ function abrirModalCambiarPasswordManual() {
   }
 }
 
+// ==========================================
+// 📲 PWA AUTO-INSTALL & BEFOREINSTALLPROMPT ENGINE
+// ==========================================
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  console.log("📲 Evento beforeinstallprompt capturado!");
+  
+  // Mostrar banner flotante si no fue cerrado previamente en esta sesión
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner && !sessionStorage.getItem('fitpro_pwa_dismissed')) {
+    banner.style.display = 'block';
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('✅ FitPro Suite Pro PWA instalada exitosamente en el dispositivo.');
+  deferredInstallPrompt = null;
+  cerrarBannerPWA();
+  showToast("🎉 ¡FitPro Suite Pro ha sido agregada a tu pantalla de inicio!", "success", "📲 App Instalada");
+});
+
+function ejecutarInstalacionPWA() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('El usuario aceptó instalar la app en su dispositivo');
+        showToast("🎉 ¡Instalando FitPro en tu pantalla de inicio!", "success", "📲 Instalando App");
+      }
+      deferredInstallPrompt = null;
+      cerrarBannerPWA();
+    });
+  } else {
+    // Guía para iOS Safari o navegadores donde beforeinstallprompt no es soportado
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      showToast("Para instalar en iPhone: Toca el icono de Compartir 📤 abajo y luego 'Agregar al inicio' ➕", "info", "📲 Instalar en iOS", 8000);
+    } else {
+      showToast("Toca los 3 puntos (⋮) en tu navegador y selecciona 'Instalar aplicación' o 'Agregar a pantalla principal'.", "info", "📲 Instalar App", 7000);
+    }
+  }
+}
+
+function cerrarBannerPWA() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+  sessionStorage.setItem('fitpro_pwa_dismissed', 'true');
+}
+
+window.ejecutarInstalacionPWA = ejecutarInstalacionPWA;
+window.cerrarBannerPWA = cerrarBannerPWA;
 window.renderPortalAtleta = renderPortalAtleta;
 window.cambiarPestañaPortalAtleta = cambiarPestañaPortalAtleta;
 window.abrirModalCambiarPasswordManual = abrirModalCambiarPasswordManual;
