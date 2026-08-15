@@ -7123,62 +7123,11 @@ function prepararPlanPara(nombreCliente) {
   navegarA('generate');
 }
 
-// Macro Calculator Algorithm
+// Macro Calculator Algorithm (Delegates to Modern Multi-Calculator)
 function calcularMacros() {
-  const peso = parseFloat(document.getElementById('calc-peso').value);
-  const altura = parseFloat(document.getElementById('calc-altura').value);
-  const edad = parseInt(document.getElementById('calc-edad').value);
-  const genero = document.getElementById('calc-genero').value;
-  const actividad = parseFloat(document.getElementById('calc-actividad').value);
-  const objetivo = document.getElementById('calc-objetivo').value;
-  const resBox = document.getElementById('calc-resultado');
-
-  if (!peso || !altura || !edad) {
-    resBox.innerHTML = `<div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:16px; border-radius:var(--radius-md); color:#f87171;">Por favor completa todos los campos numéricos.</div>`;
-    return;
+  if (typeof ejecutarCalcularTDEE === 'function') {
+    ejecutarCalcularTDEE();
   }
-
-  let bmr = (10 * peso) + (6.25 * altura) - (5 * edad);
-  bmr = genero === 'h' ? bmr + 5 : bmr - 161;
-  let tdee = bmr * actividad;
-
-  let targetCal = tdee;
-  if (objetivo === 'hipertrofia') targetCal += 300;
-  if (objetivo === 'definicion') targetCal -= 400;
-
-  const proteinaGrams = Math.round(peso * 2.2);
-  const proteinaCal = proteinaGrams * 4;
-  const grasaGrams = Math.round(peso * 1.0);
-  const grasaCal = grasaGrams * 9;
-  const carbsCal = Math.max(0, targetCal - (proteinaCal + grasaCal));
-  const carbsGrams = Math.round(carbsCal / 4);
-
-  resBox.innerHTML = `
-    <div style="background:var(--bg-card); border:1px solid var(--border-highlight); padding:20px; border-radius:var(--radius-md);">
-      <h3 style="color:var(--accent-green); margin-bottom:12px; font-family:var(--font-heading);">Resultado Calórico Personalizado</h3>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:16px;">
-        <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-sm); text-align:center;">
-          <div style="font-size:24px; font-weight:700; color:#fff;">${Math.round(targetCal)} <span style="font-size:14px; color:var(--text-muted);">kcal</span></div>
-          <div style="font-size:12px; color:var(--text-muted);">Calorías Objetivos/Día</div>
-        </div>
-        <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-sm); text-align:center;">
-          <div style="font-size:24px; font-weight:700; color:#4ade80;">${proteinaGrams}g</div>
-          <div style="font-size:12px; color:var(--text-muted);">Proteína (2.2g/kg)</div>
-        </div>
-        <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-sm); text-align:center;">
-          <div style="font-size:24px; font-weight:700; color:#60a5fa;">${carbsGrams}g</div>
-          <div style="font-size:12px; color:var(--text-muted);">Carbohidratos</div>
-        </div>
-        <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-sm); text-align:center;">
-          <div style="font-size:24px; font-weight:700; color:#fbbf24;">${grasaGrams}g</div>
-          <div style="font-size:12px; color:var(--text-muted);">Grasas Saludables</div>
-        </div>
-      </div>
-      <p style="font-size:13px; color:var(--text-muted); margin:0;">
-        💡 <strong>Nota del Coach:</strong> Tasa metabólica basal estimada en ${Math.round(bmr)} kcal. Mantén un aporte constante de hidratación (~3.5L/día).
-      </p>
-    </div>
-  `;
 }
 
 // Dynamic Biomechanical Severity & Diagnostic Gauges Handler

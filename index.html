@@ -1173,7 +1173,7 @@
         </div>
       </header>
 
-      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+      <div id="supplements-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
             <div>
@@ -2342,6 +2342,13 @@
 
       <!-- DESGLOSE TÉCNICO -->
       <div id="modal-conf-desglose" style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px; font-size:13px; line-height:1.5;"></div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+        <button type="button" class="btn-secondary" onclick="cerrarModalConfirmacionAccion()">Cancelar</button>
+        <button type="button" class="btn-primary" id="modal-conf-btn-confirmar">Confirmar Acción</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DE INSTRUCCIÓN DE ADJUNCIÓN MANUAL WHATSAPP -->
   <div class="modal-overlay hidden" id="modal-instruccion-whatsapp" style="z-index: 100050;">
