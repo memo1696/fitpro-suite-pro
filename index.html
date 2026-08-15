@@ -30,8 +30,18 @@
         <p class="auth-subtitle" id="auth-header-subtitle">Acceso seguro a la plataforma biomecánica y gestión SaaS</p>
       </div>
 
+      <!-- SELECTOR DE PERFIL: COACH VS ATLETA -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <button type="button" id="btn-perfil-coach" class="auth-tab active" style="padding: 8px 10px; font-size: 13px; font-weight: 700; border-radius: var(--radius-sm);" onclick="seleccionarPerfilAuth('coach')">
+          🏋️ Entrenador / Coach
+        </button>
+        <button type="button" id="btn-perfil-atleta" class="auth-tab" style="padding: 8px 10px; font-size: 13px; font-weight: 700; border-radius: var(--radius-sm);" onclick="seleccionarPerfilAuth('athlete')">
+          👤 Atleta / Alumno
+        </button>
+      </div>
+
       <!-- TABS LOGIN / REGISTRO -->
-      <div class="auth-tabs">
+      <div class="auth-tabs" id="auth-coach-tabs">
         <button type="button" class="auth-tab active" id="auth-tab-login" onclick="cambiarModoAuth('login')">Iniciar Sesión</button>
         <button type="button" class="auth-tab" id="auth-tab-signup" onclick="cambiarModoAuth('signup')">Registrarse</button>
       </div>

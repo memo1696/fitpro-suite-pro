@@ -616,6 +616,73 @@ function limpiarErrorAuth() {
   if (sucBox) sucBox.classList.add('hidden');
 }
 
+let perfilAuthActual = 'coach';
+
+function seleccionarPerfilAuth(perfil) {
+  perfilAuthActual = perfil;
+  limpiarErrorAuth();
+
+  const btnCoach = document.getElementById('btn-perfil-coach');
+  const btnAtleta = document.getElementById('btn-perfil-atleta');
+  const coachTabs = document.getElementById('auth-coach-tabs');
+  const demoDivider = document.querySelector('.auth-demo-divider');
+  const demoBtns = document.querySelectorAll('.auth-btn-demo');
+  const switchPrompt = document.getElementById('auth-switch-prompt');
+  const authTitle = document.querySelector('.auth-title');
+  const authSubtitle = document.getElementById('auth-header-subtitle');
+  const emailInput = document.getElementById('auth-input-email');
+  const passInput = document.getElementById('auth-input-password');
+  const btnText = document.getElementById('auth-btn-text');
+
+  if (perfil === 'athlete') {
+    window.esSesionModoAtleta = true;
+    document.body.classList.add('is-athlete-mode');
+
+    if (btnCoach) btnCoach.classList.remove('active');
+    if (btnAtleta) btnAtleta.classList.add('active');
+
+    if (authTitle) authTitle.innerText = "Portal del Atleta";
+    if (authSubtitle) authSubtitle.innerText = "Ingresa con tu correo y contraseña asignada por tu entrenador para ver tu rutina y dieta.";
+
+    if (coachTabs) coachTabs.style.display = 'none';
+    if (demoDivider) demoDivider.style.display = 'none';
+    demoBtns.forEach(b => b.style.display = 'none');
+    if (switchPrompt && switchPrompt.parentElement) switchPrompt.parentElement.style.display = 'none';
+
+    // Ocultar campos de registro de coach
+    const grpNombre = document.getElementById('auth-group-nombre');
+    const grpRol = document.getElementById('auth-group-rol');
+    const grpGym = document.getElementById('auth-group-gym');
+    if (grpNombre) grpNombre.style.display = 'none';
+    if (grpRol) grpRol.style.display = 'none';
+    if (grpGym) grpGym.style.display = 'none';
+
+    if (emailInput) emailInput.placeholder = "ej. carlos.mendoza@atleta.fitpro.app";
+    if (passInput) passInput.placeholder = "Tu contraseña o clave temporal";
+    if (btnText) btnText.innerText = "🏋️ Acceder a Mi Plan Deportivo";
+  } else {
+    window.esSesionModoAtleta = false;
+    document.body.classList.remove('is-athlete-mode');
+
+    if (btnCoach) btnCoach.classList.add('active');
+    if (btnAtleta) btnAtleta.classList.remove('active');
+
+    if (authTitle) authTitle.innerText = "FitPro Suite Pro";
+    if (authSubtitle) authSubtitle.innerText = "Acceso seguro a la plataforma biomecánica y gestión SaaS";
+
+    if (coachTabs) coachTabs.style.display = 'flex';
+    if (demoDivider) demoDivider.style.display = 'flex';
+    demoBtns.forEach(b => b.style.display = '');
+    if (switchPrompt && switchPrompt.parentElement) switchPrompt.parentElement.style.display = '';
+
+    if (emailInput) emailInput.placeholder = "entrenador@fitprosuite.com";
+    if (passInput) passInput.placeholder = "Mínimo 6 caracteres";
+    if (btnText) btnText.innerText = "🔒 Iniciar Sesión en FitPro Cloud";
+
+    cambiarModoAuth(modoAuthActual);
+  }
+}
+
 function cambiarModoAuth(modo) {
   modoAuthActual = modo;
   limpiarErrorAuth();
@@ -9605,6 +9672,7 @@ window.FitProSchema = FitProSchema;
 // ==========================================
 // 🔐 EXPORTACIONES GLOBALES DE LOGIN & AUTENTICACIÓN
 // ==========================================
+window.seleccionarPerfilAuth = seleccionarPerfilAuth;
 window.alternarModoAuthDirecto = alternarModoAuthDirecto;
 window.entrarModoLocalDemo = entrarModoLocalDemo;
 window.cambiarModoAuth = cambiarModoAuth;
