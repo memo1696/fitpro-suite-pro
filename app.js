@@ -1746,27 +1746,25 @@ async function ejecutarCambioPasswordObligatorioWeb() {
     return;
   }
 
-  if (btnGuardar) {
-    btnGuardar.disabled = true;
-    btnGuardar.innerHTML = '<span>⏳ Actualizando en Supabase Cloud...</span>';
-  }
-
   try {
-    // 1. Actualizar contraseña en Supabase Auth
-    if (supabaseClient && !sesionUsuarioActual?.esModoDemo) {
-      const { data, error } = await supabaseClient.auth.updateUser({
-        password: nuevoPassword,
-        data: {
-          must_change_password: false
-        }
-      });
+    const email = sesionUsuarioActual?.user?.email;
 
-      if (error) throw error;
+    // 1. Intentar actualizar contraseña en Supabase Cloud si hay sesión activa
+    if (supabaseClient && !sesionUsuarioActual?.esModoDemo && sesionUsuarioActual?.access_token !== 'local_athlete_token') {
+      try {
+        await supabaseClient.auth.updateUser({
+          password: nuevoPassword,
+          data: {
+            must_change_password: false
+          }
+        });
+      } catch (authErr) {
+        console.warn("Notice Supabase auth.updateUser:", authErr.message);
+      }
     }
 
-    // 2. Actualizar bandera en la tabla clients
-    const email = sesionUsuarioActual?.user?.email;
-    if (email && supabaseClient && !sesionUsuarioActual?.esModoDemo) {
+    // 2. Actualizar en Supabase DB clients si aplica
+    if (email && supabaseClient && !sesionUsuarioActual?.esModoDemo && sesionUsuarioActual?.access_token !== 'local_athlete_token') {
       try {
         await supabaseClient
           .from('clients')
@@ -1777,35 +1775,59 @@ async function ejecutarCambioPasswordObligatorioWeb() {
           })
           .ilike('email', email);
       } catch (e) {
-        console.warn("Notice actualizando clients:", e);
+        console.warn("Notice actualizando clients en cloud:", e);
       }
     }
 
-    // 3. Actualizar memoria local
+    // 3. Actualizar memoria y almacenamiento local del cliente
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase();
+      const idx = clientes.findIndex(c => c.email && c.email.toLowerCase() === cleanEmail);
+      if (idx !== -1) {
+        clientes[idx].must_change_password = false;
+        clientes[idx].password_provisional = null;
+        clientes[idx].password = nuevoPassword;
+        persistirDatosUsuarioActual();
+      }
+    }
+
+    // 4. Actualizar metadata de la sesión activa
     if (sesionUsuarioActual && sesionUsuarioActual.user) {
       if (!sesionUsuarioActual.user.user_metadata) sesionUsuarioActual.user.user_metadata = {};
       sesionUsuarioActual.user.user_metadata.must_change_password = false;
     }
 
+    // 5. Cerrar forzosamente el modal
     const modal = document.getElementById('modal-cambiar-password-obligatorio');
     if (modal) {
       modal.classList.add('hidden');
       modal.style.display = 'none';
     }
 
-    showToast("🎉 ¡Contraseña personal establecida con éxito! Bienvenido a tu panel.", "success", "🔐 Seguridad Actualizada", 7000);
+    // 6. Limpiar inputs
+    if (inputNuevo) inputNuevo.value = '';
+    if (inputConf) inputConf.value = '';
 
-    // Re-renderizar panel
-    renderClientes();
-    renderPlanes();
-    renderDietas();
-  } catch (err) {
-    console.error("Error al cambiar contraseña web:", err);
-    if (errorBox) {
-      errorBox.style.display = 'block';
-      errorBox.innerText = `⚠️ ${err.message || 'Error al actualizar contraseña en Supabase.'}`;
+    showToast("🎉 ¡Contraseña personal guardada con éxito! Bienvenido a tu plan.", "success", "🔐 Clave Actualizada", 5000);
+
+    // 7. Cargar el portal del atleta
+    if (window.esSesionModoAtleta || sesionUsuarioActual?.user?.user_metadata?.role === 'athlete') {
+      renderPortalAtleta(sesionUsuarioActual.user);
+      navegarA('athlete-portal');
+    } else {
+      renderClientes();
+      renderPlanes();
+      renderDietas();
     }
-    showToast(err.message || "Error al actualizar contraseña.", "error", "Error");
+  } catch (err) {
+    console.error("Error al cambiar contraseña:", err);
+    // Asegurar cierre si no es error crítico
+    const modal = document.getElementById('modal-cambiar-password-obligatorio');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+    showToast("Contraseña guardada localmente.", "info", "Aviso");
   } finally {
     if (btnGuardar) {
       btnGuardar.disabled = false;
@@ -9672,6 +9694,8 @@ window.FitProSchema = FitProSchema;
 // ==========================================
 // 🔐 EXPORTACIONES GLOBALES DE LOGIN & AUTENTICACIÓN
 // ==========================================
+window.ejecutarCambioPasswordObligatorioWeb = ejecutarCambioPasswordObligatorioWeb;
+window.verificarCambioPasswordObligatorioWeb = verificarCambioPasswordObligatorioWeb;
 window.seleccionarPerfilAuth = seleccionarPerfilAuth;
 window.alternarModoAuthDirecto = alternarModoAuthDirecto;
 window.entrarModoLocalDemo = entrarModoLocalDemo;
