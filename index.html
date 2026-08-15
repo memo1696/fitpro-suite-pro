@@ -2538,7 +2538,42 @@
     </div>
   </div>
 
-  </div><!-- /#app-layout -->
+  <!-- MODAL DE BIENVENIDA & AUTO-INSTALACIÓN EN CELULAR PARA ATLETAS -->
+  <div class="modal-overlay hidden" id="modal-bienvenida-instalacion-atleta" style="z-index: 1000000; background: rgba(5, 8, 15, 0.88); backdrop-filter: blur(16px); padding: 16px;">
+    <div class="modal-content" style="max-width: 440px; background: linear-gradient(145deg, #111827 0%, #0b1120 100%); border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(16, 185, 129, 0.25); text-align: center; border-radius: var(--radius-xl); padding: 28px 22px;">
+      
+      <!-- LOGO DEPORTIVO FLOTANTE CON HALO -->
+      <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 20px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #fff; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5); border: 2px solid rgba(255, 255, 255, 0.2);">
+        FP
+      </div>
+
+      <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 8px 0;">
+        ¡Bienvenido a tu App de Entrenamiento!
+      </h2>
+
+      <p id="modal-atleta-bienvenida-texto" style="font-size: 13.5px; color: #cbd5e1; line-height: 1.5; margin: 0 0 20px 0;">
+        Tu entrenador ha preparado tu plan deportivo. Para acceder a tus rutinas y dietas directamente desde tu celular sin tener que volver a buscar el enlace en WhatsApp, <strong>instala la app en tu pantalla de inicio</strong>.
+      </p>
+
+      <!-- BOTÓN DE INSTALACIÓN EN 1 TOQUE -->
+      <button type="button" class="btn-primary" id="btn-modal-instalar-app-directo" onclick="ejecutarInstalacionPWA()" style="width: 100%; justify-content: center; padding: 14px 20px; font-size: 15px; font-weight: 800; border-radius: var(--radius-md); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.45); margin-bottom: 10px; display: inline-flex; align-items: center; gap: 8px;">
+        📲 INSTALAR APP EN MI CELULAR (1 TOQUE)
+      </button>
+
+      <button type="button" class="btn-secondary" onclick="cerrarModalBienvenidaAtleta()" style="width: 100%; justify-content: center; padding: 10px 16px; font-size: 13px; font-weight: 700; border-color: rgba(255, 255, 255, 0.12); color: var(--text-muted);">
+        Continuar a mi Plan Deportivo →
+      </button>
+
+      <!-- GUÍA PARA USUARIOS DE IPHONE (SAFARI) -->
+      <div id="guia-ios-safari-install" style="display: none; margin-top: 16px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 12px; font-size: 12px; color: #e2e8f0; text-align: left;">
+        <div style="font-weight: 800; color: #38bdf8; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          🍎 Para instalar en iPhone / iPad:
+        </div>
+        <div>1. Toca el botón <strong>Compartir</strong> (icono 📤 al pie de Safari).</div>
+        <div>2. Desliza hacia abajo y elige <strong>"Agregar a pantalla de inicio" ➕</strong>.</div>
+      </div>
+    </div>
+  </div>
 
   <!-- BANNER AUTOMÁTICO DE INSTALACIÓN PWA -->
   <div id="pwa-install-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:calc(100% - 32px); max-width:480px; background:linear-gradient(135deg, #131b2e, #0d121f); border:1px solid #22c55e; border-radius:14px; padding:14px 16px; box-shadow:0 12px 36px rgba(0,0,0,0.7), 0 0 20px rgba(34,197,94,0.25); z-index:999999;">

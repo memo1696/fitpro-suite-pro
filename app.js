@@ -527,37 +527,39 @@ async function verificarYEscucharSupabaseAuth() {
   const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
   const isAthleteDeepLink = Boolean(emailParam || atletaParam || urlParams.get('view') === 'athlete');
 
+  // Si hay un enlace de atleta en la URL, procesarlo directamente sin pedir credenciales
+  if (isAthleteDeepLink) {
+    procesarDeepLinkAtletaUrl();
+    return;
+  }
+
+  // Si no hay enlace nuevo, verificar si este dispositivo ya tiene una sesión permanente de atleta guardada
+  const persistedAthlete = leerStorageCifrado('fitpro_persisted_athlete_session');
+  if (persistedAthlete && persistedAthlete.user) {
+    console.log("📲 Sesión de atleta restaurada automáticamente desde pantalla de inicio:", persistedAthlete.user.email);
+    window.esSesionModoAtleta = true;
+    document.body.classList.add('is-athlete-mode');
+    ocultarPantallaAuth();
+    renderPortalAtleta(persistedAthlete.user);
+    navegarA('athlete-portal');
+    return;
+  }
+
   // 2. Verificar si hay sesión activa en Supabase Auth
   if (supabaseClient && supabaseClient.auth) {
     try {
       const { data, error } = await supabaseClient.auth.getSession();
       
-      // Si hay un enlace directo de atleta y la sesión actual no coincide con ese atleta, mostrar login de atleta
-      if (isAthleteDeepLink && emailParam && data?.session?.user?.email) {
-        const currentEmail = String(data.session.user.email).toLowerCase();
-        const targetEmail = decodeURIComponent(emailParam).toLowerCase();
-        if (currentEmail !== targetEmail) {
-          console.log(`🔄 Enlace de atleta (${targetEmail}) no coincide con sesión activa (${currentEmail}). Mostrando login de atleta.`);
-          await supabaseClient.auth.signOut().catch(() => {});
-          mostrarPantallaAuth();
-          procesarDeepLinkAtletaUrl();
-          return;
-        }
-      }
-
       if (!error && data && data.session) {
         console.log("🔓 Sesión activa restaurada desde Supabase Auth:", data.session.user?.email);
         establecerSesionActiva(data.session, data.session.user);
       } else {
-        if (!isAthleteDeepLink) {
-          const demoStored = leerStorageCifrado('fitpro_local_auth_session');
-          if (demoStored && demoStored.user) {
-            establecerSesionActiva(demoStored, demoStored.user);
-            return;
-          }
+        const demoStored = leerStorageCifrado('fitpro_local_auth_session');
+        if (demoStored && demoStored.user) {
+          establecerSesionActiva(demoStored, demoStored.user);
+          return;
         }
         mostrarPantallaAuth();
-        procesarDeepLinkAtletaUrl();
       }
 
       // 2. Suscribirse a cambios en el estado de autenticación (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
@@ -10043,57 +10045,106 @@ function procesarDeepLinkAtletaUrl() {
     const atletaIdParam = urlParams.get('id') || urlParams.get('atletaId');
     const vistaParam = urlParams.get('view') || urlParams.get('vista');
 
-    if (atletaParam || emailParam || vistaParam === 'athlete') {
-      console.log(`🔗 Modo Portal del Atleta activado vía URL`);
+    if (atletaParam || emailParam || atletaIdParam || vistaParam === 'athlete') {
+      console.log(`🔗 Enlace directo de atleta detectado vía URL`);
       window.esSesionModoAtleta = true;
       document.body.classList.add('is-athlete-mode');
 
-      // Personalizar la interfaz de autenticación para que sea limpia y exclusiva de atleta
-      const authTitle = document.querySelector('.auth-title');
-      if (authTitle) authTitle.innerText = "Portal del Atleta";
-
-      const authSubtitle = document.getElementById('auth-header-subtitle');
-      if (authSubtitle) {
-        const decodedNombre = atletaParam ? decodeURIComponent(atletaParam) : "Atleta";
-        authSubtitle.innerHTML = `¡Hola <strong>${decodedNombre}</strong>! Ingresa con tus credenciales para ver tu rutina y dieta.`;
+      // 1. Buscar o reconstruir perfil del atleta
+      let clienteObj = null;
+      if (atletaIdParam) {
+        clienteObj = clientes.find(c => String(c.id) === String(atletaIdParam));
+      }
+      if (!clienteObj && emailParam) {
+        const em = decodeURIComponent(emailParam).toLowerCase();
+        clienteObj = clientes.find(c => c.email && c.email.toLowerCase() === em);
+      }
+      if (!clienteObj && atletaParam) {
+        const nom = decodeURIComponent(atletaParam).toLowerCase();
+        clienteObj = clientes.find(c => c.nombre && c.nombre.toLowerCase() === nom);
+      }
+      if (!clienteObj && clientes.length > 0) {
+        clienteObj = clientes[0];
+      }
+      if (!clienteObj) {
+        clienteObj = {
+          id: atletaIdParam || `atleta_${Date.now()}`,
+          nombre: atletaParam ? decodeURIComponent(atletaParam) : "Carlos Mendoza",
+          email: emailParam ? decodeURIComponent(emailParam) : "atleta@fitprosuite.com",
+          objetivo: "Hipertrofia & Rendimiento",
+          entrenador: "Coach Master Pro",
+          peso: 75.0,
+          altura: 175,
+          estadoMembresia: "activa"
+        };
       }
 
-      // Ocultar tabs de registro de coach y botones demo de superadmin
-      const authTabs = document.querySelector('.auth-tabs');
-      if (authTabs) authTabs.style.display = 'none';
-
-      const demoDiv = document.querySelector('.auth-demo-divider');
-      if (demoDiv) demoDiv.style.display = 'none';
-
-      const demoBtns = document.querySelectorAll('.auth-btn-demo');
-      demoBtns.forEach(b => b.style.display = 'none');
-
-      const switchPrompt = document.getElementById('auth-switch-prompt');
-      if (switchPrompt && switchPrompt.parentElement) switchPrompt.parentElement.style.display = 'none';
-
-      const authBtnText = document.getElementById('auth-btn-text');
-      if (authBtnText) authBtnText.innerText = "🏋️ Acceder a Mi Plan Deportivo";
-
-      if (emailParam) {
-        const authEmailInput = document.getElementById('auth-input-email');
-        if (authEmailInput) {
-          authEmailInput.value = decodeURIComponent(emailParam);
+      const athleteUser = {
+        id: clienteObj.id,
+        email: clienteObj.email,
+        user_metadata: {
+          full_name: clienteObj.nombre,
+          role: 'athlete'
         }
-      }
+      };
 
-      const passInput = document.getElementById('auth-input-password');
-      if (passInput) passInput.focus();
+      // 2. Guardar sesión permanente para que el teléfono recuerde al atleta SIEMPRE
+      guardarStorageCifrado('fitpro_persisted_athlete_session', {
+        user: athleteUser,
+        cliente: clienteObj,
+        timestamp: Date.now()
+      });
 
-      // Si ya hay sesión activa, renderizar de inmediato el portal del atleta
-      if (sesionUsuarioActual?.user) {
-        renderPortalAtleta(sesionUsuarioActual.user);
-        navegarA('athlete-portal');
-      }
+      sesionUsuarioActual = {
+        user: athleteUser,
+        esModoAtleta: true
+      };
+
+      // 3. Ocultar pantalla de login y entrar directamente al portal
+      ocultarPantallaAuth();
+      renderPortalAtleta(athleteUser);
+      navegarA('athlete-portal');
+
+      // 4. Abrir modal de bienvenida y auto-instalación en 1 toque
+      setTimeout(() => {
+        abrirModalBienvenidaAtleta(clienteObj.nombre);
+      }, 500);
     }
   } catch (err) {
     console.warn("Notice procesando deep link URL:", err);
   }
 }
+
+function abrirModalBienvenidaAtleta(nombreAtleta = '') {
+  const m = document.getElementById('modal-bienvenida-instalacion-atleta');
+  const texto = document.getElementById('modal-atleta-bienvenida-texto');
+  if (m) {
+    if (texto && nombreAtleta) {
+      texto.innerHTML = `¡Hola <strong>${nombreAtleta}</strong>! Tu entrenador ha preparado tu plan deportivo. Para acceder a tus rutinas, dietas y cronómetro directamente desde tu celular sin tener que volver a abrir el enlace de WhatsApp, <strong>instala la app en tu pantalla de inicio</strong> con el botón abajo.`;
+    }
+
+    // Detectar si es iOS (iPhone/iPad) para mostrar guía de Safari
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const guiaIOS = document.getElementById('guia-ios-safari-install');
+    if (guiaIOS) {
+      guiaIOS.style.display = isIOS ? 'block' : 'none';
+    }
+
+    m.classList.remove('hidden');
+    m.style.display = 'flex';
+  }
+}
+
+function cerrarModalBienvenidaAtleta() {
+  const m = document.getElementById('modal-bienvenida-instalacion-atleta');
+  if (m) {
+    m.classList.add('hidden');
+    m.style.display = 'none';
+  }
+}
+
+window.abrirModalBienvenidaAtleta = abrirModalBienvenidaAtleta;
+window.cerrarModalBienvenidaAtleta = cerrarModalBienvenidaAtleta;
 
 function renderPortalAtleta(userObj) {
   try {
