@@ -958,13 +958,249 @@
             <span>Volver</span>
           </button>
           <div>
-            <h1>Planes Guardados</h1>
-            <p class="page-subtitle">Historial de programaciones creadas y listas para prescribir</p>
+            <h1>Planes de Rutina</h1>
+            <p class="page-subtitle">Asistente de rutinas + historial de programaciones</p>
           </div>
         </div>
+        <button class="btn-primary" onclick="abrirModalPlanManual()" style="white-space:nowrap;">+ Plan Manual</button>
       </header>
 
-      <div class="card">
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- ASISTENTE DE RUTINAS                                       -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div class="ai-assistant-panel" id="ai-assistant-panel">
+        <!-- Header del panel -->
+        <div class="ai-panel-header">
+          <div class="ai-panel-header-left">
+            <div class="ai-panel-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22" stroke-width="1.8">
+                <path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"/>
+                <path d="M12 10v12"/>
+                <path d="M8 14l4-4 4 4"/>
+                <circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+                <path d="M7 19h10"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="ai-panel-title">Asistente de rutinas</h2>
+              <p class="ai-panel-subtitle">Motor biomecánico de prescripción inteligente — filtra la biblioteca según perfil y restricciones</p>
+            </div>
+          </div>
+          <div class="ai-badge-live">
+            <span class="ai-badge-dot"></span>
+            <span>Motor Activo</span>
+          </div>
+        </div>
+
+        <!-- Configurador: 3 columnas en desktop, 1 en móvil -->
+        <div class="ai-config-grid">
+
+          <!-- Columna 1: Perfil del Atleta -->
+          <div class="ai-config-group">
+            <div class="ai-config-group-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Perfil del Atleta
+            </div>
+
+            <label for="ai-objetivo">Objetivo Principal</label>
+            <select id="ai-objetivo" class="select-field" onchange="actualizarVistaAsistente()">
+              <option value="hipertrofia">💪 Hipertrofia — Máxima Masa Muscular</option>
+              <option value="fuerza">🏋️ Fuerza Máxima — Powerlifting / Neuromuscular</option>
+              <option value="definicion">🔥 Definición Estética — Metabólico / Tonificación</option>
+              <option value="readaptacion">🩹 Readaptación — Rehabilitación & Salud</option>
+              <option value="resistencia">🏃 Resistencia Muscular — Circuito / Funcional</option>
+            </select>
+
+            <label for="ai-nivel" style="margin-top:12px;">Nivel del Atleta</label>
+            <select id="ai-nivel" class="select-field" onchange="actualizarVistaAsistente()">
+              <option value="principiante">🟢 Principiante — 0 a 12 meses</option>
+              <option value="intermedio" selected>🟡 Intermedio — 1 a 3 años</option>
+              <option value="avanzado">🔴 Avanzado — 3+ años / Competidor</option>
+            </select>
+
+            <label for="ai-dias-semana" style="margin-top:12px;">Días de Entrenamiento</label>
+            <select id="ai-dias-semana" class="select-field">
+              <option value="3">3 Días / Semana</option>
+              <option value="4" selected>4 Días / Semana (Frecuencia 2)</option>
+              <option value="5">5 Días / Semana (PPL)</option>
+            </select>
+          </div>
+
+          <!-- Columna 2: Restricciones Articulares -->
+          <div class="ai-config-group">
+            <div class="ai-config-group-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Restricciones & Lesiones
+            </div>
+
+            <label for="ai-restriccion-texto">Condición / Lesión Reportada</label>
+            <input type="text" id="ai-restriccion-texto" class="input-field"
+              placeholder="ej: molestia en rodilla, dolor lumbar L5..."
+              oninput="actualizarChipsRestriccion(this.value)">
+
+            <label style="margin-top:12px; display:block; margin-bottom:8px;">Zonas Articulares con Restricción</label>
+            <div class="ai-chip-grid" id="ai-chip-grid">
+              <label class="ai-chip" id="chip-lumbar">
+                <input type="checkbox" id="ai-chk-lumbar" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M5 8h14M5 16h14"/></svg>
+                Zona Lumbar
+              </label>
+              <label class="ai-chip" id="chip-rodilla">
+                <input type="checkbox" id="ai-chk-rodilla" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+                Rodilla
+              </label>
+              <label class="ai-chip" id="chip-hombro">
+                <input type="checkbox" id="ai-chk-hombro" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 12c-4 0-6 2-6 4v1h12v-1c0-2-2-4-6-4z"/><circle cx="12" cy="7" r="3"/></svg>
+                Hombro
+              </label>
+              <label class="ai-chip" id="chip-cadera">
+                <input type="checkbox" id="ai-chk-cadera" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M8 3l-3 6 3 6M16 3l3 6-3 6M5 12h14"/></svg>
+                Cadera
+              </label>
+              <label class="ai-chip" id="chip-tobillo">
+                <input type="checkbox" id="ai-chk-tobillo" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M9 7l3 5 3-5"/></svg>
+                Tobillo / Pie
+              </label>
+              <label class="ai-chip" id="chip-codo">
+                <input type="checkbox" id="ai-chk-codo" onchange="sincronizarChips()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M3 12h18M12 3v18"/></svg>
+                Codo / Muñeca
+              </label>
+            </div>
+
+            <label for="ai-riesgo-max" style="margin-top:14px;">Nivel Máximo de Riesgo Permitido</label>
+            <select id="ai-riesgo-max" class="select-field">
+              <option value="bajo">🟢 Solo Bajo Riesgo</option>
+              <option value="moderado" selected>🟡 Bajo + Moderado</option>
+              <option value="alto">🔴 Todos (Sin Restricción)</option>
+            </select>
+          </div>
+
+          <!-- Columna 3: Equipamiento Disponible -->
+          <div class="ai-config-group">
+            <div class="ai-config-group-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+              Equipamiento Disponible
+            </div>
+
+            <label style="margin-bottom:8px; display:block;">Selecciona el material disponible</label>
+            <div class="ai-equip-grid" id="ai-equip-grid">
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-barra" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🏗️</div>
+                <span>Barra Olímpica</span>
+              </label>
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-mancuerna" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🥊</div>
+                <span>Mancuernas</span>
+              </label>
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-maquina" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🤖</div>
+                <span>Máquinas</span>
+              </label>
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-polea" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🔌</div>
+                <span>Poleas</span>
+              </label>
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-corporal" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🏃</div>
+                <span>Peso Corporal</span>
+              </label>
+              <label class="ai-equip-item">
+                <input type="checkbox" id="ai-eq-banda" checked onchange="sincronizarEquipamiento()">
+                <div class="ai-equip-icon">🟡</div>
+                <span>Bandas</span>
+              </label>
+            </div>
+
+            <!-- Preview de filtros aplicados -->
+            <div class="ai-preview-box" id="ai-preview-box">
+              <div class="ai-preview-stat">
+                <span class="ai-preview-num" id="ai-preview-total">—</span>
+                <span class="ai-preview-label">Ejercicios disponibles</span>
+              </div>
+              <div class="ai-preview-stat">
+                <span class="ai-preview-num" id="ai-preview-dias">4</span>
+                <span class="ai-preview-label">Días de plan</span>
+              </div>
+              <div class="ai-preview-stat">
+                <span class="ai-preview-num" id="ai-preview-excluidos">—</span>
+                <span class="ai-preview-label">Ejercicios excluidos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA de generación -->
+        <div class="ai-cta-row">
+          <div class="ai-cta-hint" id="ai-cta-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Configura el perfil y haz clic en Generar para obtener tu plan personalizado
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-secondary" onclick="resetearAsistenteIA()" id="btn-reset-ia" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reiniciar
+            </button>
+            <button class="btn-primary ai-generate-btn" id="btn-generar-ia" onclick="generarRutinaIA()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Generar Rutina con IA
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- RESULTADO DEL PLAN GENERADO                                -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div id="ai-plan-result" class="hidden">
+        <!-- Header del resultado -->
+        <div class="ai-result-header">
+          <div class="ai-result-header-left">
+            <div class="ai-result-title-group">
+              <span class="ai-result-badge" id="ai-result-badge">Hipertrofia</span>
+              <h2 class="ai-result-title" id="ai-result-title">Plan Generado</h2>
+            </div>
+            <p class="ai-result-subtitle" id="ai-result-subtitle">Motor biomecánico FitPro — Prescripción optimizada</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="btn-secondary" style="padding:8px 14px; font-size:13px;" onclick="imprimirPlanIA()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir / PDF
+            </button>
+            <button class="btn-primary" style="padding:8px 14px; font-size:13px; background:var(--accent-green); border-color:var(--accent-green);" onclick="guardarPlanIA()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Guardar en Historial
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumen de parámetros aplicados -->
+        <div class="ai-params-summary" id="ai-params-summary"></div>
+
+        <!-- Tabs de los días del plan -->
+        <div class="ai-day-tabs" id="ai-day-tabs"></div>
+
+        <!-- Contenido de los días -->
+        <div id="ai-days-content"></div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- HISTORIAL DE PLANES GUARDADOS                               -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div class="card" style="margin-top:28px;">
+        <div class="card-header" style="margin-bottom:16px;">
+          <h2 class="card-title">📋 Historial de Planes Guardados</h2>
+          <button class="btn-primary" onclick="abrirModalPlanManual()" style="padding:7px 14px; font-size:13px;">+ Plan Manual</button>
+        </div>
         <div id="plans-list-container" style="display:flex; flex-direction:column; gap:16px;"></div>
       </div>
     </section>

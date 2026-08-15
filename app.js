@@ -1,3 +1,11 @@
+const AI_EQUIP_KEYS = {
+  'ai-eq-barra':    'Barra',
+  'ai-eq-mancuerna':'Mancuerna',
+  'ai-eq-maquina':  'Máquina',
+  'ai-eq-polea':    'Polea',
+  'ai-eq-corporal': 'Peso Corporal',
+  'ai-eq-banda':    'Banda'
+};
 // Global Error Boundary & Crash Protection
 window.onerror = function(msg, url, lineNo, columnNo, error) {
   console.error("FitPro Engine Log:", msg, "at line", lineNo);
@@ -2989,8 +2997,661 @@ const ejerciciosDB = [
     riesgo: "Bajo", 
     musculos: "Gastrocnemio, sóleo, propiocepción del tobillo", 
     ejecucion: "Sentado con la pierna extendida y la banda en la planta del pie. Empuja en flexión plantar venciendo la banda elástica." 
+  },
+
+  // ==========================================
+  // CUÁDRICEPS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Sentadilla Goblet con Kettlebell",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps & Glúteos",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Cuádriceps, glúteo mayor, core, aductores",
+    ejecucion: "Sostén la kettlebell o mancuerna con ambas manos al pecho. Descenso vertical profundo con los codos empujando las rodillas hacia afuera en el punto bajo."
+  },
+  {
+    nombre: "Prensa de Piernas con Pie Estrecho (Quad Emphasis)",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps (Vasto Externo)",
+    equipamiento: "Máquina",
+    riesgo: "Moderado",
+    musculos: "Vasto externo, recto femoral, vasto intermedio",
+    ejecucion: "Pies juntos en la zona central-baja de la plataforma. La posición estrecha redirige la tensión hacia el vasto externo."
+  },
+  {
+    nombre: "Step-Up con Mancuernas sobre Cajón (Step-Up)",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps & Glúteos",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Cuádriceps, glúteo mayor, estabilizadores de rodilla unilateral",
+    ejecucion: "Sube completamente al cajón con una sola pierna sin impulso de la pierna trasera. Controla el descenso excéntrico."
+  },
+  {
+    nombre: "Sentadilla con Bandas de Resistencia",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps & Glúteos",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Cuádriceps, glúteos, abductores de cadera",
+    ejecucion: "Banda sobre las rodillas o hombros. Realiza la sentadilla evitando el valgo de rodilla, manteniendo la tensión elástica durante todo el rango."
+  },
+  {
+    nombre: "Sentadilla Sumo con Mancuerna (Sumo Squat)",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps & Aductores",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Cuádriceps, aductores, glúteo mayor, glúteo medio",
+    ejecucion: "Pies ampliamente separados con puntas abiertas 45°. Descenso vertical manteniendo las rodillas alineadas con los pies."
+  },
+  {
+    nombre: "Sentadilla en V-Squat Machine",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps",
+    equipamiento: "Máquina",
+    riesgo: "Moderado",
+    musculos: "Cuádriceps completo, glúteo mayor, erectores estabilizadores",
+    ejecucion: "Espalda apoyada en la almohadilla inclinada. El ángulo permite mayor profundidad con menor estrés lumbar que la sentadilla libre."
+  },
+  {
+    nombre: "Sentadilla Pistol (Pistol Squat) Asistida",
+    categoria: "cuadriceps",
+    musculoPrimario: "Cuádriceps & Estabilizadores",
+    equipamiento: "Peso Corporal",
+    riesgo: "Moderado",
+    musculos: "Cuádriceps, glúteo, dorsiflexores del tobillo, control propioceptivo",
+    ejecucion: "De pie sobre una sola pierna. Desciende lentamente flexionando sólo la pierna de apoyo mientras la otra permanece extendida al frente."
+  },
+
+  // ==========================================
+  // ISQUIOTIBIALES — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Peso Muerto Convencional con Barra (Conventional Deadlift)",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales & Espalda",
+    equipamiento: "Barra",
+    riesgo: "Alto",
+    musculos: "Isquiotibiales, glúteo mayor, erectores espinales, trapecio, dorsales",
+    ejecucion: "Pies al ancho de cadera, agarre doble pronado. Tira de la barra rozándola en las espinillas con la cadera como bisagra y columna neutra."
+  },
+  {
+    nombre: "Peso Muerto Sumo con Barra",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales & Aductores",
+    equipamiento: "Barra",
+    riesgo: "Alto",
+    musculos: "Aductores, glúteo mayor, isquiotibiales, erectores lumbares",
+    ejecucion: "Postura amplia con puntas abiertas. Agarre interior. Empuja el suelo hacia afuera y extiende la cadera verticalmente."
+  },
+  {
+    nombre: "Curl Femoral en Fitball (Swiss Ball Hamstring Curl)",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Isquiotibiales distales, glúteos, core estabilizador",
+    ejecucion: "Tumbado boca arriba con los talones sobre el fitball. Eleva la pelvis y flexiona las rodillas rodando la pelota hacia los glúteos."
+  },
+  {
+    nombre: "Curl Femoral Sentado con Banda Elástica",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Bíceps femoral, semitendinoso",
+    ejecucion: "Sentado en el borde de un banco con la banda anclada en el tobillo. Flexiona la rodilla venciendo la resistencia elástica en el rango distal."
+  },
+  {
+    nombre: "Peso Muerto a Una Pierna con Mancuerna (Single-Leg RDL)",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales & Glúteo",
+    equipamiento: "Mancuerna",
+    riesgo: "Moderado",
+    musculos: "Isquiotibiales, glúteo mayor, control unilateral lumbopélvico",
+    ejecucion: "De pie sobre una pierna. Bisagra de cadera hacia adelante manteniendo la columna neutra y la rodilla levemente flexionada."
+  },
+  {
+    nombre: "Curl Femoral Nórdico con Banda Asistida",
+    categoria: "isquiotibiales",
+    musculoPrimario: "Isquiotibiales Excéntricos",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Bíceps femoral (cabeza larga) en sobrecarga excéntrica",
+    ejecucion: "Tobillos fijados. Usa la banda anclada al frente para reducir la carga en las fases iniciales del aprendizaje excéntrico."
+  },
+
+  // ==========================================
+  // GLÚTEOS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Sentadilla Búlgara con Barra (Barbell RFESS)",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Mayor & Cuádriceps",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Glúteo mayor, cuádriceps, aductores, core",
+    ejecucion: "Barra en la espalda alta. Pie trasero sobre banco. Descenso vertical profundo con inclinación de tronco para enfatizar el glúteo."
+  },
+  {
+    nombre: "Clamshells con Banda Elástica",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Medio",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Glúteo medio, rotadores externos de cadera, piriforme",
+    ejecucion: "Tumbado de lado con rodillas flexionadas 45° y banda sobre las rodillas. Abre la rodilla superior sin mover la pelvis."
+  },
+  {
+    nombre: "Hip Thrust con Mancuerna Unilateral",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Mayor",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Glúteo mayor unilateral, control de rotación pélvica",
+    ejecucion: "Una sola pierna apoyada. Coloca la mancuerna sobre la cadera del lado trabajado. Eleva y bloquea con máxima retroversión pélvica."
+  },
+  {
+    nombre: "Patada de Glúteo en Suelo a 4 Puntos (Donkey Kick)",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Mayor",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Glúteo mayor, estabilizadores lumbopélvicos",
+    ejecucion: "En cuadrupedia con columna neutra. Extiende la cadera empujando el talón hacia el techo sin rotar la pelvis ni arquear la espalda."
+  },
+  {
+    nombre: "Sentadilla Lateral con Banda (Lateral Band Walk)",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Medio & Menor",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Glúteo medio, glúteo menor, tensor fascia lata",
+    ejecucion: "Banda a la altura de los tobillos o rodillas. Camina de lado en semisquatdando pasos cortos y controlados manteniendo la tensión constante."
+  },
+  {
+    nombre: "Good Morning con Mancuernas",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Mayor & Isquiotibiales",
+    equipamiento: "Mancuerna",
+    riesgo: "Moderado",
+    musculos: "Glúteo mayor, isquiotibiales, erectores espinales",
+    ejecucion: "Mancuernas en la espalda alta o al pecho. Bisagra de cadera llevando el torso a paralelo con la columna neutra."
+  },
+  {
+    nombre: "Romanian Split Squat en Smith Machine",
+    categoria: "gluteos",
+    musculoPrimario: "Glúteo Mayor & Cuádriceps",
+    equipamiento: "Máquina",
+    riesgo: "Bajo",
+    musculos: "Glúteo mayor, cuádriceps, aductores",
+    ejecucion: "Pie trasero elevado en banco. La guía de la máquina Smith permite enfocarse en la profundidad y el rango sin trabajo estabilizador."
+  },
+
+  // ==========================================
+  // PECHO — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Press de Banca Inclinado con Barra (30°)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Superior (Clavicular)",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Haz clavicular del pectoral, deltoides anterior, tríceps",
+    ejecucion: "Banco a 30°. Descenso controlado hacia la clavícula evitando el exceso de arqueamiento lumbar para proteger el hombro."
+  },
+  {
+    nombre: "Press de Pecho con Agarre Neutro en Mancuernas (Neutral Grip)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Mayor",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Pectoral mayor, tríceps, menor tensión en manguito rotador",
+    ejecucion: "Palmas enfrentadas. Reduce el estrés sobre el manguito rotador. Ideal para atletas con problemas de hombro previos."
+  },
+  {
+    nombre: "Flyes con Mancuernas en Banco Plano (Dumbbell Flyes)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Mayor (Estiramiento)",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Pectoral mayor (énfasis en la porción esternal), serrato anterior",
+    ejecucion: "Brazos levemente flexionados formando arco. Desciende sintiendo el estiramiento pectoral profundo y une las manos arriba sin chocarlas."
+  },
+  {
+    nombre: "Press de Pecho en Banda desde Banco (Banded Bench Press)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Mayor & Tríceps",
+    equipamiento: "Banda",
+    riesgo: "Moderado",
+    musculos: "Pectoral mayor, tríceps, deltoides anterior con variación de carga ascendente",
+    ejecucion: "Banda anclada debajo del banco sobre los hombros. La resistencia elástica aumenta en el bloqueo final, entrenando la potencia de cierre."
+  },
+  {
+    nombre: "Push-Up con Déficit en Discos (Deficit Push-Up)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Mayor & Serrato",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Pectoral mayor, serrato anterior, tríceps, core",
+    ejecucion: "Manos sobre discos o bloques. El déficit permite que el pecho descienda por debajo del nivel de las manos aumentando el rango de estiramiento."
+  },
+  {
+    nombre: "Aperturas con Poleas al Nivel del Pecho (Mid-Cable Flyes)",
+    categoria: "pecho",
+    musculoPrimario: "Pectoral Mayor (Fibras Medias)",
+    equipamiento: "Polea",
+    riesgo: "Bajo",
+    musculos: "Pectoral mayor, tensión constante en todo el rango a nivel de las fibras medias",
+    ejecucion: "Poleas a la altura del pecho. Junta las manos directamente al frente del esternón con tensión continua del cable."
+  },
+
+  // ==========================================
+  // ESPALDA — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Remo con Barra T (T-Bar Row)",
+    categoria: "espalda",
+    musculoPrimario: "Dorsal Ancho & Espalda Media",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Dorsal ancho, romboides, trapecio medio, redondo mayor",
+    ejecucion: "Pecho apoyado en la almohadilla de la máquina T. Tracción bilateral del maneral hacia el pecho bajo con control escapular."
+  },
+  {
+    nombre: "Jalón en Polea con Agarre Supino (Reverse Grip Pulldown)",
+    categoria: "espalda",
+    musculoPrimario: "Dorsal Ancho & Bíceps",
+    equipamiento: "Polea",
+    riesgo: "Bajo",
+    musculos: "Dorsal ancho, bíceps braquial, braquial anterior",
+    ejecucion: "Barra agarre supino (palmas arriba) al ancho de hombros. Tracción hacia la clavícula activando bíceps y dorsal simultáneamente."
+  },
+  {
+    nombre: "Remo en Polea Alta Unilateral con Agarre Neutro",
+    categoria: "espalda",
+    musculoPrimario: "Dorsal Ancho",
+    equipamiento: "Polea",
+    riesgo: "Bajo",
+    musculos: "Dorsal ancho unilateral, redondo mayor, bíceps",
+    ejecucion: "Polea alta con maneral individual. Permite aislar cada lado para corregir asimetrías de fuerza y desarrollar conexión neuromuscular."
+  },
+  {
+    nombre: "Remo con Mancuerna en Banco Inclinado (Incline DB Row)",
+    categoria: "espalda",
+    musculoPrimario: "Espalda Alta & Romboides",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Romboides, trapecio medio, deltoides posterior, dorsal ancho",
+    ejecucion: "Pecho apoyado en banco a 45°. Tracciona hacia los costados del torso con los codos abiertos para enfatizar la espalda alta."
+  },
+  {
+    nombre: "Dominadas con Lastre (Weighted Pull-ups)",
+    categoria: "espalda",
+    musculoPrimario: "Dorsal Ancho & Bíceps",
+    equipamiento: "Peso Corporal",
+    riesgo: "Moderado",
+    musculos: "Dorsal ancho, redondo mayor, bíceps, braquial anterior",
+    ejecucion: "Con cinturón de lastre o chaleco. Mantén la depresión escapular en la fase inferior y asciende hasta superar la barra con control."
+  },
+  {
+    nombre: "Pull-Over con Mancuerna en Banco (DB Pullover)",
+    categoria: "espalda",
+    musculoPrimario: "Dorsal Ancho & Serrato",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Dorsal ancho, redondo mayor, serrato anterior, tríceps (cabeza larga)",
+    ejecucion: "Tumbado transversal en banco. Desciende la mancuerna en arco por detrás de la cabeza hasta sentir el estiramiento del dorsal."
+  },
+  {
+    nombre: "Remo Invertido con Barra en Rack (Inverted Row)",
+    categoria: "espalda",
+    musculoPrimario: "Espalda Alta & Bíceps",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Romboides, trapecio medio, deltoides posterior, bíceps",
+    ejecucion: "Cuerpo rígido bajo la barra en rack. Tracción horizontal del cuerpo hacia la barra juntando las escápulas al final del recorrido."
+  },
+  {
+    nombre: "Face-Pull Horizontal con Banda o Cuerda",
+    categoria: "espalda",
+    musculoPrimario: "Espalda Alta & Manguito Rotador",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Trapecio medio, romboides, infraespinoso, deltoides posterior",
+    ejecucion: "Banda anclada a la altura de la cara. Tracción hacia los ojos con apertura de manos y rotación externa completa."
+  },
+  {
+    nombre: "Good Morning con Barra en Smith (Smith Machine Good Morning)",
+    categoria: "espalda",
+    musculoPrimario: "Erectores & Isquiotibiales",
+    equipamiento: "Máquina",
+    riesgo: "Alto",
+    musculos: "Erector espinal, isquiotibiales, glúteo mayor",
+    ejecucion: "Barra baja en Smith. La guía elimina el control lateral pero exige concentración en el patrón de bisagra y columna neutra."
+  },
+
+  // ==========================================
+  // HOMBROS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Press Arnold con Mancuernas (Arnold Press)",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Anterior & Lateral",
+    equipamiento: "Mancuerna",
+    riesgo: "Moderado",
+    musculos: "Las 3 porciones del deltoides, tríceps, trapecio superior",
+    ejecucion: "Inicio con palmas hacia la cara y codos abajo. Rota las muñecas al empujar hasta pronación completa en el bloqueo. Mayor reclutamiento del deltoides anterior."
+  },
+  {
+    nombre: "Press Militar con Mancuernas de Pie (Standing DB Press)",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Anterior & Lateral",
+    equipamiento: "Mancuerna",
+    riesgo: "Moderado",
+    musculos: "Deltoides, tríceps, core estabilizador",
+    ejecucion: "De pie. Requiere mayor estabilización central que la versión sentada. Empuje en el plano escapular para seguridad articular."
+  },
+  {
+    nombre: "Elevaciones Frontales con Discos (Front Plate Raise)",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Anterior",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Deltoides anterior, porción clavicular del pectoral",
+    ejecucion: "Disco sujeto con ambas manos. Elevación frontal hasta la altura de los hombros con los brazos casi rectos. Control estricto en la fase excéntrica."
+  },
+  {
+    nombre: "Elevaciones Laterales con Banda desde el Suelo",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Lateral",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Deltoides lateral, supraspinoso",
+    ejecucion: "Pisa la banda. Eleva los brazos lateralmente en el plano escapular con la tensión creciendo al final del rango, diferente al perfil de mancuernas."
+  },
+  {
+    nombre: "Press de Hombros en Máquina Convergente",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Completo",
+    equipamiento: "Máquina",
+    riesgo: "Bajo",
+    musculos: "Deltoides, tríceps, trapecio",
+    ejecucion: "Trayectoria guiada con convergencia superior. Seguro para rehabilitación o principiantes. Permite alto volumen sin riesgo articular."
+  },
+  {
+    nombre: "Remo al Mentón con Barra EZ Agarre Ancho (Upright Row)",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Lateral & Trapecio",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Deltoides lateral, trapecio superior, bíceps",
+    ejecucion: "Agarre separado al ancho de hombros para reducir el pinzamiento subacromial. Eleva la barra hacia el pecho medio, codos por encima de las muñecas."
+  },
+  {
+    nombre: "External Rotation con Banda Elástica (Rotadores)",
+    categoria: "hombros",
+    musculoPrimario: "Manguito Rotador (Infraespinoso)",
+    equipamiento: "Banda",
+    riesgo: "Bajo",
+    musculos: "Infraespinoso, redondo menor, manguito rotador",
+    ejecucion: "Codo pegado al costado con 90° de flexión. Rota el antebrazo hacia afuera venciendo la banda. Ejercicio preventivo de la salud del hombro."
+  },
+  {
+    nombre: "Elevaciones con Mancuernas en Posición W (W-Raise)",
+    categoria: "hombros",
+    musculoPrimario: "Deltoides Posterior & Manguito",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Deltoides posterior, infraespinoso, romboides",
+    ejecucion: "Tumbado pecho abajo en banco. Eleva los brazos flexionados 90° formando una W, rotando las manos hacia arriba en el pico."
+  },
+
+  // ==========================================
+  // BÍCEPS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Curl Concentrado con Mancuerna (Concentration Curl)",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps (Pico Máximo)",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Bíceps braquial, pico máximo de contracción en aislamiento total",
+    ejecucion: "Codo apoyado en el muslo interno. Supinación completa de la muñeca en el pico para maximizar la contracción del bíceps."
+  },
+  {
+    nombre: "Curl de Bíceps con Barra Recta (Straight Bar Curl)",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps Braquial",
+    equipamiento: "Barra",
+    riesgo: "Bajo",
+    musculos: "Bíceps braquial, braquial anterior, braquiorradial",
+    ejecucion: "Agarre supino al ancho de hombros. Flexión estricta desde la extensión completa hasta la contracción máxima sin balancear el torso."
+  },
+  {
+    nombre: "Curl Alternado de Pie con Mancuernas",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps Braquial",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Bíceps braquial, bíceps braquial (ambos lados de forma alternada)",
+    ejecucion: "De pie. Flexiona un brazo con supinación completa mientras el otro descansa. Permite mayor concentración por repetición."
+  },
+  {
+    nombre: "Curl en Polea Baja con Barra (Low Pulley Curl)",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps Braquial",
+    equipamiento: "Polea",
+    riesgo: "Bajo",
+    musculos: "Bíceps braquial con tensión continua desde la posición extendida",
+    ejecucion: "Polea baja con barra recta o EZ. La resistencia constante del cable, especialmente en la fase estirada, supera a la mancuerna en tensión mecánica."
+  },
+  {
+    nombre: "Curl Zottman con Mancuernas (Zottman Curl)",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps & Braquiorradial",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Bíceps (subida supina), braquiorradial (bajada pronada)",
+    ejecucion: "Sube con agarre supino (bíceps), gira las palmas hacia abajo al llegar al pico y baja en pronación (braquiorradial). Entrena ambos músculos."
+  },
+  {
+    nombre: "Curl de Bíceps en Máquina (Machine Bicep Curl)",
+    categoria: "biceps",
+    musculoPrimario: "Bíceps Braquial",
+    equipamiento: "Máquina",
+    riesgo: "Bajo",
+    musculos: "Bíceps braquial, curva de resistencia optimizada por la máquina",
+    ejecucion: "Almohadillas bajo los brazos. La máquina provee tensión en el arco completo, ideal para principiantes y series de alta repetición."
+  },
+
+  // ==========================================
+  // TRÍCEPS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Extensiones Sobre la Cabeza con Polea Baja (Overhead Cable Tricep Extension)",
+    categoria: "triceps",
+    musculoPrimario: "Tríceps (Cabeza Larga)",
+    equipamiento: "Polea",
+    riesgo: "Bajo",
+    musculos: "Cabeza larga del tríceps en elongación máxima",
+    ejecucion: "De espaldas a la polea baja con cuerda detrás de la cabeza. Extiende los codos hacia adelante-arriba en el plano del brazo."
+  },
+  {
+    nombre: "Press de Banca en Banco Declinado Agarre Estrecho",
+    categoria: "triceps",
+    musculoPrimario: "Tríceps Completo",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Tríceps braquial (mayor torque en la cabeza medial), pectoral inferior",
+    ejecucion: "Banco declinado con agarre estrecho. La declinación aumenta el rango de trabajo del tríceps en la fase final de extensión."
+  },
+  {
+    nombre: "Extensión de Tríceps con Mancuerna Unilateral (One-Arm Overhead)",
+    categoria: "triceps",
+    musculoPrimario: "Tríceps (Cabeza Larga)",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Cabeza larga del tríceps unilateral",
+    ejecucion: "Brazo elevado con mancuerna. Desciende el antebrazo por detrás de la cabeza y extiende completamente. Corrige asimetrías entre lados."
+  },
+  {
+    nombre: "JM Press con Barra EZ (Híbrido Skull Crusher / Close Grip)",
+    categoria: "triceps",
+    musculoPrimario: "Tríceps Completo",
+    equipamiento: "Barra",
+    riesgo: "Moderado",
+    musculos: "Tríceps braquial (las 3 cabezas en mayor arco que el press cerrado puro)",
+    ejecucion: "Baja la barra hacia la cara como skull crusher pero empuja ligeramente hacia arriba-adelante al extender. Combina tensión mecánica y metabólica."
+  },
+  {
+    nombre: "Fondos entre Bancos (Bench Dips)",
+    categoria: "triceps",
+    musculoPrimario: "Tríceps & Deltoides Anterior",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Tríceps, deltoides anterior",
+    ejecucion: "Manos sobre banco detrás, talones en banco frontal. Desciende flexionando los codos y extiende con fuerza de tríceps."
+  },
+
+  // ==========================================
+  // ABDOMEN & CORE — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Dragon Flag (Isométrico/Dinámico)",
+    categoria: "core",
+    musculoPrimario: "Recto Abdominal & Core Total",
+    equipamiento: "Peso Corporal",
+    riesgo: "Alto",
+    musculos: "Recto abdominal, oblicuos, flexores de cadera, dorsal, glúteos",
+    ejecucion: "Tumbado boca arriba agarrando el banco. Eleva el cuerpo en plancha rígida soportado sólo por los hombros. Nivel avanzado."
+  },
+  {
+    nombre: "Plancha con Toque de Hombros (Plank Shoulder Tap)",
+    categoria: "core",
+    musculoPrimario: "Core Anti-Rotación",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Oblicuos, transverso, estabilizadores de escápula, glúteos",
+    ejecucion: "En plancha alta. Levanta una mano para tocar el hombro contrario mientras resistes la rotación de la cadera y la columna."
+  },
+  {
+    nombre: "Mountain Climbers con Control (Escaladores)",
+    categoria: "core",
+    musculoPrimario: "Core & Flexores de Cadera",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Transverso, flexores de cadera, oblicuos, hombros",
+    ejecucion: "En plancha alta. Lleva alternadamente las rodillas hacia el pecho sin romper el alineamiento del tronco ni elevar los glúteos."
+  },
+  {
+    nombre: "Rollout con Rueda Abdominal de Rodillas (Arrodillado)",
+    categoria: "core",
+    musculoPrimario: "Core Profundo Anti-Extensión",
+    equipamiento: "Peso Corporal",
+    riesgo: "Moderado",
+    musculos: "Transverso abdominal, dorsal ancho, recto abdominal, core estabilizador",
+    ejecucion: "Desde rodillas. Empuja la rueda hacia adelante extendiendo los brazos y regresa activando el abdomen como palanca principal."
+  },
+  {
+    nombre: "Bird-Dog con Mancuerna (Weighted Bird-Dog)",
+    categoria: "core",
+    musculoPrimario: "Core Estabilizador & Extensores",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Multífidos, transverso, glúteos, deltoides posterior",
+    ejecucion: "En cuadrupedia. Extiende brazo y pierna opuestos sosteniendo una mancuerna ligera. Requiere mayor anti-rotación que la versión libre."
+  },
+  {
+    nombre: "L-Sit en Paralelas o Suelo",
+    categoria: "core",
+    musculoPrimario: "Core & Flexores de Cadera",
+    equipamiento: "Peso Corporal",
+    riesgo: "Moderado",
+    musculos: "Flexores de cadera, recto abdominal, tríceps, serratos",
+    ejecucion: "Apoyado en las manos, eleva las piernas extendidas horizontales y aguanta la posición isométrica. Ejercicio avanzado de core funcional."
+  },
+  {
+    nombre: "Crunch de Bicicleta (Bicycle Crunch)",
+    categoria: "core",
+    musculoPrimario: "Oblicuos & Recto Abdominal",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Oblicuos externos e internos, recto abdominal, flexores de cadera",
+    ejecucion: "Tumbado. Acerca el codo derecho a la rodilla izquierda en rotación y alterna al otro lado de forma controlada sin bajar la cabeza."
+  },
+  {
+    nombre: "Plancha Lateral con Rotación (Side Plank with Rotation)",
+    categoria: "core",
+    musculoPrimario: "Oblicuos & Estabilizadores Laterales",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Oblicuos internos, oblicuos externos, cuadrado lumbar, abductores",
+    ejecucion: "En plancha lateral. Lleva la mano libre por debajo del torso y extiéndela hacia el techo rotando la columna torácica."
+  },
+  {
+    nombre: "Extensión de Cadera en Fitball (Supine Bridge)",
+    categoria: "core",
+    musculoPrimario: "Glúteos & Core Posterior",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Glúteo mayor, isquiotibiales, core lumbopélvico, coordinación",
+    ejecucion: "Tumbado boca arriba con los pies sobre el fitball. Eleva la cadera en puente y mantén la estabilidad dinámica de la pelvis."
+  },
+
+  // ==========================================
+  // PANTORRILLAS — VARIANTES ADICIONALES
+  // ==========================================
+  {
+    nombre: "Elevación de Talones Bilateral con Barra en Rack (Barbell Calf Raise)",
+    categoria: "pantorrillas",
+    musculoPrimario: "Gastrocnemio",
+    equipamiento: "Barra",
+    riesgo: "Bajo",
+    musculos: "Gastrocnemio (cabeza medial y lateral), sóleo",
+    ejecucion: "Barra baja en rack sobre los trapecios. Puntas sobre un escalón o disco. Descenso completo y elevación explosiva con pausa de 2s arriba."
+  },
+  {
+    nombre: "Elevación de Talones con Pesa Rusa / Kettlebell (Unilateral)",
+    categoria: "pantorrillas",
+    musculoPrimario: "Gastrocnemio & Sóleo",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Gastrocnemio unilateral, estabilizadores del tobillo, control propioceptivo",
+    ejecucion: "De pie sobre un pie. Kettlebell o mancuerna en la mano del mismo lado. Máximo rango de flexión plantar y dorsiflexión."
+  },
+  {
+    nombre: "Saltos de Gemelos (Jump Calf Raises)",
+    categoria: "pantorrillas",
+    musculoPrimario: "Gastrocnemio (Potencia)",
+    equipamiento: "Peso Corporal",
+    riesgo: "Bajo",
+    musculos: "Gastrocnemio, tendón de Aquiles, flexores plantares",
+    ejecucion: "Saltos continuos sobre las puntas de los pies sin apoyo del talón. Desarrolla la potencia elástica del complejo gastrocnemio-tendón de Aquiles."
+  },
+  {
+    nombre: "Elevación de Talones Sentado con Mancuerna sobre Rodillas",
+    categoria: "pantorrillas",
+    musculoPrimario: "Sóleo",
+    equipamiento: "Mancuerna",
+    riesgo: "Bajo",
+    musculos: "Sóleo, peroné corto y largo",
+    ejecucion: "Sentado en silla o banco. Coloca mancuerna sobre las rodillas. Flexión plantar completa para aislar el sóleo profundo."
+  },
+  {
+    nombre: "Elevación de Talones en Leg Press (Posición Declinada)",
+    categoria: "pantorrillas",
+    musculoPrimario: "Gastrocnemio",
+    equipamiento: "Máquina",
+    riesgo: "Bajo",
+    musculos: "Gastrocnemio completo en posición extendida de rodilla",
+    ejecucion: "Rodillas en extensión completa. Sólo las puntas sobre la plataforma. Rango de movimiento máximo de flexión plantar y dorsiflexión."
   }
 ];
+
 
 const suplementosDB = [
   { nombre: "Creatina Monohidrato", evidencia: "Evidencia A (Máxima)", dosis: "3 - 5g diarios continuos", beneficio: "Aumenta la resíntesis de ATP, mejora la fuerza explosiva y la masa magra." },
@@ -10919,6 +11580,658 @@ if (document.readyState === 'loading') {
 } else {
   arrancarAplicacionFitPro();
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+// ASISTENTE DE RUTINAS CON IA — Motor Biomecánico FitPro
+// ══════════════════════════════════════════════════════════════════
+
+// Estado interno del asistente
+let _aiPlanActual = null;
+let _aiDiaActivoIndex = 0;
+
+// ── Mapas de restricciones articulares a palabras clave de músculo/ejecución
+const AI_RESTRICCIONES_MAP = {
+  lumbar:   ['lumbar', 'espalda', 'erector', 'columna', 'vertebral', 'deadlift', 'peso muerto', 'buenos días', 'good morning'],
+  rodilla:  ['rodilla', 'cizallamiento', 'rotuliana', 'ligamento cruzado', 'femoral', 'extensión de pierna', 'leg extension', 'sentadilla completa'],
+  hombro:   ['hombro', 'manguito', 'subacromial', 'rotador', 'impingement', 'rotación externa', 'press militar'],
+  cadera:   ['cadera', 'coxofemoral', 'hip flexor', 'iliopsoas', 'hip thrust'],
+  tobillo:  ['tobillo', 'aquiles', 'plantar', 'dorsiflexión', 'esguince', 'gemelo', 'sóleo'],
+  codo:     ['codo', 'muñeca', 'cárpico', 'túnel carpiano', 'epicondilitis', 'preacher', 'predicador']
+};
+
+// ── Splits de entrenamiento según objetivo y días
+const AI_SPLITS = {
+  3: {
+    hipertrofia:  [
+      { nombre: 'Día A — Empuje',        grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día B — Jale',           grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día C — Piernas & Core', grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas', 'core'] }
+    ],
+    fuerza:       [
+      { nombre: 'Día 1 — Sentadilla',     grupos: ['cuadriceps', 'isquiotibiales', 'core'] },
+      { nombre: 'Día 2 — Press',          grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 3 — Peso Muerto',    grupos: ['isquiotibiales', 'espalda', 'gluteos'] }
+    ],
+    definicion:   [
+      { nombre: 'Día 1 — Tren Superior', grupos: ['pecho', 'espalda', 'hombros'] },
+      { nombre: 'Día 2 — Tren Inferior', grupos: ['cuadriceps', 'gluteos', 'isquiotibiales'] },
+      { nombre: 'Día 3 — Brazos & Core', grupos: ['biceps', 'triceps', 'core'] }
+    ],
+    readaptacion: [
+      { nombre: 'Día 1 — Movilidad & Cadera',   grupos: ['gluteos', 'core', 'pantorrillas'] },
+      { nombre: 'Día 2 — Tren Superior Seguro',  grupos: ['espalda', 'hombros', 'biceps'] },
+      { nombre: 'Día 3 — Piernas Controladas',   grupos: ['cuadriceps', 'isquiotibiales'] }
+    ],
+    resistencia:  [
+      { nombre: 'Día 1 — Circuito Superior', grupos: ['pecho', 'espalda', 'hombros', 'biceps', 'triceps'] },
+      { nombre: 'Día 2 — Circuito Inferior', grupos: ['cuadriceps', 'gluteos', 'isquiotibiales', 'pantorrillas'] },
+      { nombre: 'Día 3 — Core & Full Body',  grupos: ['core', 'hombros', 'gluteos'] }
+    ]
+  },
+  4: {
+    hipertrofia:  [
+      { nombre: 'Día 1 — Pecho & Tríceps',      grupos: ['pecho', 'triceps'] },
+      { nombre: 'Día 2 — Espalda & Bíceps',     grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Piernas & Glúteos',    grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Hombros & Core',       grupos: ['hombros', 'core'] }
+    ],
+    fuerza:       [
+      { nombre: 'Día 1 — Sentadilla + Accesorios',  grupos: ['cuadriceps', 'core'] },
+      { nombre: 'Día 2 — Press + Hombros',          grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 3 — Peso Muerto + Espalda',    grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 4 — Accesorios & Brazos',      grupos: ['biceps', 'triceps', 'core'] }
+    ],
+    definicion:   [
+      { nombre: 'Día 1 — Push A',       grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull A',       grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs A',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
+      { nombre: 'Día 4 — Full Body B',  grupos: ['hombros', 'espalda', 'core', 'pantorrillas'] }
+    ],
+    readaptacion: [
+      { nombre: 'Día 1 — Cadera & Glúteos',       grupos: ['gluteos', 'isquiotibiales'] },
+      { nombre: 'Día 2 — Tren Superior Seguro',   grupos: ['espalda', 'hombros'] },
+      { nombre: 'Día 3 — Cuádriceps Controlado',  grupos: ['cuadriceps', 'pantorrillas'] },
+      { nombre: 'Día 4 — Core & Movilidad',       grupos: ['core', 'biceps', 'triceps'] }
+    ],
+    resistencia:  [
+      { nombre: 'Día 1 — Upper Push Circuit',  grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Lower Circuit',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
+      { nombre: 'Día 3 — Upper Pull Circuit',  grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 4 — Core & Cardio',       grupos: ['core', 'pantorrillas', 'hombros'] }
+    ]
+  },
+  5: {
+    hipertrofia:  [
+      { nombre: 'Push A — Pecho & Tríceps',   grupos: ['pecho', 'triceps'] },
+      { nombre: 'Pull A — Espalda & Bíceps',  grupos: ['espalda', 'biceps'] },
+      { nombre: 'Legs — Piernas & Glúteos',   grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Push B — Hombros & Pecho',   grupos: ['hombros', 'pecho'] },
+      { nombre: 'Pull B — Dorsal & Core',     grupos: ['espalda', 'core'] }
+    ],
+    fuerza:       [
+      { nombre: 'Día 1 — Sentadilla',   grupos: ['cuadriceps', 'gluteos', 'core'] },
+      { nombre: 'Día 2 — Press Banca',  grupos: ['pecho', 'triceps', 'hombros'] },
+      { nombre: 'Día 3 — Peso Muerto',  grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 4 — Press OHP',    grupos: ['hombros', 'triceps'] },
+      { nombre: 'Día 5 — Accesorios',   grupos: ['biceps', 'core', 'pantorrillas'] }
+    ],
+    definicion:   [
+      { nombre: 'Push A',       grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Pull A',       grupos: ['espalda', 'biceps'] },
+      { nombre: 'Legs A',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
+      { nombre: 'Push B',       grupos: ['hombros', 'pecho'] },
+      { nombre: 'Pull B & Core', grupos: ['espalda', 'core', 'pantorrillas'] }
+    ],
+    readaptacion: [
+      { nombre: 'Día 1 — Glúteos & Isquios',  grupos: ['gluteos', 'isquiotibiales'] },
+      { nombre: 'Día 2 — Espalda Segura',     grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Cuádriceps',         grupos: ['cuadriceps'] },
+      { nombre: 'Día 4 — Hombros Salud',      grupos: ['hombros', 'core'] },
+      { nombre: 'Día 5 — Core & Estabilidad', grupos: ['core', 'pantorrillas', 'triceps'] }
+    ],
+    resistencia: [
+      { nombre: 'Circuito A — Push',   grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Circuito B — Pull',   grupos: ['espalda', 'biceps'] },
+      { nombre: 'Circuito C — Legs',   grupos: ['cuadriceps', 'gluteos', 'isquiotibiales'] },
+      { nombre: 'Circuito D — Core',   grupos: ['core', 'pantorrillas'] },
+      { nombre: 'Circuito E — Full',   grupos: ['hombros', 'espalda', 'core', 'gluteos'] }
+    ]
+  }
+};
+
+// ── Parámetros de prescripción por objetivo y nivel
+const AI_PRESCRIPCION = {
+  hipertrofia: {
+    principiante: { series: '3', reps: '10–12', descanso: '90s', rir: 'RIR 3–4' },
+    intermedio:   { series: '4', reps: '8–12',  descanso: '90s', rir: 'RIR 2–3' },
+    avanzado:     { series: '4–5', reps: '6–15', descanso: '60–90s', rir: 'RIR 1–2' }
+  },
+  fuerza: {
+    principiante: { series: '3', reps: '5–8',  descanso: '3–4 min', rir: 'RIR 3' },
+    intermedio:   { series: '4', reps: '3–6',  descanso: '3–5 min', rir: 'RIR 2' },
+    avanzado:     { series: '5', reps: '1–5',  descanso: '5 min', rir: 'RIR 0–1' }
+  },
+  definicion: {
+    principiante: { series: '3', reps: '12–15', descanso: '60s', rir: 'RIR 2–3' },
+    intermedio:   { series: '3–4', reps: '12–20', descanso: '45–60s', rir: 'RIR 1–2' },
+    avanzado:     { series: '4', reps: '15–25', descanso: '30–45s', rir: 'RIR 0–1' }
+  },
+  readaptacion: {
+    principiante: { series: '2–3', reps: '12–15', descanso: '2 min', rir: 'RIR 4–5' },
+    intermedio:   { series: '3', reps: '10–15', descanso: '90s', rir: 'RIR 3–4' },
+    avanzado:     { series: '3–4', reps: '10–15', descanso: '90s', rir: 'RIR 3' }
+  },
+  resistencia: {
+    principiante: { series: '2–3', reps: '15–20', descanso: '30s', rir: 'RIR 2' },
+    intermedio:   { series: '3', reps: '15–25', descanso: '20–30s', rir: 'RIR 1' },
+    avanzado:     { series: '4', reps: '20–30', descanso: '15–20s', rir: 'RIR 0' }
+  }
+};
+
+// ── Ejercicios por día: cuántos colocar según nivel
+const AI_EX_POR_DIA = {
+  principiante: 4,
+  intermedio: 5,
+  avanzado: 6
+};
+
+
+
+// ── Etiquetas de visualización para objetivos
+const AI_OBJETIVO_LABELS = {
+  hipertrofia:  '💪 Hipertrofia',
+  fuerza:       '🏋️ Fuerza Máxima',
+  definicion:   '🔥 Definición',
+  readaptacion: '🩹 Readaptación',
+  resistencia:  '🏃 Resistencia'
+};
+
+const AI_NIVEL_LABELS = {
+  principiante: '🟢 Principiante',
+  intermedio:   '🟡 Intermedio',
+  avanzado:     '🔴 Avanzado'
+};
+
+// ── Obtiene la configuración actual del asistente desde el DOM
+function obtenerConfigAsistente() {
+  const objetivo    = document.getElementById('ai-objetivo')?.value      || 'hipertrofia';
+  const nivel       = document.getElementById('ai-nivel')?.value         || 'intermedio';
+  const diasSemana  = parseInt(document.getElementById('ai-dias-semana')?.value || '4');
+  const riesgoMax   = document.getElementById('ai-riesgo-max')?.value    || 'moderado';
+  const restriccionTxt = (document.getElementById('ai-restriccion-texto')?.value || '').toLowerCase();
+
+  const restricciones = {
+    lumbar:  document.getElementById('ai-chk-lumbar')?.checked  || restriccionTxt.includes('lumbar') || restriccionTxt.includes('espalda'),
+    rodilla: document.getElementById('ai-chk-rodilla')?.checked || restriccionTxt.includes('rodilla'),
+    hombro:  document.getElementById('ai-chk-hombro')?.checked  || restriccionTxt.includes('hombro'),
+    cadera:  document.getElementById('ai-chk-cadera')?.checked  || restriccionTxt.includes('cadera') || restriccionTxt.includes('cadera'),
+    tobillo: document.getElementById('ai-chk-tobillo')?.checked || restriccionTxt.includes('tobillo') || restriccionTxt.includes('pie'),
+    codo:    document.getElementById('ai-chk-codo')?.checked    || restriccionTxt.includes('codo') || restriccionTxt.includes('muñeca')
+  };
+
+  const equipamiento = Object.entries(AI_EQUIP_KEYS)
+    .filter(([id]) => document.getElementById(id)?.checked)
+    .map(([, label]) => label);
+
+  return { objetivo, nivel, diasSemana, riesgoMax, restricciones, equipamiento, restriccionTxt };
+}
+
+// ── Filtra la biblioteca de ejercicios según la configuración
+function filtrarEjerciciosIA(config) {
+  const { riesgoMax, restricciones, equipamiento, objetivo, nivel } = config;
+
+  const nivelRiesgoPermitido = riesgoMax === 'bajo'
+    ? ['Bajo']
+    : riesgoMax === 'moderado'
+    ? ['Bajo', 'Moderado']
+    : ['Bajo', 'Moderado', 'Alto'];
+
+  // Para readaptación siempre excluir alto riesgo
+  const riesgosPermitidos = objetivo === 'readaptacion'
+    ? ['Bajo', 'Moderado']
+    : nivelRiesgoPermitido;
+
+  // Para principiantes excluir alto riesgo
+  const riesgosFinales = nivel === 'principiante'
+    ? riesgosPermitidos.filter(r => r !== 'Alto')
+    : riesgosPermitidos;
+
+  return ejerciciosDB.filter(ej => {
+    // 1. Filtro de riesgo
+    if (!riesgosFinales.includes(ej.riesgo)) return false;
+
+    // 2. Filtro de equipamiento
+    if (equipamiento.length > 0) {
+      const tieneEquip = equipamiento.some(eq =>
+        ej.equipamiento && ej.equipamiento.toLowerCase().includes(eq.toLowerCase())
+      );
+      if (!tieneEquip) return false;
+    }
+
+    // 3. Filtro de restricciones articulares
+    const campoTexto = ((ej.nombre || '') + ' ' + (ej.ejecucion || '') + ' ' + (ej.musculos || '')).toLowerCase();
+    for (const [zona, activa] of Object.entries(restricciones)) {
+      if (!activa) continue;
+      const keywords = AI_RESTRICCIONES_MAP[zona] || [];
+      const esPeligroso = keywords.some(kw => campoTexto.includes(kw));
+      if (esPeligroso) return false;
+    }
+
+    return true;
+  });
+}
+
+// ── Actualiza los contadores de preview en tiempo real
+function actualizarVistaAsistente() {
+  const config = obtenerConfigAsistente();
+  const filtrados = filtrarEjerciciosIA(config);
+  const excluidos = ejerciciosDB.length - filtrados.length;
+
+  const elTotal     = document.getElementById('ai-preview-total');
+  const elExcluidos = document.getElementById('ai-preview-excluidos');
+  const elDias      = document.getElementById('ai-preview-dias');
+
+  if (elTotal)     elTotal.textContent     = filtrados.length;
+  if (elExcluidos) elExcluidos.textContent = excluidos;
+  if (elDias)      elDias.textContent      = config.diasSemana;
+}
+
+// ── Sincroniza chips de restricción con el campo de texto
+function actualizarChipsRestriccion(texto) {
+  const t = texto.toLowerCase();
+  const map = {
+    lumbar:  ['lumbar', 'espalda', 'l4', 'l5', 's1', 'disco'],
+    rodilla: ['rodilla', 'menisco', 'ligamento', 'rotula'],
+    hombro:  ['hombro', 'manguito', 'rotador', 'supraspinoso'],
+    cadera:  ['cadera', 'bursitis', 'labrum'],
+    tobillo: ['tobillo', 'esguince', 'aquiles', 'pie'],
+    codo:    ['codo', 'muñeca', 'carpiano', 'epicondilitis']
+  };
+  for (const [zona, kws] of Object.entries(map)) {
+    const chk = document.getElementById(`ai-chk-${zona}`);
+    if (chk && kws.some(k => t.includes(k))) chk.checked = true;
+  }
+  actualizarVistaAsistente();
+}
+
+// ── Sincroniza chips cuando cambia un checkbox
+function sincronizarChips() {
+  actualizarVistaAsistente();
+}
+
+// ── Sincroniza equipamiento cuando cambia un checkbox
+function sincronizarEquipamiento() {
+  actualizarVistaAsistente();
+}
+
+// ── Selecciona N ejercicios para un conjunto de grupos musculares
+function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
+  // Ordenar grupos por prioridad para el objetivo
+  const pool = [];
+  for (const grupo of grupos) {
+    const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo);
+    // Mezclar aleatoriamente con seed pseudo-determinista
+    const mezcla = delGrupo.sort(() => Math.random() - 0.5);
+    pool.push(...mezcla);
+  }
+
+  // Eliminar duplicados y tomar los primeros N
+  const seen = new Set();
+  const seleccionados = [];
+  for (const ej of pool) {
+    if (!seen.has(ej.nombre) && seleccionados.length < cantidad) {
+      seen.add(ej.nombre);
+      seleccionados.push(ej);
+    }
+  }
+  return seleccionados;
+}
+
+// ── Función principal: Generar Rutina con IA
+function generarRutinaIA() {
+  const btn = document.getElementById('btn-generar-ia');
+  if (!btn) return;
+
+  // Estado de carga
+  btn.innerHTML = `<span class="ai-spinner"></span> Generando plan…`;
+  btn.classList.add('loading');
+
+  setTimeout(() => {
+    try {
+      const config = obtenerConfigAsistente();
+      const ejerciciosFiltrados = filtrarEjerciciosIA(config);
+
+      if (ejerciciosFiltrados.length < 4) {
+        showToast('No hay suficientes ejercicios con los filtros aplicados. Amplía el equipamiento o reduce las restricciones.', 'warning', 'Filtros demasiado restrictivos');
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar Rutina con IA`;
+        btn.classList.remove('loading');
+        return;
+      }
+
+      // Obtener el split según días y objetivo
+      const splitsDisponibles = AI_SPLITS[config.diasSemana] || AI_SPLITS[4];
+      const splitObjetivo = splitsDisponibles[config.objetivo] || splitsDisponibles['hipertrofia'];
+      const prescripcion = (AI_PRESCRIPCION[config.objetivo] || AI_PRESCRIPCION.hipertrofia)[config.nivel] || AI_PRESCRIPCION.hipertrofia.intermedio;
+      const nEjPorDia = AI_EX_POR_DIA[config.nivel] || 5;
+
+      // Construir los días del plan
+      const diasPlan = splitObjetivo.map((dia, idx) => {
+        const ejercicios = seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, dia.grupos, nEjPorDia);
+        return {
+          numero: idx + 1,
+          nombre: dia.nombre,
+          grupos: dia.grupos,
+          ejercicios,
+          prescripcion
+        };
+      });
+
+      // Guardar en estado
+      _aiPlanActual = {
+        config,
+        dias: diasPlan,
+        fechaGeneracion: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }),
+        totalEjerciciosFiltrados: ejerciciosFiltrados.length,
+        totalExcluidos: ejerciciosDB.length - ejerciciosFiltrados.length
+      };
+
+      // Renderizar resultado
+      renderizarPlanIA(_aiPlanActual);
+
+      // Mostrar botón de reinicio
+      const btnReset = document.getElementById('btn-reset-ia');
+      if (btnReset) btnReset.style.display = 'flex';
+
+      // Actualizar hint
+      const hint = document.getElementById('ai-cta-hint');
+      if (hint) hint.textContent = `✅ Plan generado el ${_aiPlanActual.fechaGeneracion} — ${ejerciciosFiltrados.length} ejercicios disponibles`;
+
+      showToast(`Plan de ${config.diasSemana} días generado con ${ejerciciosFiltrados.length} ejercicios disponibles.`, 'success', '⚡ Plan IA Generado');
+
+    } catch (err) {
+      console.error('Error generarRutinaIA:', err);
+      showToast('Error al generar el plan. Intenta de nuevo.', 'error', 'Error IA');
+    }
+
+    // Restaurar botón
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar Rutina con IA`;
+    btn.classList.remove('loading');
+  }, 700); // Delay simulado para UX de "procesamiento"
+}
+
+// ── Renderiza el resultado del plan en el DOM
+function renderizarPlanIA(plan) {
+  const container = document.getElementById('ai-plan-result');
+  if (!container) return;
+
+  const { config, dias, fechaGeneracion, totalEjerciciosFiltrados, totalExcluidos } = plan;
+
+  // Badge y título
+  const badgeEl    = document.getElementById('ai-result-badge');
+  const titleEl    = document.getElementById('ai-result-title');
+  const subtitleEl = document.getElementById('ai-result-subtitle');
+
+  if (badgeEl)    badgeEl.textContent    = AI_OBJETIVO_LABELS[config.objetivo] || config.objetivo;
+  if (titleEl)    titleEl.textContent    = `Plan ${config.diasSemana} Días — ${AI_NIVEL_LABELS[config.nivel] || config.nivel}`;
+  if (subtitleEl) subtitleEl.textContent = `Generado el ${fechaGeneracion} · Motor Biomecánico FitPro`;
+
+  // Resumen de parámetros
+  const summaryEl = document.getElementById('ai-params-summary');
+  if (summaryEl) {
+    const restriccionesActivas = Object.entries(config.restricciones)
+      .filter(([, v]) => v)
+      .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+      .join(', ');
+
+    summaryEl.innerHTML = `
+      <span class="ai-param-tag tag-green">🎯 ${AI_OBJETIVO_LABELS[config.objetivo]}</span>
+      <span class="ai-param-tag tag-green">👤 ${AI_NIVEL_LABELS[config.nivel]}</span>
+      <span class="ai-param-tag">📅 ${config.diasSemana} días / semana</span>
+      <span class="ai-param-tag">🏗️ ${config.equipamiento.join(', ') || 'Todo el equipo'}</span>
+      ${config.riesgoMax !== 'alto' ? `<span class="ai-param-tag tag-amber">⚠️ Riesgo máx: ${config.riesgoMax}</span>` : ''}
+      ${restriccionesActivas ? `<span class="ai-param-tag tag-red">🚫 Zonas excluidas: ${restriccionesActivas}</span>` : ''}
+      <span class="ai-param-tag">✅ ${totalEjerciciosFiltrados} ejercicios disponibles</span>
+      ${totalExcluidos > 0 ? `<span class="ai-param-tag tag-amber">🚫 ${totalExcluidos} excluidos</span>` : ''}
+    `;
+  }
+
+  // Tabs de días
+  const tabsEl = document.getElementById('ai-day-tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = dias.map((dia, i) =>
+      `<button class="ai-day-tab ${i === 0 ? 'active' : ''}" onclick="cambiarDiaIA(${i})" id="ai-tab-${i}">${dia.nombre.split('—')[0].trim()}</button>`
+    ).join('');
+  }
+
+  // Contenido de días
+  const contentEl = document.getElementById('ai-days-content');
+  if (contentEl) {
+    contentEl.innerHTML = dias.map((dia, i) => renderizarDiaIA(dia, i)).join('');
+  }
+
+  // Mostrar contenedor
+  container.classList.remove('hidden');
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Activar primer día
+  _aiDiaActivoIndex = 0;
+}
+
+// ── Renderiza el HTML de un día del plan
+function renderizarDiaIA(dia, indice) {
+  const { nombre, grupos, ejercicios, prescripcion } = dia;
+
+  const muscleTagsHTML = grupos.map(g =>
+    `<span class="ai-muscle-tag">${capitalize(g)}</span>`
+  ).join('');
+
+  let warningHTML = '';
+  if (ejercicios.length < 3) {
+    warningHTML = `
+      <div class="ai-warning-card">
+        ⚠️ Pocos ejercicios disponibles para este día (${ejercicios.length}). Considera ampliar el equipamiento o reducir las restricciones articulares.
+      </div>`;
+  }
+
+  const ejerciciosHTML = ejercicios.length > 0 ? `
+    <table class="ai-exercise-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ejercicio</th>
+          <th>Series × Reps</th>
+          <th>Equipamiento</th>
+          <th>Riesgo</th>
+          <th>Descanso</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ejercicios.map((ej, idx) => `
+          <tr>
+            <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
+            <td>
+              <div class="ai-ex-name">${ej.nombre}</div>
+              <div class="ai-ex-muscle">${ej.musculoPrimario}</div>
+            </td>
+            <td>
+              <span class="ai-prescripcion">${prescripcion.series} × ${prescripcion.reps}</span>
+              <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${prescripcion.rir}</div>
+            </td>
+            <td><span class="ai-equip-chip">${ej.equipamiento}</span></td>
+            <td><span class="ai-riesgo-badge ai-riesgo-${(ej.riesgo || '').toLowerCase().replace('é','e')}">${ej.riesgo}</span></td>
+            <td style="font-size:12px; color:var(--text-muted);">${prescripcion.descanso}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : `<div style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px;">Sin ejercicios disponibles con los filtros actuales para este grupo muscular.</div>`;
+
+  return `
+    <div class="ai-day-panel ${indice === 0 ? 'active' : ''}" id="ai-panel-${indice}">
+      <div class="ai-day-header">
+        <h3 class="ai-day-title">${nombre}</h3>
+        <div class="ai-day-muscle-tags">${muscleTagsHTML}</div>
+      </div>
+      ${warningHTML}
+      ${ejerciciosHTML}
+    </div>
+  `;
+}
+
+// ── Cambiar tab activo del día
+function cambiarDiaIA(indice) {
+  _aiDiaActivoIndex = indice;
+
+  // Actualizar tabs
+  document.querySelectorAll('.ai-day-tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === indice);
+  });
+
+  // Mostrar panel correcto
+  document.querySelectorAll('.ai-day-panel').forEach((panel, i) => {
+    panel.classList.toggle('active', i === indice);
+  });
+}
+
+// ── Reiniciar el asistente
+function resetearAsistenteIA() {
+  _aiPlanActual = null;
+  _aiDiaActivoIndex = 0;
+
+  const container = document.getElementById('ai-plan-result');
+  if (container) container.classList.add('hidden');
+
+  const btnReset = document.getElementById('btn-reset-ia');
+  if (btnReset) btnReset.style.display = 'none';
+
+  const hint = document.getElementById('ai-cta-hint');
+  if (hint) hint.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Configura el perfil y haz clic en Generar para obtener tu plan personalizado`;
+
+  // Reiniciar contadores
+  actualizarVistaAsistente();
+}
+
+// ── Imprimir plan IA
+function imprimirPlanIA() {
+  if (!_aiPlanActual) return;
+  const { config, dias, fechaGeneracion } = _aiPlanActual;
+
+  const diasHTML = dias.map(dia => {
+    const filas = dia.ejercicios.map((ej, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${ej.nombre}</strong><br><small>${ej.musculoPrimario}</small></td>
+        <td>${dia.prescripcion.series} × ${dia.prescripcion.reps}</td>
+        <td>${ej.equipamiento}</td>
+        <td>${ej.riesgo}</td>
+        <td>${dia.prescripcion.descanso}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div style="margin-bottom:24px; page-break-inside:avoid;">
+        <h3 style="color:#00d68f; font-size:15px; margin:0 0 8px 0; border-bottom:1px solid #eee; padding-bottom:6px;">${dia.nombre}</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:6px 8px; text-align:left;">#</th>
+            <th style="padding:6px 8px; text-align:left;">Ejercicio</th>
+            <th style="padding:6px 8px; text-align:left;">Prescrip.</th>
+            <th style="padding:6px 8px; text-align:left;">Equip.</th>
+            <th style="padding:6px 8px; text-align:left;">Riesgo</th>
+            <th style="padding:6px 8px; text-align:left;">Descanso</th>
+          </tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Plan IA — FitPro Suite Pro</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+        h1 { font-size: 22px; margin-bottom: 4px; }
+        h2 { font-size: 14px; color: #555; margin-bottom: 24px; font-weight: normal; }
+        table td, table th { border-bottom: 1px solid #eee; padding: 6px 8px; }
+        @media print { body { padding: 16px; } }
+      </style>
+    </head>
+    <body>
+      <h1>⚡ Plan de Entrenamiento IA — FitPro Suite Pro</h1>
+      <h2>${AI_OBJETIVO_LABELS[config.objetivo]} · ${AI_NIVEL_LABELS[config.nivel]} · ${config.diasSemana} Días · Generado el ${fechaGeneracion}</h2>
+      ${diasHTML}
+      <p style="font-size:11px; color:#999; margin-top:24px;">⚠️ Este plan fue generado automáticamente por el motor biomecánico FitPro. Consulta con tu entrenador antes de ejecutarlo.</p>
+    </body>
+    </html>
+  `);
+  win.document.close();
+  win.print();
+}
+
+// ── Guardar plan IA en el historial de planes
+function guardarPlanIA() {
+  if (!_aiPlanActual) return;
+
+  const { config, dias, fechaGeneracion } = _aiPlanActual;
+  const gymId = obtenerGymIdActivo ? obtenerGymIdActivo() : 'gym_default';
+
+  const ejerciciosResumen = dias.flatMap(dia =>
+    dia.ejercicios.map(e => e.nombre)
+  ).join(' | ');
+
+  const nuevoPlan = {
+    id: Date.now(),
+    gym_id: gymId,
+    cliente: `Plan IA — ${AI_OBJETIVO_LABELS[config.objetivo]}`,
+    objetivo: AI_OBJETIVO_LABELS[config.objetivo],
+    metodo: `${AI_NIVEL_LABELS[config.nivel]} · ${config.diasSemana} días/semana`,
+    fecha: fechaGeneracion,
+    ejercicios: ejerciciosResumen,
+    generadoPorIA: true
+  };
+
+  if (typeof planesGuardados !== 'undefined') {
+    planesGuardados.push(nuevoPlan);
+    if (typeof renderPlanes === 'function') renderPlanes();
+  }
+
+  showToast('Plan guardado en el historial de planes.', 'success', '✅ Guardado');
+}
+
+// ── Capitalizar primera letra
+function capitalize(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// ── Inicializar el asistente al cargar la sección
+function initAsistenteIA() {
+  actualizarVistaAsistente();
+}
+
+// ── Exports globales del asistente IA
+window.generarRutinaIA        = generarRutinaIA;
+window.cambiarDiaIA           = cambiarDiaIA;
+window.resetearAsistenteIA    = resetearAsistenteIA;
+window.imprimirPlanIA         = imprimirPlanIA;
+window.guardarPlanIA          = guardarPlanIA;
+window.actualizarVistaAsistente = actualizarVistaAsistente;
+window.actualizarChipsRestriccion = actualizarChipsRestriccion;
+window.sincronizarChips       = sincronizarChips;
+window.sincronizarEquipamiento = sincronizarEquipamiento;
+
+// Inicializar contadores cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(initAsistenteIA, 500);
+});
+
 
 
 
