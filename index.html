@@ -2,20 +2,25 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
   <title>FitPro Suite Pro — Plataforma Integral de Entrenamiento y Nutrición</title>
+  <meta name="description" content="Plataforma profesional para entrenadores y gimnasios de prescripción biomecánica, nutrición y gestión de atletas." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Barlow+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3.0.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=3.2.0" />
   <!-- PWA & Mobile Web Capabilities -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#090d16" />
+  <meta name="theme-color" content="#10B981" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FitPro Suite" />
+  <meta name="application-name" content="FitPro Suite" />
+  <meta name="msapplication-TileColor" content="#090d16" />
+  <meta name="msapplication-TileImage" content="https://cdn-icons-png.flaticon.com/512/2936/2936886.png" />
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2936/2936886.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="https://cdn-icons-png.flaticon.com/512/2936/2936886.png" />
 </head>
 <body class="auth-pending">
 
@@ -514,8 +519,8 @@
         </div>
         
         <!-- TABLA DE GESTIÓN DE ATLETAS -->
-        <div id="clients-table-wrapper" style="overflow-x:auto;">
-          <table class="data-table" id="clients-table" style="width:100%; border-collapse:collapse; min-width:920px;">
+        <div id="clients-table-wrapper" class="table-responsive-wrapper">
+          <table class="data-table responsive-card-table" id="clients-table">
             <thead>
               <tr style="border-bottom:1px solid var(--border-color); text-align:left; color:var(--text-muted); font-size:12px; background:rgba(255,255,255,0.02);">
                 <th style="padding:12px 14px;">Atleta</th>
@@ -657,8 +662,8 @@
           </div>
           <button class="btn-primary" onclick="abrirModalNuevoPago()">⚡ + Registrar Pago</button>
         </div>
-        <div class="table-container">
-          <table class="custom-table">
+        <div class="table-container table-responsive-wrapper">
+          <table class="custom-table responsive-card-table" id="finances-table">
             <thead>
               <tr>
                 <th>Atleta / Cliente</th>
@@ -1848,6 +1853,52 @@
     </section>
 
   </main>
+
+  <!-- ============================================================================== -->
+  <!-- 📱 BARRA DE NAVEGACIÓN MÓVIL INFERIOR FIJA (BOTTOM BAR - OPTIMIZADA PARA PULGAR) -->
+  <!-- ============================================================================== -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navegación Móvil Principal">
+    <button type="button" class="mobile-bottom-nav-item active" data-view="dashboard" onclick="navegarA('dashboard')" title="Dashboard Central">
+      <div class="bottom-nav-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <span class="bottom-nav-label">Dashboard</span>
+    </button>
+    <button type="button" class="mobile-bottom-nav-item" data-view="clients" onclick="navegarA('clients')" title="Base de Atletas">
+      <div class="bottom-nav-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <span class="bottom-nav-label">Clientes</span>
+    </button>
+    <button type="button" class="mobile-bottom-nav-item" data-view="calculator" onclick="navegarA('calculator')" title="Laboratorio Biomecánico">
+      <div class="bottom-nav-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><circle cx="15" cy="16" r="1.5"/>
+        </svg>
+      </div>
+      <span class="bottom-nav-label">Calculadoras</span>
+    </button>
+    <button type="button" class="mobile-bottom-nav-item" data-view="finances" onclick="navegarA('finances')" title="Finanzas & Facturación">
+      <div class="bottom-nav-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="12" cy="15" r="2"/>
+        </svg>
+      </div>
+      <span class="bottom-nav-label">Finanzas</span>
+    </button>
+    <button type="button" class="mobile-bottom-nav-item" id="btn-bottom-nav-menu" onclick="toggleMobileSidebar(true)" title="Menú Completo y Módulos">
+      <div class="bottom-nav-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+      </div>
+      <span class="bottom-nav-label">Menú</span>
+    </button>
+  </nav>
 
   <!-- MODAL NUEVO CLIENTE PRO -->
   <div class="modal-overlay hidden" id="modal-cliente">

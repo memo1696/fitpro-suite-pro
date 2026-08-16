@@ -4115,7 +4115,7 @@ function navegarA(viewName, registrarHistorial = true) {
     // Cierre automático del menú lateral en móviles al navegar
     toggleMobileSidebar(false);
 
-    const navItems = document.querySelectorAll('.nav-item, .nav-subitem');
+    const navItems = document.querySelectorAll('.nav-item, .nav-subitem, .mobile-bottom-nav-item');
     const views = document.querySelectorAll('.view');
     const navGroups = document.querySelectorAll('.nav-group');
 
@@ -5075,47 +5075,54 @@ function renderClientes(filtro = '') {
         const cicloRutina = calcularEstadoCicloRutina(c.nombre);
 
         return `
-          <tr style="border-bottom:1px solid var(--border-color); transition:background 0.2s;" class="table-row-hover">
-            <td style="padding:12px 14px;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:34px; height:34px; border-radius:50%; background:rgba(34,197,94,0.15); color:var(--accent-green); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; border:1px solid rgba(34,197,94,0.3);">
-                  ${c.nombre.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()}
+          <tr class="table-row-hover client-table-card" data-client-id="${c.id}">
+            <td class="col-card-header" data-label="Atleta">
+              <div class="client-card-header-flex">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                  <div class="client-avatar-badge" style="width:36px; height:36px; border-radius:50%; background:rgba(34,197,94,0.15); color:var(--accent-green); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; border:1px solid rgba(34,197,94,0.3); flex-shrink:0;">
+                    ${c.nombre.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()}
+                  </div>
+                  <div style="min-width:0;">
+                    <strong class="client-name-link" style="color:#fff; font-size:14px; cursor:pointer;" onclick="abrirDetalleCliente(${c.id})">${c.nombre}</strong>
+                    <div style="font-size:11.5px; color:var(--text-muted);">${c.edad || 28} años • <span style="color:var(--accent-green); font-weight:600;">${c.nivel || 'Atleta'}</span></div>
+                  </div>
                 </div>
-                <div>
-                  <strong style="color:#fff; font-size:14px; cursor:pointer;" onclick="abrirDetalleCliente(${c.id})">${c.nombre}</strong>
-                  <div style="font-size:11.5px; color:var(--text-muted);">${c.edad || 28} años • <span style="color:var(--accent-green); font-weight:600;">${c.nivel || 'Atleta'}</span></div>
+                <div class="client-status-top-mobile">
+                  <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
                 </div>
               </div>
             </td>
-            <td style="padding:12px 14px;">
+            <td class="col-card-goal" data-label="Objetivo & Sede">
               <div style="font-size:13px; color:#e2e8f0; font-weight:500;">🎯 ${c.objetivo}</div>
               <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">🏢 <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span></div>
             </td>
-            <td style="padding:12px 14px;">
+            <td class="col-card-contact" data-label="Contacto">
               <div style="font-size:12.5px; color:#38bdf8;">📧 ${c.email || '<span style="color:var(--text-muted);">Sin correo</span>'}</div>
               <div style="font-size:12px; color:#4ade80; margin-top:2px;">${c.telefono ? `📱 ${c.telefono}` : '<span style="color:var(--text-muted);">Sin teléfono</span>'}</div>
             </td>
-            <td style="padding:12px 14px;">
+            <td class="col-card-membership" data-label="Membresía">
               <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
             </td>
-            <td style="padding:12px 14px;">
+            <td class="col-card-routine" data-label="Rutina">
               <span class="badge ${cicloRutina.badge}">${cicloRutina.texto}</span>
             </td>
-            <td style="padding:12px 14px;">
+            <td class="col-card-access" data-label="Acceso App">
               <div style="font-size:12px; font-family:monospace; color:#fbbf24; font-weight:700; background:rgba(251,191,36,0.08); padding:4px 8px; border-radius:4px; border:1px solid rgba(251,191,36,0.2); display:inline-block;">
                 ${c.password_provisional ? `🔑 ${c.password_provisional}` : '<span style="color:var(--text-muted); font-family:inherit;">(Personalizada)</span>'}
               </div>
             </td>
-            <td style="padding:12px 14px; text-align:right;">
-              <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap;">
-                <!-- BOTÓN PRINCIPAL DE WHATSAPP DIRECTO EN LA TABLA -->
-                <button class="btn-primary" style="padding:6px 10px; font-size:11.5px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700; display:inline-flex; align-items:center; gap:5px;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar credenciales y enlace del APK por WhatsApp a ${c.nombre}">
+            <td class="col-card-actions" data-label="Acciones & WhatsApp">
+              <div class="client-actions-wrapper">
+                <!-- BOTÓN PRINCIPAL DE WHATSAPP DIRECTO -->
+                <button class="btn-primary btn-whatsapp-direct" style="padding:7px 12px; font-size:12px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:5px;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar credenciales y enlace del APK por WhatsApp a ${c.nombre}">
                   💬 Enviar WhatsApp
                 </button>
-                <button class="btn-secondary" style="padding:6px 9px; font-size:11.5px;" onclick="abrirDetalleCliente(${c.id})" title="Ver Expediente Deportivo">📋</button>
-                <button class="btn-secondary" style="padding:6px 9px; font-size:11.5px; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Generar / Resetear Clave App">👤</button>
-                <button class="btn-secondary" style="padding:6px 9px; font-size:11.5px; color:var(--accent-green);" onclick="renovarRutinaMensual('${c.nombre}')" title="Renovación Automática de Rutina">🔄</button>
-                <button class="btn-secondary danger" style="padding:6px 9px; font-size:11.5px;" onclick="confirmarEliminarCliente(${c.id})" title="Eliminar Atleta">🗑️</button>
+                <div class="client-action-icon-buttons">
+                  <button class="btn-secondary" style="padding:6px 9px; font-size:12px;" onclick="abrirDetalleCliente(${c.id})" title="Ver Expediente Deportivo">📋</button>
+                  <button class="btn-secondary" style="padding:6px 9px; font-size:12px; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Generar / Resetear Clave App">👤</button>
+                  <button class="btn-secondary" style="padding:6px 9px; font-size:12px; color:var(--accent-green);" onclick="renovarRutinaMensual('${c.nombre}')" title="Renovación Automática de Rutina">🔄</button>
+                  <button class="btn-secondary danger" style="padding:6px 9px; font-size:12px;" onclick="confirmarEliminarCliente(${c.id})" title="Eliminar Atleta">🗑️</button>
+                </div>
               </div>
             </td>
           </tr>
@@ -10488,15 +10495,30 @@ function renderFinanzas() {
         const badgeClass = f.estado === 'Pagado' ? 'badge-status-paid' : f.estado === 'Pendiente' ? 'badge-status-expiring' : 'badge-status-debt';
 
         return `
-          <tr>
-            <td><strong style="color:#fff;">${f.cliente}</strong></td>
-            <td style="color:var(--text-muted); font-size:13px;">${f.concepto}</td>
-            <td style="color:var(--text-muted); font-size:13px;">${f.fecha}</td>
-            <td style="font-weight:700; color:var(--accent-green);">$${Number(f.monto || 0).toFixed(2)}</td>
-            <td style="font-size:12px; color:var(--text-muted);">${f.metodo || 'Transferencia'}</td>
-            <td><span class="badge ${badgeClass}">${f.estado}</span></td>
-            <td>
-              <button class="btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="alternarEstadoPago(${f.id})">
+          <tr class="table-row-hover finance-table-card">
+            <td class="col-finance-client" data-label="Atleta / Cliente">
+              <div class="finance-card-header">
+                <strong class="finance-client-name" style="color:#fff; font-size:14px;">${f.cliente}</strong>
+                <span class="finance-amount-mobile" style="font-weight:800; color:var(--accent-green); font-size:15px;">$${Number(f.monto || 0).toFixed(2)}</span>
+              </div>
+            </td>
+            <td class="col-finance-concept" data-label="Concepto">
+              <span class="finance-concept-text" style="color:var(--text-muted); font-size:13px;">${f.concepto}</span>
+            </td>
+            <td class="col-finance-date" data-label="Fecha">
+              <span class="finance-date-text" style="color:var(--text-muted); font-size:13px;">📅 ${f.fecha}</span>
+            </td>
+            <td class="col-finance-amount" data-label="Monto ($)">
+              <span class="finance-amount-val" style="font-weight:700; color:var(--accent-green);">$${Number(f.monto || 0).toFixed(2)}</span>
+            </td>
+            <td class="col-finance-method" data-label="Método">
+              <span class="finance-method-text" style="font-size:12.5px; color:#38bdf8;">💳 ${f.metodo || 'Transferencia'}</span>
+            </td>
+            <td class="col-finance-status" data-label="Estado">
+              <span class="badge ${badgeClass}">${f.estado}</span>
+            </td>
+            <td class="col-finance-actions" data-label="Acciones">
+              <button class="btn-secondary btn-finance-toggle" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="alternarEstadoPago(${f.id})">
                 ${f.estado === 'Pagado' ? 'Marcar Pendiente' : '🟢 Marcar Pagado'}
               </button>
             </td>
