@@ -5204,64 +5204,7 @@ function renderClientes(filtro = '') {
     }
   }
 
-        const cicloRutina = calcularEstadoCicloRutina(c.nombre);
 
-        return `
-          <div class="client-card" style="position:relative;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <strong style="font-size:16px; color:#fff;">${c.nombre}</strong>
-                <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-                  <span class="badge badge-green">${c.nivel || 'Atleta'}</span>
-                  <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
-                  <span class="badge ${cicloRutina.badge}">${cicloRutina.texto}</span>
-                </div>
-              </div>
-
-              <div style="position:relative;">
-                <button class="action-menu-btn" onclick="toggleDropdownMenu(event, ${c.id})" title="Menú de Acciones (≡)">≡</button>
-                <div class="dropdown-popover hidden" id="dropdown-menu-${c.id}">
-                  <button class="dropdown-item" onclick="abrirModalCliente()"><span style="color:var(--accent-green);">⚡</span> Nuevo cliente</button>
-                  <button class="dropdown-item" onclick="abrirDetalleCliente(${c.id})"><span>📋</span> Clientes activos (Expediente)</button>
-                  <button class="dropdown-item" onclick="generarUsuarioYPasswordAtleta(${c.id})"><span style="color:#38bdf8;">👤</span> Generar Usuario y Contraseña</button>
-                  <button class="dropdown-item" onclick="enviarEnlaceWhatsAppAtleta(${c.id})"><span style="color:#22c55e;">💬</span> Enviar Enlace por WhatsApp</button>
-                  <button class="dropdown-item" onclick="renovarRutinaMensual('${c.nombre}')"><span style="color:var(--accent-green);">⚡</span> Renovación Automática</button>
-                  <button class="dropdown-item" onclick="abrirModalPlanManual('${c.nombre}')"><span style="color:#60a5fa;">✏️</span> Crear Plan Manual</button>
-                  <button class="dropdown-item danger" onclick="confirmarEliminarCliente(${c.id})"><span>🗑️</span> Eliminar cliente</button>
-                </div>
-              </div>
-            </div>
-
-            <div style="color:var(--text-muted); font-size:13px; margin-top:10px;">
-              🎯 <strong>Objetivo:</strong> ${c.objetivo}<br>
-              📊 <strong>Adherencia:</strong> ${c.adherencia || '90%'}<br>
-              ${c.email ? `📧 <strong>Email App:</strong> <span style="color:#38bdf8;">${c.email}</span><br>` : ''}
-              ${c.password_provisional ? `🔑 <strong>Clave App:</strong> <span style="color:#fbbf24; font-family:monospace; font-weight:700;">${c.password_provisional}</span><br>` : ''}
-              ${c.telefono ? `📱 <strong>Teléfono:</strong> <span style="color:#4ade80;">${c.telefono}</span><br>` : ''}
-              🏢 <strong>Sede:</strong> <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span> • 📅 <strong>Fecha:</strong> ${c.fecha || 'Reciente'}
-            </div>
-
-            <!-- BOTONES AUTOMATIZADOS DE CREDENCIALES Y WHATSAPP -->
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-              <div style="display:flex; gap:6px;">
-                <button class="btn-secondary" style="padding:6px 8px; font-size:11px; flex:1; justify-content:center; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Autogenerar credenciales seguras para la App Móvil">
-                  👤 Generar Usuario y Contraseña
-                </button>
-                <button class="btn-primary" style="padding:6px 8px; font-size:11px; flex:1; justify-content:center; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar accesos y enlace de la app por WhatsApp">
-                  💬 Enviar Enlace por WhatsApp
-                </button>
-              </div>
-            </div>
-
-            <div style="margin-top:auto; display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--border-color);">
-              <button class="btn-secondary" style="padding:6px 12px; font-size:12px; flex:1;" onclick="abrirDetalleCliente(${c.id})">📋 Expediente</button>
-              <button class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="renovarRutinaMensual('${c.nombre}')">🔄 Renovar</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
 
   if (dashList) {
     if (clientesGym.length === 0) {
@@ -10889,15 +10832,15 @@ window.cerrarModalStat = cerrarModalStat;
 window.toggleDropdownMenu = toggleDropdownMenu;
 window.renovarRutinaMensual = renovarRutinaMensual;
 window.prepararPlanPara = prepararPlanPara;
-window.confirmarEliminarCliente = confirmarEliminarCliente;
-window.confirmarEliminarPlan = confirmarEliminarPlan;
-window.filtrarBiblioteca = filtrarBiblioteca;
-window.filtrarEquipamiento = filtrarEquipamiento;
-window.filtrarRiesgo = filtrarRiesgo;
-window.filtrarBibliotecaTexto = filtrarBibliotecaTexto;
-window.ejerciciosDB = ejerciciosDB;
-window.imprimirPlan = imprimirPlan;
-window.imprimirBiblioteca = imprimirBiblioteca;
+window.confirmarEliminarCliente = typeof confirmarEliminarCliente !== 'undefined' ? confirmarEliminarCliente : null;
+window.confirmarEliminarPlan = typeof confirmarEliminarPlan !== 'undefined' ? confirmarEliminarPlan : (typeof eliminarPlan !== 'undefined' ? eliminarPlan : null);
+window.filtrarBiblioteca = typeof filtrarBiblioteca !== 'undefined' ? filtrarBiblioteca : null;
+window.filtrarEquipamiento = typeof filtrarEquipamiento !== 'undefined' ? filtrarEquipamiento : null;
+window.filtrarRiesgo = typeof filtrarRiesgo !== 'undefined' ? filtrarRiesgo : null;
+window.filtrarBibliotecaTexto = typeof filtrarBibliotecaTexto !== 'undefined' ? filtrarBibliotecaTexto : null;
+window.ejerciciosDB = typeof ejerciciosDB !== 'undefined' ? ejerciciosDB : null;
+window.imprimirPlan = typeof imprimirPlan !== 'undefined' ? imprimirPlan : null;
+window.imprimirBiblioteca = typeof imprimirBiblioteca !== 'undefined' ? imprimirBiblioteca : function() { window.print(); };
 window.analizarYGenerarPlan = analizarYGenerarPlan;
 window.cambiarPestañaModalPlan = cambiarPestañaModalPlan;
 window.cambiarPestañaModalCliente = cambiarPestañaModalCliente;
