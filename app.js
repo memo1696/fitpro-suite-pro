@@ -1380,6 +1380,277 @@ function getSeedFuerzaDemo() {
   ];
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// 🌱 SEED DATA DE ONBOARDING — Motor de datos de bienvenida para coaches
+// Se inyectan automáticamente sólo en el primer login de un usuario real
+// ══════════════════════════════════════════════════════════════════════
+function getSeedOnboardingCoach(userId) {
+  const ts = Date.now();
+  const gymId = gimnasioActivoId || 'gym_central_01';
+  return {
+    clientes: [
+      {
+        id: ts + 1,
+        user_id: userId,
+        gym_id: gymId,
+        nombre: 'Carlos Mendoza',
+        edad: 28,
+        genero: 'Masculino',
+        objetivo: 'Hipertrofia Muscular',
+        nivel: 'Avanzado',
+        adherencia: '94%',
+        fecha: new Date().toISOString().split('T')[0],
+        peso: 82.0,
+        altura: 180,
+        porcentajeGrasa: 14.5,
+        porcentajeMusculo: 47.8,
+        imc: 25.3,
+        perimetroAbdominal: 82,
+        estadoMembresia: 'activa',
+        email: 'carlos.mendoza@demo.fitpro',
+        entrenador: 'Mi Nombre (Coach)',
+        _esOnboarding: true
+      },
+      {
+        id: ts + 2,
+        user_id: userId,
+        gym_id: gymId,
+        nombre: 'Laura Pérez',
+        edad: 31,
+        genero: 'Femenino',
+        objetivo: 'Definición y Tonificación',
+        nivel: 'Intermedio',
+        adherencia: '88%',
+        fecha: new Date().toISOString().split('T')[0],
+        peso: 60.5,
+        altura: 163,
+        porcentajeGrasa: 20.5,
+        porcentajeMusculo: 37.2,
+        imc: 22.7,
+        perimetroAbdominal: 70,
+        estadoMembresia: 'por_vencer',
+        email: 'laura.perez@demo.fitpro',
+        entrenador: 'Mi Nombre (Coach)',
+        _esOnboarding: true
+      },
+      {
+        id: ts + 3,
+        user_id: userId,
+        gym_id: gymId,
+        nombre: 'Ernesto Vidal',
+        edad: 35,
+        genero: 'Masculino',
+        objetivo: 'Fuerza Máxima y Potencia',
+        nivel: 'Avanzado',
+        adherencia: '82%',
+        fecha: new Date().toISOString().split('T')[0],
+        peso: 90.0,
+        altura: 178,
+        porcentajeGrasa: 17.2,
+        porcentajeMusculo: 49.5,
+        imc: 28.4,
+        perimetroAbdominal: 88,
+        estadoMembresia: 'vencida',
+        email: 'ernesto.vidal@demo.fitpro',
+        entrenador: 'Mi Nombre (Coach)',
+        _esOnboarding: true
+      }
+    ],
+    planes: [
+      {
+        id: ts + 10,
+        user_id: userId,
+        gym_id: gymId,
+        cliente: 'Carlos Mendoza',
+        metodo: 'Hipertrofia Avanzada — Frecuencia 2 con Sobrecarga Progresiva',
+        objetivo: 'Hipertrofia Especifica de Alta Densidad',
+        fecha: new Date().toISOString().split('T')[0],
+        rpe_objetivo: 8.5,
+        _esOnboarding: true,
+        dias: [
+          {
+            nombre: 'Día A — Empuje (Pecho / Deltoides / Tríceps)',
+            enfoque: 'Pecho, Hombros, Tríceps',
+            ejercicios: [
+              { nombre: 'Press Inclinado con Mancuernas (30°)', series: 4, repeticiones: '8-10', rpe: 8.5, rir: 1, descanso: '120s', notas: 'Escápulas retraídas, pausa isométrica 1s en contracción.' },
+              { nombre: 'Press Plano en Máquina Convergente', series: 3, repeticiones: '10-12', rpe: 8, rir: 2, descanso: '90s', notas: 'Excéntrico controlado en 3 seg.' },
+              { nombre: 'Elevaciones Laterales en Polea Baja', series: 4, repeticiones: '12-15', rpe: 9, rir: 0, descanso: '60s', notas: 'Línea escapular a 45°.' }
+            ]
+          },
+          {
+            nombre: 'Día B — Tracción (Espalda / Bíceps)',
+            enfoque: 'Espalda Completa, Bíceps',
+            ejercicios: [
+              { nombre: 'Jalón al Pecho Agarre Neutro', series: 4, repeticiones: '8-10', rpe: 8.5, rir: 1, descanso: '90s', notas: 'Depresión escapular activa.' },
+              { nombre: 'Remo con Barra T en Pecho', series: 4, repeticiones: '10-12', rpe: 8.5, rir: 1, descanso: '90s', notas: 'Codos pegados al torso.' },
+              { nombre: 'Curl Inclinado con Mancuernas', series: 3, repeticiones: '10-12', rpe: 8.5, rir: 1, descanso: '75s', notas: 'Máximo estiramiento de cabeza larga.' }
+            ]
+          },
+          {
+            nombre: 'Día C — Piernas (Cuádriceps / Isquiosurales / Glúteos)',
+            enfoque: 'Tren Inferior Completo',
+            ejercicios: [
+              { nombre: 'Sentadilla Hack Profunda', series: 4, repeticiones: '8-10', rpe: 8.5, rir: 1, descanso: '150s', notas: 'Control total hasta flexión de rodilla completa.' },
+              { nombre: 'Peso Muerto Rumano con Mancuernas', series: 4, repeticiones: '10-12', rpe: 8.5, rir: 1, descanso: '120s', notas: 'Cadera atrás, columna neutra.' },
+              { nombre: 'Prensa de Piernas 45°', series: 3, repeticiones: '12-15', rpe: 9, rir: 1, descanso: '90s', notas: 'Tempo 3-0-1-0.' }
+            ]
+          }
+        ],
+        ejercicios: ['Press Inclinado con Mancuernas (30°) (4x8-10)', 'Jalón al Pecho Agarre Neutro (4x8-10)', 'Sentadilla Hack Profunda (4x8-10)', 'Peso Muerto Rumano con Mancuernas (4x10-12)']
+      }
+    ],
+    transacciones: [
+      {
+        id: ts + 20,
+        user_id: userId,
+        gym_id: gymId,
+        cliente: 'Carlos Mendoza',
+        concepto: 'Plan Semestral Pro + Asesoría Biomecánica',
+        monto: 450.00,
+        metodo: 'Tarjeta de Crédito',
+        estado: 'Pagado',
+        fecha: (() => { const d = new Date(); d.setDate(d.getDate() - 14); return d.toISOString().split('T')[0]; })(),
+        _esOnboarding: true
+      },
+      {
+        id: ts + 21,
+        user_id: userId,
+        gym_id: gymId,
+        cliente: 'Laura Pérez',
+        concepto: 'Mensualidad Premium + Plan Nutricional',
+        monto: 120.00,
+        metodo: 'Transferencia Bancaria',
+        estado: 'Pagado',
+        fecha: (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })(),
+        _esOnboarding: true
+      },
+      {
+        id: ts + 22,
+        user_id: userId,
+        gym_id: gymId,
+        cliente: 'Ernesto Vidal',
+        concepto: 'Coaching Individual de Powerlifting 1 mes',
+        monto: 150.00,
+        metodo: 'Efectivo',
+        estado: 'Pendiente',
+        fecha: new Date().toISOString().split('T')[0],
+        _esOnboarding: true
+      }
+    ]
+  };
+}
+
+function inyectarOnboardingSiEsNuevo(userId) {
+  if (!userId || userId === 'demo_coach') return;
+  const flagKey = `fitpro_onboarding_done_${userId}`;
+  if (localStorage.getItem(flagKey)) return; // Ya fue inyectado
+
+  // Solo inyectar si todos los arrays están vacíos (es la primera vez)
+  const isNuevo = clientes.length === 0 && planesGuardados.length === 0 && transaccionesFinancieras.length === 0;
+  if (!isNuevo) {
+    localStorage.setItem(flagKey, '1');
+    return;
+  }
+
+  const seed = getSeedOnboardingCoach(userId);
+  clientes.push(...seed.clientes);
+  planesGuardados.push(...seed.planes);
+  transaccionesFinancieras.push(...seed.transacciones);
+
+  // Actualizar referencias de window
+  window.clientes = clientes;
+  window.planesGuardados = planesGuardados;
+  window.transaccionesFinancieras = transaccionesFinancieras;
+
+  // Persistir en localStorage cifrado
+  persistirDatosUsuarioActual();
+  localStorage.setItem(flagKey, '1');
+
+  // Toast de bienvenida diferido para que se vea tras el render
+  setTimeout(() => {
+    showToast(
+      'Tu dashboard incluye <strong>3 atletas de ejemplo</strong> con diferentes estados de membresía y <strong>3 transacciones de prueba</strong> para que veas el sistema en acción. ¡Puedes eliminarlos y agregar tus atletas reales cuando quieras!',
+      'info',
+      '🌱 Datos de Bienvenida Cargados',
+      8000
+    );
+  }, 1500);
+}
+
+// ──────────────────────────────────────────────────────────────
+// 🔗 ENLACE SEGURO DEL PORTAL DEL ATLETA — Tokens base64
+// ──────────────────────────────────────────────────────────────
+function generarEnlaceAtleta(clienteId) {
+  const cliente = clientes.find(c => c.id == clienteId);
+  if (!cliente) return null;
+  const gymId = cliente.gym_id || gimnasioActivoId || 'gym_central_01';
+  // Token = base64(gymId:clienteId) — identificador no sensible
+  const payload = `${gymId}:${clienteId}`;
+  let token;
+  try {
+    token = btoa(payload);
+  } catch(e) {
+    token = btoa(encodeURIComponent(payload));
+  }
+  const base = window.location.origin + window.location.pathname;
+  return `${base}?t=${token}`;
+}
+
+function resolverTokenAtleta(token) {
+  try {
+    let decoded;
+    try {
+      decoded = atob(token);
+    } catch(e) {
+      decoded = decodeURIComponent(atob(token));
+    }
+    const parts = decoded.split(':');
+    if (parts.length < 2) return null;
+    const gymId = parts[0];
+    const clienteId = parts.slice(1).join(':');
+    const cliente = clientes.find(c =>
+      (String(c.id) === String(clienteId)) &&
+      (c.gym_id === gymId || !c.gym_id)
+    );
+    return cliente || null;
+  } catch(err) {
+    console.warn('Token de atleta inválido:', err);
+    return null;
+  }
+}
+
+function compartirPortalAtleta(clienteId) {
+  const url = generarEnlaceAtleta(clienteId);
+  if (!url) { showToast('No se pudo generar el enlace.', 'error'); return; }
+  const cliente = clientes.find(c => c.id == clienteId);
+  const nombre = cliente?.nombre || 'Atleta';
+
+  if (navigator.share) {
+    navigator.share({
+      title: `Portal FitPro de ${nombre}`,
+      text: `Hola ${nombre}, accede a tu rutina de entrenamiento, dieta y progreso en FitPro Suite:`,
+      url
+    }).catch(() => _copiarEnlaceAtleta(url, nombre));
+  } else {
+    _copiarEnlaceAtleta(url, nombre);
+  }
+}
+
+function _copiarEnlaceAtleta(url, nombre) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast(`Enlace del portal de <strong>${nombre}</strong> copiado al portapapeles. ¡Compártelo por WhatsApp o correo!`, 'success', '📋 Enlace Copiado', 6000);
+    });
+  } else {
+    prompt(`Copia y comparte este enlace con ${nombre}:`, url);
+  }
+}
+
+function irAGenerador() {
+  navegarA('generate');
+}
+window.irAGenerador = irAGenerador;
+
 function cargarDatosPorUsuario(userId, esModoDemo = false) {
   if (esModoDemo) {
     // Modo Demo: Cargar dataset de demostración
@@ -1453,6 +1724,9 @@ function establecerSesionActiva(session, user = null) {
   // 1. Cargar almacenamiento exclusivo para este usuario
   cargarDatosPorUsuario(userId, esDemo);
 
+  // 1b. Inyectar datos de onboarding si es un coach nuevo sin datos
+  if (!esDemo) inyectarOnboardingSiEsNuevo(userId);
+
   // 2. Remover bloqueo en body, ocultar pantalla auth y mostrar app layout
   document.body.classList.remove('auth-pending');
   
@@ -1505,14 +1779,21 @@ function establecerSesionActiva(session, user = null) {
   renderAnalyticsAtleta();
   renderAlertasProactivas();
 
-  // 6. Verificar si la sesión pertenece a un Atleta
+  // 6. Verificar si la sesión pertenece a un Atleta (incluye soporte de token ?t=)
   const urlParams = new URLSearchParams(window.location.search);
   const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
+  const tokenParam = urlParams.get('t');
+  let atletaDeToken = null;
+  if (tokenParam) {
+    atletaDeToken = resolverTokenAtleta(tokenParam);
+    if (atletaDeToken) window.esSesionModoAtleta = true;
+  }
   const esAtletaRole = u?.user_metadata?.role === 'athlete' || 
                        (u?.user_metadata?.role && String(u.user_metadata.role).toLowerCase().includes('atleta')) || 
                        (u?.email && String(u.email).toLowerCase().includes('@atleta.')) ||
                        window.esSesionModoAtleta === true || 
                        Boolean(atletaParam) ||
+                       Boolean(atletaDeToken) ||
                        urlParams.get('view') === 'athlete';
 
   if (esAtletaRole) {
@@ -3750,6 +4031,40 @@ function toggleMobileSidebar(forceState) {
   }
 }
 
+function toggleSidebarCollapse() {
+  try {
+    const sidebar = document.getElementById('app-sidebar');
+    const layout = document.getElementById('app-layout');
+    if (!sidebar) return;
+
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    if (layout) {
+      if (isCollapsed) {
+        layout.classList.add('sidebar-collapsed');
+      } else {
+        layout.classList.remove('sidebar-collapsed');
+      }
+    }
+    localStorage.setItem('fitpro_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+  } catch (err) {
+    console.error("toggleSidebarCollapse Error:", err);
+  }
+}
+
+function inicializarSidebarState() {
+  try {
+    const isCollapsed = localStorage.getItem('fitpro_sidebar_collapsed') === 'true';
+    if (isCollapsed && window.innerWidth > 992) {
+      const sidebar = document.getElementById('app-sidebar');
+      const layout = document.getElementById('app-layout');
+      if (sidebar) sidebar.classList.add('collapsed');
+      if (layout) layout.classList.add('sidebar-collapsed');
+    }
+  } catch (err) {
+    console.warn("Notice inicializando sidebar:", err);
+  }
+}
+
 function toggleNavGroup(groupId) {
   try {
     const group = document.getElementById(groupId);
@@ -3765,6 +4080,21 @@ function toggleNavGroup(groupId) {
     console.error("toggleNavGroup Error:", err);
   }
 }
+
+// Filtro activo de estado de clientes (todos, activa, por_vencer, vencida, pausada)
+let filtroEstadoClienteActivo = 'todos';
+
+function seleccionarFiltroEstadoCliente(estado, el) {
+  filtroEstadoClienteActivo = estado || 'todos';
+  const chips = document.querySelectorAll('.filter-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const inputBuscar = document.getElementById('input-buscar-cliente');
+  renderClientes(inputBuscar ? inputBuscar.value : '');
+}
+
+window.toggleSidebarCollapse = toggleSidebarCollapse;
+window.seleccionarFiltroEstadoCliente = seleccionarFiltroEstadoCliente;
 
 let historialVistas = ['dashboard'];
 
@@ -4679,27 +5009,69 @@ function renderClientes(filtro = '') {
 
   const clientesGym = getClientesActivos();
 
-  const filtrados = clientesGym.filter(c => 
-    c.nombre.toLowerCase().includes(filtro.toLowerCase()) || 
-    c.objetivo.toLowerCase().includes(filtro.toLowerCase()) ||
-    (c.email && c.email.toLowerCase().includes(filtro.toLowerCase())) ||
-    (c.telefono && c.telefono.toLowerCase().includes(filtro.toLowerCase()))
-  );
+  // Actualizar conteos de chips de estado
+  const countTodos = clientesGym.length;
+  const countActiva = clientesGym.filter(c => (c.estadoMembresia || 'activa') === 'activa').length;
+  const countPorVencer = clientesGym.filter(c => c.estadoMembresia === 'por_vencer').length;
+  const countVencida = clientesGym.filter(c => c.estadoMembresia === 'vencida').length;
+  const countPausada = clientesGym.filter(c => c.estadoMembresia === 'pausada' || c.estadoMembresia === 'inactiva').length;
+
+  const elCountTodos = document.getElementById('chip-count-todos');
+  const elCountActiva = document.getElementById('chip-count-activa');
+  const elCountPorVencer = document.getElementById('chip-count-por_vencer');
+  const elCountVencida = document.getElementById('chip-count-vencida');
+  const elCountPausada = document.getElementById('chip-count-pausada');
+
+  if (elCountTodos) elCountTodos.innerText = countTodos;
+  if (elCountActiva) elCountActiva.innerText = countActiva;
+  if (elCountPorVencer) elCountPorVencer.innerText = countPorVencer;
+  if (elCountVencida) elCountVencida.innerText = countVencida;
+  if (elCountPausada) elCountPausada.innerText = countPausada;
+
+  // Filtrado combinado (Texto + Chip de Estado)
+  const filtrados = clientesGym.filter(c => {
+    const coincideTexto = c.nombre.toLowerCase().includes(filtro.toLowerCase()) || 
+      c.objetivo.toLowerCase().includes(filtro.toLowerCase()) ||
+      (c.email && c.email.toLowerCase().includes(filtro.toLowerCase())) ||
+      (c.telefono && c.telefono.toLowerCase().includes(filtro.toLowerCase()));
+
+    if (!coincideTexto) return false;
+
+    if (filtroEstadoClienteActivo === 'activa') {
+      return (c.estadoMembresia || 'activa') === 'activa';
+    } else if (filtroEstadoClienteActivo === 'por_vencer') {
+      return c.estadoMembresia === 'por_vencer';
+    } else if (filtroEstadoClienteActivo === 'vencida') {
+      return c.estadoMembresia === 'vencida';
+    } else if (filtroEstadoClienteActivo === 'pausada') {
+      return c.estadoMembresia === 'pausada' || c.estadoMembresia === 'inactiva';
+    }
+    return true;
+  });
 
   // 1. RENDERIZADO DE LA TABLA DE CLIENTES CON COLUMNA DE WHATSAPP Y GESTIÓN
   if (tableBody) {
     if (filtrados.length === 0) {
+      const tieneFiltros = filtro || filtroEstadoClienteActivo !== 'todos';
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;">
-            ${filtro ? 'No se encontraron atletas con ese criterio de búsqueda.' : 'No hay atletas registrados aún en esta sede. Haz clic en "+ Nuevo Atleta" para comenzar.'}
+          <td colspan="7" style="padding: 10px 0; border:none;">
+            <div class="empty-state-box">
+              <div class="empty-state-icon">👥</div>
+              <h3 class="empty-state-title">${tieneFiltros ? 'No se encontraron atletas con los filtros aplicados' : 'No hay atletas registrados aún en esta sede'}</h3>
+              <p class="empty-state-desc">${tieneFiltros ? 'Prueba cambiando el estado seleccionado en los chips o borrando el texto de búsqueda.' : 'Agrega tu primer alumno o atleta para prescribir planes, registrar medidas corporales y sincronizar su acceso móvil.'}</p>
+              <div class="empty-state-actions">
+                ${tieneFiltros ? '<button class="btn-secondary" onclick="seleccionarFiltroEstadoCliente(\'todos\'); const inp = document.getElementById(\'input-buscar-cliente\'); if(inp) inp.value=\'\'; renderClientes();">🔄 Ver Todos los Atletas</button>' : ''}
+                <button class="btn-primary" onclick="abrirModalCliente()">+ Registrar Nuevo Atleta</button>
+              </div>
+            </div>
           </td>
         </tr>
       `;
     } else {
       tableBody.innerHTML = filtrados.map(c => {
-        const badgeMembresiaClass = c.estadoMembresia === 'vencida' ? 'badge-danger' : c.estadoMembresia === 'por_vencer' ? 'badge-risk-med' : 'badge-green';
-        const badgeMembresiaText = c.estadoMembresia === 'vencida' ? '🔴 Vencida' : c.estadoMembresia === 'por_vencer' ? '🟡 Por Vencer' : '🟢 Activa';
+        const badgeMembresiaClass = c.estadoMembresia === 'vencida' ? 'badge-status-debt' : c.estadoMembresia === 'por_vencer' ? 'badge-status-expiring' : c.estadoMembresia === 'pausada' ? 'badge-status-paused' : 'badge-status-active';
+        const badgeMembresiaText = c.estadoMembresia === 'vencida' ? '🔴 Vencida / Deudor' : c.estadoMembresia === 'por_vencer' ? '🟡 Por Vencer' : c.estadoMembresia === 'pausada' ? '🔵 Pausada' : '🟢 Activa';
         const cicloRutina = calcularEstadoCicloRutina(c.nombre);
 
         return `
@@ -4738,7 +5110,7 @@ function renderClientes(filtro = '') {
               <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap;">
                 <!-- BOTÓN PRINCIPAL DE WHATSAPP DIRECTO EN LA TABLA -->
                 <button class="btn-primary" style="padding:6px 10px; font-size:11.5px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700; display:inline-flex; align-items:center; gap:5px;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar credenciales y enlace del APK por WhatsApp a ${c.nombre}">
-                  💬 Enviar Enlace por WhatsApp
+                  💬 Enviar WhatsApp
                 </button>
                 <button class="btn-secondary" style="padding:6px 9px; font-size:11.5px;" onclick="abrirDetalleCliente(${c.id})" title="Ver Expediente Deportivo">📋</button>
                 <button class="btn-secondary" style="padding:6px 9px; font-size:11.5px; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Generar / Resetear Clave App">👤</button>
@@ -4755,13 +5127,82 @@ function renderClientes(filtro = '') {
   // 2. RENDERIZADO DE TARJETAS GRID
   if (grid) {
     if (filtrados.length === 0) {
-      grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:14px; background:var(--bg-card); border-radius:var(--radius-md); border:1px dashed var(--border-color);">
-        ${filtro ? 'No se encontraron atletas con ese criterio de búsqueda.' : 'No hay atletas registrados aún en esta sede. Haz clic en "+ Nuevo Atleta" para comenzar.'}
-      </div>`;
+      const tieneFiltros = filtro || filtroEstadoClienteActivo !== 'todos';
+      grid.innerHTML = `
+        <div style="grid-column: 1/-1;">
+          <div class="empty-state-box">
+            <div class="empty-state-icon">🗂️</div>
+            <h3 class="empty-state-title">${tieneFiltros ? 'No se encontraron atletas con los filtros aplicados' : 'No hay atletas registrados aún en esta sede'}</h3>
+            <p class="empty-state-desc">${tieneFiltros ? 'Prueba cambiando el estado seleccionado en los chips o borrando el texto de búsqueda.' : 'Haz clic abajo para registrar tu primer alumno.'}</p>
+            <div class="empty-state-actions">
+              <button class="btn-primary" onclick="abrirModalCliente()">+ Registrar Atleta</button>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       grid.innerHTML = filtrados.map(c => {
-        const badgeMembresiaClass = c.estadoMembresia === 'vencida' ? 'badge-danger' : c.estadoMembresia === 'por_vencer' ? 'badge-risk-med' : 'badge-green';
-        const badgeMembresiaText = c.estadoMembresia === 'vencida' ? '🔴 Vencida' : c.estadoMembresia === 'por_vencer' ? '🟡 Por Vencer' : '🟢 Activa';
+        const badgeMembresiaClass = c.estadoMembresia === 'vencida' ? 'badge-status-debt' : c.estadoMembresia === 'por_vencer' ? 'badge-status-expiring' : c.estadoMembresia === 'pausada' ? 'badge-status-paused' : 'badge-status-active';
+        const badgeMembresiaText = c.estadoMembresia === 'vencida' ? '🔴 Vencida / Deudor' : c.estadoMembresia === 'por_vencer' ? '🟡 Por Vencer' : c.estadoMembresia === 'pausada' ? '🔵 Pausada' : '🟢 Activa';
+
+        const cicloRutina = calcularEstadoCicloRutina(c.nombre);
+
+        return `
+          <div class="client-card" style="position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:16px; color:#fff;">${c.nombre}</strong>
+                <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+                  <span class="badge badge-green">${c.nivel || 'Atleta'}</span>
+                  <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
+                  <span class="badge ${cicloRutina.badge}">${cicloRutina.texto}</span>
+                </div>
+              </div>
+
+              <div style="position:relative;">
+                <button class="action-menu-btn" onclick="toggleDropdownMenu(event, ${c.id})" title="Menú de Acciones (≡)">≡</button>
+                <div class="dropdown-popover hidden" id="dropdown-menu-${c.id}">
+                  <button class="dropdown-item" onclick="abrirModalCliente()"><span style="color:var(--accent-green);">⚡</span> Nuevo cliente</button>
+                  <button class="dropdown-item" onclick="abrirDetalleCliente(${c.id})"><span>📋</span> Clientes activos (Expediente)</button>
+                  <button class="dropdown-item" onclick="generarUsuarioYPasswordAtleta(${c.id})"><span style="color:#38bdf8;">👤</span> Generar Usuario y Contraseña</button>
+                  <button class="dropdown-item" onclick="enviarEnlaceWhatsAppAtleta(${c.id})"><span style="color:#22c55e;">💬</span> Enviar Enlace por WhatsApp</button>
+                  <button class="dropdown-item" onclick="renovarRutinaMensual('${c.nombre}')"><span style="color:var(--accent-green);">⚡</span> Renovación Automática</button>
+                  <button class="dropdown-item" onclick="abrirModalPlanManual('${c.nombre}')"><span style="color:#60a5fa;">✏️</span> Crear Plan Manual</button>
+                  <button class="dropdown-item danger" onclick="confirmarEliminarCliente(${c.id})"><span>🗑️</span> Eliminar cliente</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="color:var(--text-muted); font-size:13px; margin-top:10px;">
+              🎯 <strong>Objetivo:</strong> ${c.objetivo}<br>
+              📊 <strong>Adherencia:</strong> ${c.adherencia || '90%'}<br>
+              ${c.email ? `📧 <strong>Email App:</strong> <span style="color:#38bdf8;">${c.email}</span><br>` : ''}
+              ${c.password_provisional ? `🔑 <strong>Clave App:</strong> <span style="color:#fbbf24; font-family:monospace; font-weight:700;">${c.password_provisional}</span><br>` : ''}
+              ${c.telefono ? `📱 <strong>Teléfono:</strong> <span style="color:#4ade80;">${c.telefono}</span><br>` : ''}
+              🏢 <strong>Sede:</strong> <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span> • 📅 <strong>Fecha:</strong> ${c.fecha || 'Reciente'}
+            </div>
+
+            <!-- BOTONES AUTOMATIZADOS DE CREDENCIALES Y WHATSAPP -->
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; gap:6px;">
+                <button class="btn-secondary" style="padding:6px 8px; font-size:11px; flex:1; justify-content:center; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Autogenerar credenciales seguras para la App Móvil">
+                  👤 Claves App
+                </button>
+                <button class="btn-primary" style="padding:6px 8px; font-size:11px; flex:1; justify-content:center; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar accesos y enlace de la app por WhatsApp">
+                  💬 WhatsApp
+                </button>
+              </div>
+            </div>
+
+            <div style="margin-top:auto; display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--border-color);">
+              <button class="btn-secondary" style="padding:6px 12px; font-size:12px; flex:1;" onclick="abrirDetalleCliente(${c.id})">📋 Expediente</button>
+              <button class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="renovarRutinaMensual('${c.nombre}')">🔄 Renovar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
 
         const cicloRutina = calcularEstadoCicloRutina(c.nombre);
 
@@ -6359,8 +6800,9 @@ function renderAlertasProactivas() {
       </div>
     </div>
   `).join('') : `
-    <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); text-align:center; color:var(--accent-green); font-size:13px; border:1px solid var(--border-color);">
-      ✅ ¡Todo en orden! Cero alertas de renovación, sobrecarga o estancamiento de cargas en esta sede.
+    <div style="background: rgba(34, 197, 94, 0.05); padding: 18px 24px; border-radius: var(--radius-md); text-align: center; color: var(--accent-green); font-size: 13px; border: 1px solid rgba(34, 197, 94, 0.25); display: flex; align-items: center; justify-content: center; gap: 10px;">
+      <span style="font-size: 20px;">✨</span>
+      <span><strong>Cartera al día:</strong> Cero alertas de renovación pendientes ni vencimientos de cobro en esta sede.</span>
     </div>
   `;
 
@@ -7144,18 +7586,30 @@ function abrirDetalleCliente(id) {
         </div>
       </div>
 
-      <!-- ACCESOS APP MÓVIL Y ENVÍO WHATSAPP -->
-      <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <div>
-          <div style="font-weight:700; color:#38bdf8; font-size:13px; margin-bottom:4px;">📲 Credenciales de Acceso a la App Móvil:</div>
-          <div style="font-size:12.5px; color:#cbd5e1;">
-            📧 Correo: <strong style="color:#fff;">${cliente.email || 'No generado'}</strong> &nbsp;|&nbsp; 
-            🔑 Contraseña: <strong style="color:#fbbf24; font-family:monospace; font-weight:700;">${cliente.password_provisional || '(Por generar)'}</strong>
+      <!-- PORTAL DEL ATLETA — ENLACE SEGURO Y ACCESO MÓVIL -->
+      <div style="background:linear-gradient(135deg,rgba(34,197,94,0.07),rgba(56,189,248,0.05)); border:1px solid rgba(34,197,94,0.25); border-radius:var(--radius-md); padding:16px; margin-bottom:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-weight:800; color:var(--accent-green); font-size:13.5px; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+              📱 Portal Exclusivo del Atleta
+              ${cliente._esOnboarding ? '<span style="background:rgba(251,191,36,0.15); color:#fbbf24; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; border:1px solid rgba(251,191,36,0.35);">🌱 Atleta de Ejemplo</span>' : ''}
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+              Genera un enlace directo y seguro para que <strong style="color:#fff;">${cliente.nombre}</strong> acceda a su rutina, dieta y registre sus cargas desde el móvil sin necesidad de contraseña.
+            </div>
+            <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">
+              📧 ${cliente.email || '(sin correo registrado)'} &nbsp;|&nbsp; 🔑 Contraseña: <strong style="color:#fbbf24; font-family:monospace;">${cliente.password_provisional || '(por generar)'}</strong>
+            </div>
           </div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn-secondary" style="font-size:11.5px; padding:6px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="generarUsuarioYPasswordAtleta(${cliente.id})">👤 Generar Usuario y Contraseña</button>
-          <button class="btn-primary" style="font-size:11.5px; padding:6px 12px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700;" onclick="enviarEnlaceWhatsAppAtleta(${cliente.id})">💬 Enviar Enlace por WhatsApp</button>
+          <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+            <button class="btn-primary" style="font-size:12px; padding:8px 14px; background:var(--accent-green); border-color:var(--accent-green); color:#000; font-weight:800; display:flex; align-items:center; gap:6px;" onclick="compartirPortalAtleta(${cliente.id})">
+              🔗 Compartir Enlace del Portal
+            </button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="generarUsuarioYPasswordAtleta(${cliente.id})">👤 Generar Usuario</button>
+              <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#22c55e; border-color:#22c55e;" onclick="enviarEnlaceWhatsAppAtleta(${cliente.id})">💬 WhatsApp</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -9270,7 +9724,18 @@ function renderPlanes() {
 
   if (container) {
     if (planesGym.length === 0) {
-      container.innerHTML = `<div style="grid-column: 1 / -1; background:var(--bg-surface); padding:24px; border-radius:var(--radius-md); text-align:center; color:var(--text-muted);">Sin planes prescritos en este gimnasio. Prescribe un plan desde el expediente del atleta.</div>`;
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1;">
+          <div class="empty-state-box">
+            <div class="empty-state-icon">📋</div>
+            <h3 class="empty-state-title">No hay planes de rutina prescritos en esta sede</h3>
+            <p class="empty-state-desc">Utiliza el Generador de Rutinas Inteligente con motor biomecánico o diseña un plan manual para tus atletas.</p>
+            <div class="empty-state-actions">
+              <button class="btn-primary" onclick="irAGenerador()">⚡ + Generar Plan con IA / Motor</button>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       container.innerHTML = planesGym.map(p => `
         <div style="background:var(--bg-card); border:1px solid var(--border-color); padding:18px; border-radius:var(--radius-md); display:flex; flex-direction:column; justify-content:space-between;">
@@ -10061,10 +10526,23 @@ function renderFinanzas() {
 
   if (tbody) {
     if (transaccionesGym.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted); font-size:13px;">No hay registros financieros en esta sede aún. Registra pagos con "+ Nuevo Pago".</td></tr>`;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="padding: 10px 0; border:none;">
+            <div class="empty-state-box">
+              <div class="empty-state-icon">💳</div>
+              <h3 class="empty-state-title">No hay transacciones registradas en esta sede</h3>
+              <p class="empty-state-desc">Comienza a registrar los cobros de membresías, asesorías o paquetes deportivos para visualizar tu MRR en tiempo real.</p>
+              <div class="empty-state-actions">
+                <button class="btn-primary" onclick="abrirModalNuevoPago()">+ Registrar Primer Pago</button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     } else {
       tbody.innerHTML = transaccionesGym.map(f => {
-        const badgeClass = f.estado === 'Pagado' ? 'badge-green' : f.estado === 'Pendiente' ? 'badge-risk-med' : 'badge-danger';
+        const badgeClass = f.estado === 'Pagado' ? 'badge-status-paid' : f.estado === 'Pendiente' ? 'badge-status-expiring' : 'badge-status-debt';
 
         return `
           <tr>
@@ -10087,6 +10565,99 @@ function renderFinanzas() {
 
   renderDashboardStats();
 }
+
+// ==============================================================================
+// 🏢 GESTIÓN DE SEDES Y MULTI-TENANT SAAS
+// ==============================================================================
+function abrirModalGestionSedes() {
+  renderListaSedesModal();
+  const m = document.getElementById('modal-gestion-sedes');
+  if (m) {
+    m.classList.remove('hidden');
+    m.style.display = 'flex';
+  }
+}
+
+function cerrarModalGestionSedes() {
+  const m = document.getElementById('modal-gestion-sedes');
+  if (m) {
+    m.classList.add('hidden');
+    m.style.display = 'none';
+  }
+}
+
+function renderListaSedesModal() {
+  const container = document.getElementById('lista-sedes-container');
+  if (!container) return;
+
+  container.innerHTML = gimnasiosDB.map(g => {
+    const esActivo = g.id === gimnasioActivoId;
+    return `
+      <div style="background: ${esActivo ? 'rgba(0, 214, 143, 0.08)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${esActivo ? 'rgba(0, 214, 143, 0.4)' : 'var(--border-color)'}; border-radius: var(--radius-md); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color: #fff; font-size: 14px;">${g.nombre}</strong>
+            ${esActivo ? '<span class="badge badge-status-active" style="font-size:10px;">🟢 Sede Activa</span>' : ''}
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            📍 ${g.ciudad} • 📦 <span style="color:#38bdf8;">${g.plan}</span> • ID: <code style="color:#fbbf24;">${g.id}</code>
+          </div>
+        </div>
+        <div>
+          ${esActivo 
+            ? '<button class="btn-secondary" style="font-size:12px; padding:5px 10px; cursor:default; opacity:0.8;" disabled>✓ En Uso</button>'
+            : `<button class="btn-primary" style="font-size:12px; padding:5px 12px;" onclick="cambiarGimnasioActivo('${g.id}'); cerrarModalGestionSedes();">Conmutar a esta Sede</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function crearNuevaSedeSaaS() {
+  const idInput = document.getElementById('nueva-sede-id');
+  const nombreInput = document.getElementById('nueva-sede-nombre');
+  const ciudadInput = document.getElementById('nueva-sede-ciudad');
+  const planInput = document.getElementById('nueva-sede-plan');
+
+  const id = sanitizeText(idInput ? idInput.value.trim().toLowerCase().replace(/\s+/g, '_') : '', 40);
+  const nombre = sanitizeText(nombreInput ? nombreInput.value.trim() : '', 80);
+  const ciudad = sanitizeText(ciudadInput ? ciudadInput.value.trim() : 'Sucursal Regional', 60);
+  const plan = sanitizeText(planInput ? planInput.value : 'Pro Hub', 40);
+
+  if (!id || !nombre) {
+    showToast("Por favor ingresa un Identificador único y el Nombre de la sede.", "warning", "Datos Requeridos");
+    return;
+  }
+
+  if (gimnasiosDB.some(g => g.id === id)) {
+    showToast(`El ID "${id}" ya se encuentra registrado. Usa un identificador único.`, "warning", "ID Duplicado");
+    return;
+  }
+
+  const nuevaSede = { id, nombre, ciudad, plan };
+  gimnasiosDB.push(nuevaSede);
+
+  // Update selects in sidebar and settings
+  const selectActivo = document.getElementById('select-gimnasio-activo');
+  if (selectActivo) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.innerText = `🏢 ${nombre}`;
+    selectActivo.appendChild(opt);
+  }
+
+  if (idInput) idInput.value = '';
+  if (nombreInput) nombreInput.value = '';
+  if (ciudadInput) ciudadInput.value = '';
+
+  renderListaSedesModal();
+  showToast(`Sede "${nombre}" creada y lista para operar en modo multi-tenant.`, "success", "🏢 Sede Habilitada");
+}
+
+window.abrirModalGestionSedes = abrirModalGestionSedes;
+window.cerrarModalGestionSedes = cerrarModalGestionSedes;
+window.crearNuevaSedeSaaS = crearNuevaSedeSaaS;
 
 function alternarEstadoPago(id) {
   const t = transaccionesFinancieras.find(x => x.id === id);
@@ -10527,6 +11098,7 @@ function arrancarAplicacionFitPro() {
   try {
     // 1. Inicializar navegación y delegación de eventos del sidebar
     initNavigation();
+    inicializarSidebarState();
 
     // 2. Inicializar cliente Supabase Cloud
     initSupabaseClient();
@@ -10650,10 +11222,38 @@ function arrancarAplicacionFitPro() {
 function procesarDeepLinkAtletaUrl() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get('t');
     const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
     const emailParam = urlParams.get('email') || urlParams.get('atletaEmail');
     const atletaIdParam = urlParams.get('id') || urlParams.get('atletaId');
     const vistaParam = urlParams.get('view') || urlParams.get('vista');
+
+    // 🔗 Resolver token seguro (enlace desde expediente del coach)
+    if (tokenParam) {
+      const clienteDeToken = resolverTokenAtleta(tokenParam);
+      if (clienteDeToken) {
+        console.log(`🔗 Token de portal de atleta resuelto: ${clienteDeToken.nombre}`);
+        window.esSesionModoAtleta = true;
+        document.body.classList.add('is-athlete-mode');
+
+        const athleteUser = {
+          id: clienteDeToken.id,
+          email: clienteDeToken.email || '',
+          user_metadata: { full_name: clienteDeToken.nombre, role: 'athlete' }
+        };
+        sesionUsuarioActual = { user: athleteUser, esModoAtleta: true };
+        ocultarPantallaAuth();
+        renderPortalAtleta(athleteUser);
+        navegarA('athlete-portal');
+
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        setTimeout(() => abrirModalBienvenidaAtleta(clienteDeToken.nombre), 500);
+        return; // Token resuelto — no continuar con parámetros clásicos
+      }
+    }
 
     if (atletaParam || emailParam || atletaIdParam || vistaParam === 'athlete') {
       console.log(`🔗 Enlace directo de atleta detectado vía URL`);
@@ -10719,6 +11319,11 @@ function procesarDeepLinkAtletaUrl() {
       setTimeout(() => {
         abrirModalBienvenidaAtleta(clienteObj.nombre);
       }, 500);
+
+      // 5. Limpiar parámetros sensibles de la barra de direcciones de forma segura
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   } catch (err) {
     console.warn("Notice procesando deep link URL:", err);
@@ -11066,72 +11671,184 @@ function renderPortalAtleta(userObj) {
       `;
     }
 
-    // 4. Renderizar Medidas y Evolución
+    // 4. Renderizar Medidas, Progreso y Métricas Visuales
     const medidasContainer = document.getElementById('athlete-portal-medidas-container');
     if (medidasContainer) {
+      const edad = parseInt(cliente.edad) || 28;
+      const fcMax = 220 - edad;
+      const fcRep = cliente.fcReposo || 62;
+      const fcReserva = fcMax - fcRep;
+
+      // Calcular zonas cardíacas con fórmula Karvonen
+      const zonas = [
+        { nombre: 'Z1 Recuperación Activa', rango: '50–60%', min: Math.round(fcRep + fcReserva * 0.50), max: Math.round(fcRep + fcReserva * 0.60), color: '#22c55e', bg: 'rgba(34,197,94,0.12)', pct: 55 },
+        { nombre: 'Z2 Aeróbico Base (Fat Burn)', rango: '60–70%', min: Math.round(fcRep + fcReserva * 0.60), max: Math.round(fcRep + fcReserva * 0.70), color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', pct: 65 },
+        { nombre: 'Z3 Umbral Aeróbico', rango: '70–80%', min: Math.round(fcRep + fcReserva * 0.70), max: Math.round(fcRep + fcReserva * 0.80), color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', pct: 75 },
+        { nombre: 'Z4 Anaeróbico (Lactato)', rango: '80–90%', min: Math.round(fcRep + fcReserva * 0.80), max: Math.round(fcRep + fcReserva * 0.90), color: '#f97316', bg: 'rgba(249,115,22,0.12)', pct: 85 },
+        { nombre: 'Z5 VO₂ Máx (Alta Intensidad)', rango: '90–100%', min: Math.round(fcRep + fcReserva * 0.90), max: fcMax, color: '#f87171', bg: 'rgba(248,113,113,0.12)', pct: 95 }
+      ];
+
+      // 1RM por ejercicio desde registros de fuerza
+      const fuerzaAtleta = (registrosFuerzaDB || []).filter(r => r.cliente && r.cliente.toLowerCase() === cliente.nombre.toLowerCase());
+      const rm1Ejercicios = fuerzaAtleta.slice(0, 5).map(r => ({
+        ejercicio: r.ejercicio,
+        rm: r.rmEstimado,
+        vol: r.volumenTotal,
+        fecha: r.fecha
+      }));
+
+      // Progresión de composición corporal (métricas evolutivas)
+      const metricasAtleta = (metricasEvolucionDB || []).filter(m => m.cliente && m.cliente.toLowerCase() === cliente.nombre.toLowerCase()).sort((a, b) => a.mesociclo - b.mesociclo);
+      const mActual = metricasAtleta[metricasAtleta.length - 1];
+      const mInicio = metricasAtleta[0];
+      const deltaGrasa = mActual && mInicio ? (mActual.grasa - mInicio.grasa).toFixed(1) : null;
+      const deltaPeso = mActual && mInicio ? (mActual.peso - mInicio.peso).toFixed(1) : null;
+      const deltaRM = mActual && mInicio ? (mActual.sentadilla1RM - mInicio.sentadilla1RM) : null;
+
       medidasContainer.innerHTML = `
-        <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
-            <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:24px;">⚖️</div>
+        <!-- STATS CARDS SUPERIORES -->
+        <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:14px;">
+          ${[
+            { icon: '⚖️', val: `${cliente.peso || 75.0} kg`, label: 'Peso Corporal Actual', color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
+            { icon: '📉', val: `${cliente.porcentajeGrasa || 14.5}%`, label: '% Grasa Estimada', color: '#38bdf8', bg: 'rgba(56,189,248,0.15)' },
+            { icon: '💪', val: `${cliente.porcentajeMusculo || 42.5}%`, label: '% Masa Muscular', color: '#fbbf24', bg: 'rgba(245,158,11,0.15)' },
+            { icon: '📏', val: `${cliente.imc || 24.2}`, label: 'IMC', color: '#a78bfa', bg: 'rgba(139,92,246,0.15)' }
+          ].map(s => `
+            <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-card);">
+              <div style="width:36px; height:36px; border-radius:10px; background:${s.bg}; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px;">${s.icon}</div>
+              <div style="font-size:22px; font-weight:900; font-family:var(--font-heading); color:${s.color};">${s.val}</div>
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-top:2px;">${s.label}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- WIDGET 1: PROGRESIÓN DE COMPOSICIÓN CORPORAL -->
+        ${metricasAtleta.length > 1 ? `
+        <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-card); margin-bottom:22px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
             <div>
-              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fff;">${cliente.peso || 75.0} <span style="font-size:14px; color:var(--text-muted);">kg</span></div>
-              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Peso Corporal Actual</div>
+              <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:17px; font-weight:800;">📈 Progresión — ${metricasAtleta.length} Mesociclos Registrados</h3>
+              <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Evolución desde el inicio hasta el ciclo actual.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              ${deltaPeso !== null ? `<div style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:6px 12px; text-align:center;"><div style="font-size:16px; font-weight:900; color:#38bdf8;">${deltaPeso > 0 ? '+' : ''}${deltaPeso} kg</div><div style="font-size:10px; color:var(--text-muted);">Δ Peso</div></div>` : ''}
+              ${deltaGrasa !== null ? `<div style="background:${parseFloat(deltaGrasa) < 0 ? 'rgba(34,197,94,0.1)' : 'rgba(248,113,113,0.1)'}; border:1px solid ${parseFloat(deltaGrasa) < 0 ? 'rgba(34,197,94,0.25)' : 'rgba(248,113,113,0.25)'}; border-radius:8px; padding:6px 12px; text-align:center;"><div style="font-size:16px; font-weight:900; color:${parseFloat(deltaGrasa) < 0 ? '#34d399' : '#f87171'};">${deltaGrasa}%</div><div style="font-size:10px; color:var(--text-muted);">Δ Grasa</div></div>` : ''}
+              ${deltaRM !== null ? `<div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); border-radius:8px; padding:6px 12px; text-align:center;"><div style="font-size:16px; font-weight:900; color:#fbbf24;">+${deltaRM} kg</div><div style="font-size:10px; color:var(--text-muted);">Δ Fuerza</div></div>` : ''}
             </div>
           </div>
-          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
-            <div class="stat-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:24px;">📉</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px;">
             <div>
-              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#38bdf8;">${cliente.porcentajeGrasa || 14.5} <span style="font-size:14px; color:var(--text-muted);">%</span></div>
-              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">% Grasa Estimada</div>
+              <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">% Grasa (Meta: reducir)</div>
+              <div style="position:relative; height:8px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
+                <div style="height:100%; width:${Math.min(100, (mActual?.grasa || 15) / 30 * 100)}%; background:linear-gradient(90deg,#38bdf8,#22c55e); border-radius:4px; transition:width 1s ease;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:4px;"><span>Inicio: ${mInicio?.grasa || '-'}%</span><span>Actual: ${mActual?.grasa || '-'}%</span></div>
+            </div>
+            <div>
+              <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">1RM Sentadilla (Meta: crecer)</div>
+              <div style="position:relative; height:8px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
+                <div style="height:100%; width:${Math.min(100, (mActual?.sentadilla1RM || 100) / 200 * 100)}%; background:linear-gradient(90deg,#fbbf24,#f97316); border-radius:4px; transition:width 1s ease;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:4px;"><span>Inicio: ${mInicio?.sentadilla1RM || '-'} kg</span><span>Actual: ${mActual?.sentadilla1RM || '-'} kg</span></div>
+            </div>
+            <div>
+              <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Adherencia al Programa</div>
+              <div style="position:relative; height:8px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
+                <div style="height:100%; width:${mActual?.adherencia || 85}%; background:linear-gradient(90deg,#a78bfa,#38bdf8); border-radius:4px;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:4px;"><span>Inicio: ${mInicio?.adherencia || '-'}%</span><span>Actual: ${mActual?.adherencia || '-'}%</span></div>
             </div>
           </div>
-          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
-            <div class="stat-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:24px;">💪</div>
-            <div>
-              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#fbbf24;">${cliente.porcentajeMusculo || 42.5} <span style="font-size:14px; color:var(--text-muted);">%</span></div>
-              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">% Masa Muscular Magra</div>
+        </div>
+        ` : ''}
+
+        <!-- WIDGET 2: 1RM ESTIMADO POR EJERCICIO -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:20px; margin-bottom:22px;">
+          ${rm1Ejercicios.length > 0 ? `
+          <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-card);">
+            <h3 style="margin:0 0 16px 0; color:#fff; font-family:var(--font-heading); font-size:17px; font-weight:800;">🏆 Fuerza Máxima Estimada (1RM)</h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              ${rm1Ejercicios.map(r => {
+                const pct = Math.min(100, Math.round((r.rm / 250) * 100));
+                return `
+                <div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <span style="font-size:13px; color:#e2e8f0; font-weight:600;">${r.ejercicio.length > 32 ? r.ejercicio.substring(0, 32) + '…' : r.ejercicio}</span>
+                    <span style="font-size:15px; font-weight:900; color:#fbbf24; font-family:var(--font-heading);">${r.rm} kg</span>
+                  </div>
+                  <div style="height:6px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#fbbf24,#f97316); border-radius:3px;"></div>
+                  </div>
+                  <div style="font-size:10.5px; color:var(--text-dim); margin-top:3px;">Volumen total: ${r.vol?.toLocaleString() || '—'} kg • ${r.fecha || ''}</div>
+                </div>`;
+              }).join('')}
             </div>
           </div>
-          <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
-            <div class="stat-icon" style="background:rgba(139,92,246,0.15); color:#a78bfa; font-size:24px;">📏</div>
-            <div>
-              <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#a78bfa;">${cliente.imc || 24.2}</div>
-              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Índice de Masa (IMC)</div>
+          ` : `
+          <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-card);">
+            <h3 style="margin:0 0 12px 0; color:#fff; font-family:var(--font-heading); font-size:17px; font-weight:800;">🏆 Fuerza Máxima Estimada (1RM)</h3>
+            <div style="text-align:center; padding:24px 16px; color:var(--text-muted); font-size:13px;">
+              <div style="font-size:32px; margin-bottom:10px;">🏋️</div>
+              Registra tus cargas en la sección <strong style="color:#fff;">Mi Rutina</strong> para calcular tu 1RM automáticamente.
+            </div>
+          </div>
+          `}
+
+          <!-- WIDGET 3: ZONAS CARDÍACAS -->
+          <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-card);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:17px; font-weight:800;">❤️ Zonas de Frecuencia Cardíaca</h3>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">FC Máx: <strong style="color:#f87171;">${fcMax} bpm</strong> (220 − ${edad} años) · FC Reposo: <strong style="color:#38bdf8;">${fcRep} bpm</strong></div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${zonas.map(z => `
+                <div style="display:grid; grid-template-columns:1fr 80px 90px; align-items:center; gap:10px;">
+                  <div>
+                    <div style="font-size:12px; font-weight:700; color:#e2e8f0; margin-bottom:4px;">${z.nombre}</div>
+                    <div style="height:7px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
+                      <div style="height:100%; width:${z.pct}%; background:${z.color}; border-radius:4px; opacity:0.85;"></div>
+                    </div>
+                  </div>
+                  <div style="text-align:right; font-size:11.5px; font-weight:800; color:${z.color}; white-space:nowrap;">${z.min}–${z.max}</div>
+                  <div style="text-align:right; font-size:11px; color:var(--text-dim); white-space:nowrap;">${z.rango}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
         </div>
 
-        <div style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-card);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <!-- PERÍMETROS Y SIMETRÍA -->
+        <div style="background:rgba(18,26,42,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-card);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
             <div>
-              <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:18px; font-weight:800;">📏 Perímetros y Medidas Antropométricas</h3>
-              <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Seguimiento de simetría y evolución por grupo muscular</p>
+              <h3 style="margin:0; color:#fff; font-family:var(--font-heading); font-size:17px; font-weight:800;">📏 Perímetros y Simetría Bilateral</h3>
+              <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Seguimiento de medidas por grupo muscular.</p>
             </div>
-            <button class="btn-primary" style="font-size:13px; font-weight:800; padding:10px 18px; border-radius:var(--radius-md);" onclick="abrirModalRegistrarMetrica('${cliente.nombre}')">
-              ➕ Registrar Mis Medidas de Hoy
+            <button class="btn-primary" style="font-size:13px; font-weight:800; padding:10px 18px; border-radius:var(--radius-md);" onclick="abrirModalRegistrarMetrica('${escapeHTML(cliente.nombre)}')">
+              ➕ Registrar Medidas de Hoy
             </button>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px;">
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Cintura (Umbilical)</div>
-              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.perimetroCintura || 80} <span style="font-size:13px; color:var(--text-muted);">cm</span></div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Pecho / Tórax</div>
-              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.perimetroPecho || 104} <span style="font-size:13px; color:var(--text-muted);">cm</span></div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Bíceps (Der / Izq)</div>
-              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.brazoDerecho || 38.5} cm / ${cliente.brazoIzquierdo || 38.0} cm</div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Muslo (Der / Izq)</div>
-              <div style="font-size:20px; font-weight:900; color:#fff; font-family:var(--font-heading); margin-top:4px;">${cliente.musloDerecho || 61.0} cm / ${cliente.musloIzquierdo || 60.5} cm</div>
-            </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px;">
+            ${[
+              { label: 'Cintura', val: `${cliente.perimetroCintura || cliente.perimetroAbdominal || 80} cm` },
+              { label: 'Pecho / Tórax', val: `${cliente.perimetroPecho || 104} cm` },
+              { label: 'Bíceps D / I', val: `${cliente.brazoDerecho || 38.5} / ${cliente.brazoIzquierdo || 38.0} cm` },
+              { label: 'Muslo D / I', val: `${cliente.musloDerecho || 61.0} / ${cliente.musloIzquierdo || 60.5} cm` },
+              { label: 'Pantorrilla D / I', val: `${cliente.pantorrillaDerecha || 38.5} / ${cliente.pantorrillaIzquierda || 38.0} cm` },
+              { label: 'Cadera', val: `${cliente.perimetroCadera || 98} cm` }
+            ].map(m => `
+              <div style="background:rgba(10,15,26,0.6); padding:14px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">${m.label}</div>
+                <div style="font-size:18px; font-weight:900; color:#fff; font-family:var(--font-heading);">${m.val}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
       `;
     }
+
   } catch (err) {
     console.error("Error al renderizar portal del atleta:", err);
   }

@@ -137,6 +137,7 @@ body.is-athlete-mode .main-content {
 }
 
 /* SIDEBAR NAVIGATION */
+/* SIDEBAR NAVIGATION & COLLAPSIBLE SYSTEM */
 .sidebar {
   width: 272px;
   min-width: 272px;
@@ -144,12 +145,14 @@ body.is-athlete-mode .main-content {
   border-right: 1px solid rgba(255,255,255,0.07);
   display: flex;
   flex-direction: column;
-  padding: 24px 14px;
+  padding: 20px 12px;
   user-select: none;
   z-index: 10;
   box-shadow: 4px 0 32px rgba(0,0,0,0.45);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), padding 0.28s ease;
 }
 
 .sidebar::before {
@@ -163,22 +166,91 @@ body.is-athlete-mode .main-content {
   opacity: 0.9;
 }
 
+/* MODO SIDEBAR COLAPSADO (MINI-SIDEBAR) */
+.sidebar.collapsed {
+  width: 72px;
+  min-width: 72px;
+  padding: 20px 8px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .gym-selector-wrapper,
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .nav-group-title span,
+.sidebar.collapsed .nav-chevron,
+.sidebar.collapsed .nav-subitems,
+.sidebar.collapsed .user-info,
+.sidebar.collapsed .btn-logout span {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  justify-content: center !important;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.sidebar.collapsed .nav-item,
+.sidebar.collapsed .nav-group-header {
+  justify-content: center;
+  padding: 10px;
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  justify-content: center;
+  padding: 14px 0 0 0;
+}
+
+.sidebar.collapsed .btn-logout {
+  padding: 8px;
+  justify-content: center;
+}
+
+/* BOTÓN DE COLAPSO / EXPANDIR SIDEBAR */
+.sidebar-collapse-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(0, 214, 143, 0.12);
+  color: var(--accent-green);
+  border-color: rgba(0, 214, 143, 0.3);
+}
+
+.sidebar.collapsed .sidebar-collapse-btn svg {
+  transform: rotate(180deg);
+}
+
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 32px;
-  padding: 0 8px;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 0 4px;
 }
 
 .logo-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, var(--accent-power) 0%, #c2410c 100%);
   color: #ffffff;
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: -0.5px;
   display: flex;
   align-items: center;
@@ -192,14 +264,16 @@ body.is-athlete-mode .main-content {
 .logo-text {
   font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 18.5px;
+  font-size: 17px;
   color: var(--text-main);
   letter-spacing: -0.3px;
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .logo-text .logo-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -208,12 +282,34 @@ body.is-athlete-mode .main-content {
   margin-top: 1px;
 }
 
+/* ENCABEZADOS DE BLOQUES LÓGICOS (SECTION LABELS) */
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #64748b;
+  padding: 12px 10px 4px 10px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.nav-section-label:first-of-type {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 4px;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-nav::-webkit-scrollbar {
@@ -229,7 +325,7 @@ body.is-athlete-mode .main-content {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-muted);
@@ -241,6 +337,7 @@ body.is-athlete-mode .main-content {
   width: 100%;
   transition: all var(--transition-fast);
   position: relative;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -258,10 +355,11 @@ body.is-athlete-mode .main-content {
 }
 
 .nav-item svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   stroke-width: 2;
   transition: stroke 0.2s ease;
+  flex-shrink: 0;
 }
 
 .nav-item.active svg {
@@ -273,7 +371,7 @@ body.is-athlete-mode .main-content {
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-md);
-  margin-top: 4px;
+  margin-top: 2px;
   transition: all var(--transition-fast);
 }
 
@@ -281,7 +379,7 @@ body.is-athlete-mode .main-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 9px 12px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-muted);
@@ -293,6 +391,7 @@ body.is-athlete-mode .main-content {
   text-align: left;
   transition: all var(--transition-fast);
   user-select: none;
+  white-space: nowrap;
 }
 
 .nav-group-header:hover {
@@ -309,6 +408,7 @@ body.is-athlete-mode .main-content {
 .nav-group-title svg {
   stroke: var(--text-muted);
   transition: stroke 0.2s ease;
+  flex-shrink: 0;
 }
 
 .nav-group-header:hover .nav-group-title svg {
@@ -326,6 +426,7 @@ body.is-athlete-mode .main-content {
 .nav-chevron {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   stroke: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .nav-group.active .nav-chevron,
@@ -337,10 +438,10 @@ body.is-athlete-mode .main-content {
 .nav-subitems {
   display: none;
   flex-direction: column;
-  gap: 3px;
-  padding: 4px 0 6px 12px;
+  gap: 2px;
+  padding: 3px 0 4px 10px;
   border-left: 2px solid var(--border-color);
-  margin: 2px 0 6px 16px;
+  margin: 2px 0 4px 16px;
   animation: fadeIn 0.2s ease;
 }
 
@@ -352,8 +453,8 @@ body.is-athlete-mode .main-content {
 .nav-subitem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
+  gap: 8px;
+  padding: 6px 10px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-dim);
@@ -364,14 +465,16 @@ body.is-athlete-mode .main-content {
   text-align: left;
   width: 100%;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .subitem-bullet {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--text-dim);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .nav-subitem:hover {
@@ -393,30 +496,30 @@ body.is-athlete-mode .main-content {
 .nav-subitem.active .subitem-bullet {
   background: var(--accent-green);
   box-shadow: 0 0 10px var(--accent-green);
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 .sidebar-footer {
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-left: 8px;
+  gap: 10px;
+  padding-left: 4px;
 }
 
 .user-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(0,214,143,0.2) 0%, rgba(0,214,143,0.08) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--accent-green);
   border: 1.5px solid rgba(0,214,143,0.35);
   box-shadow: 0 0 12px rgba(0,214,143,0.15);
@@ -439,12 +542,145 @@ body.is-athlete-mode .main-content {
   color: var(--text-muted);
 }
 
+/* ==============================================================================
+   BADGES DE ESTADO CROMÁTICOS DE ALTA VISIBILIDAD
+   ============================================================================== */
+.badge-status-active, .badge-status-paid {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.badge-status-expiring, .badge-status-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.badge-status-debt, .badge-status-expired, .badge-status-vencida {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.badge-status-paused {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+/* ==============================================================================
+   CHIPS DE FILTRADO RÁPIDO PARA ATLETAS & CARTERA
+   ============================================================================== */
+.filter-chips-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.filter-chip.active {
+  background: rgba(0, 214, 143, 0.15);
+  color: var(--accent-green);
+  border-color: rgba(0, 214, 143, 0.4);
+  box-shadow: 0 0 12px rgba(0, 214, 143, 0.15);
+}
+
+.filter-chip-count {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  font-family: monospace;
+}
+
+/* ==============================================================================
+   COMPONENTES DE EMPTY STATES (ESTADOS VACÍOS PROFESIONALES)
+   ============================================================================== */
+.empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1.5px dashed rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  margin: 16px 0;
+}
+
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 214, 143, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--accent-green);
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 214, 143, 0.2);
+  box-shadow: 0 0 24px rgba(0, 214, 143, 0.1);
+}
+
+.empty-state-title {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 6px 0;
+}
+
+.empty-state-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 440px;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.empty-state-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 /* MAIN CONTENT AREA */
 .main-content {
   flex-grow: 1;
   overflow-y: auto;
   padding: 40px 48px;
   background: var(--bg-main);
+  transition: padding 0.28s ease;
 }
 
 .main-content::-webkit-scrollbar {
