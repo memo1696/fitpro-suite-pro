@@ -102,7 +102,7 @@
           <label for="auth-input-password">Contraseña</label>
           <div class="auth-input-wrapper">
             <input type="password" id="auth-input-password" placeholder="Mínimo 6 caracteres" required autocomplete="current-password" oninput="limpiarErrorAuth()" />
-            <button type="button" class="auth-password-toggle" onclick="alternarVisibilidadPassword()" aria-label="Mostrar/Ocultar contraseña">👁️</button>
+            <button type="button" class="auth-password-toggle" onclick="alternarVisibilidadPassword(event)" title="Mostrar/Ocultar contraseña" aria-label="Mostrar/Ocultar contraseña">👁️</button>
           </div>
         </div>
 
@@ -164,8 +164,8 @@
     </div>
 
     <nav class="sidebar-nav">
-      <!-- BLOQUE 1: OPERACIONES Y CLIENTES (El Día a Día) -->
-      <div class="nav-section-label">Operaciones & Clientes</div>
+      <!-- BLOQUE 1: OPERACIONES & GESTIÓN -->
+      <div class="nav-section-label">Operaciones & Gestión</div>
       
       <button class="nav-item active" data-view="dashboard" onclick="navegarA('dashboard')" title="Dashboard Central">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -177,22 +177,22 @@
         <span>Base de Atletas</span>
       </button>
 
+      <button class="nav-item" data-view="finances" onclick="navegarA('finances')" title="Finanzas & Facturación">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="12" cy="15" r="2"/></svg>
+        <span>Finanzas & Cobros</span>
+      </button>
+
       <button class="nav-item" data-view="analytics" onclick="navegarA('analytics')" title="Analytics & Progresión">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
         <span>Analytics & Progresión</span>
       </button>
 
-      <button class="nav-item" data-view="nutrition" onclick="navegarA('nutrition')" title="Nutrición & Dietas">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9s9-4.03 9-9A9 9 0 0 0 12 2zm0 16c-3.86 0-7-3.14-7-7a6.96 6.96 0 0 1 2.05-4.95L12 11l4.95-4.95A6.96 6.96 0 0 1 19 11c0 3.86-3.14 7-7 7z"/></svg>
-        <span>Nutrición & Dietas</span>
-      </button>
+      <!-- BLOQUE 2: ENTRENAMIENTO & PRESCRIPCIÓN -->
+      <div class="nav-section-label">Entrenamiento & Prescripción</div>
 
-      <!-- BLOQUE 2: PRESCRIPCIÓN Y RENDIMIENTO (El Core Técnico) -->
-      <div class="nav-section-label">Prescripción & Rendimiento</div>
-
-      <button class="nav-item" data-view="calculator" onclick="navegarA('calculator')" title="Laboratorio Biomecánico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><circle cx="15" cy="16" r="1.5"/></svg>
-        <span>Laboratorio Biomecánico</span>
+      <button class="nav-item" data-view="plans" onclick="navegarA('plans')" title="Planes y Rutinas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Planes & Rutinas</span>
       </button>
 
       <button class="nav-item" data-view="generate" onclick="navegarA('generate')" title="Generador de Rutinas">
@@ -200,15 +200,21 @@
         <span>Generador de Rutinas</span>
       </button>
 
-      <button class="nav-item" data-view="plans" onclick="navegarA('plans')" title="Recetario & Plantillas">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        <span>Recetario & Plantillas</span>
+      <button class="nav-item" data-view="calculator" onclick="navegarA('calculator')" title="Laboratorio Biomecánico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><circle cx="15" cy="16" r="1.5"/></svg>
+        <span>Laboratorio Biomecánico</span>
       </button>
 
+      <button class="nav-item" data-view="nutrition" onclick="navegarA('nutrition')" title="Nutrición & Dietas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9s9-4.03 9-9A9 9 0 0 0 12 2zm0 16c-3.86 0-7-3.14-7-7a6.96 6.96 0 0 1 2.05-4.95L12 11l4.95-4.95A6.96 6.96 0 0 1 19 11c0 3.86-3.14 7-7 7z"/></svg>
+        <span>Nutrición & Dietas</span>
+      </button>
+
+      <!-- BLOQUE 3: MÓDULOS CLÍNICOS & ESPECIALIDADES -->
       <div class="nav-group" id="nav-group-especialidades">
         <button class="nav-group-header" onclick="toggleNavGroup('nav-group-especialidades')">
           <div class="nav-group-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
             <span>Módulos Clínicos & Salud</span>
           </div>
           <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
@@ -224,7 +230,7 @@
           </button>
           <button class="nav-subitem" data-view="seniors" onclick="navegarA('seniors')">
             <span class="subitem-bullet"></span>
-            <span>👴 Adultos Mayores</span>
+            <span>👴 Adultos Mayores & Salud</span>
           </button>
           <button class="nav-subitem" data-view="supplements" onclick="navegarA('supplements')">
             <span class="subitem-bullet"></span>
@@ -233,17 +239,17 @@
         </div>
       </div>
 
-      <!-- BLOQUE 3: GESTIÓN DE NEGOCIO / SAAS (Administración) -->
-      <div class="nav-section-label">Gestión de Negocio / SaaS</div>
+      <!-- BLOQUE 4: ADMINISTRACIÓN & CONFIGURACIÓN -->
+      <div class="nav-section-label">Administración & Ajustes</div>
 
-      <button class="nav-item" data-view="finances" onclick="navegarA('finances')" title="Finanzas & Facturación">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="12" cy="15" r="2"/></svg>
-        <span>Finanzas & Facturación</span>
+      <button class="nav-item" data-view="sedes" onclick="abrirModalGestionSedes()" title="Gestión de Sedes Multi-Gym">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M10 3h4v4h-4z"/></svg>
+        <span>Sedes & Sucursales</span>
       </button>
 
-      <button class="nav-item" data-view="sedes" onclick="abrirModalGestionSedes()" title="Configuración y Sedes Multi-Gym">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M10 3h4v4h-4z"/></svg>
-        <span>Configuración & Sedes</span>
+      <button class="nav-item" data-view="settings" onclick="navegarA('settings')" title="Configuración del Sistema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        <span>Configuración del Sistema</span>
       </button>
     </nav>
 
@@ -351,6 +357,34 @@
             <div class="stat-value" id="stat-satisfaccion">0.0 / 5.0</div>
             <div class="stat-label">Satisfacción Atletas <span style="font-size:11px; color:var(--accent-green); margin-left:4px;">➔ Ir a Planes</span></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ACCIONES RÁPIDAS DEL COACH -->
+      <div class="card" style="margin-bottom:24px; padding:14px 18px; background:linear-gradient(135deg, rgba(34,197,94,0.06), rgba(59,130,246,0.04)); border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">⚡</span>
+            <strong style="font-size:14px; color:#fff;">Accesos Rápidos del Coach:</strong>
+            <span style="font-size:12px; color:var(--text-muted);">Crea rutinas, clientes y cobros en 1 clic</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn-primary" style="padding:8px 14px; font-size:12px;" onclick="abrirModalPlanManual()">
+            <span>✏️ + Diseñar Rutina Manual</span>
+          </button>
+          <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:12px; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="navegarA('generate')">
+            <span>⚡ + Generador IA / Motor</span>
+          </button>
+          <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:12px; color:#4ade80; border-color:rgba(74,222,128,0.4);" onclick="abrirModalNuevoCliente()">
+            <span>👤 + Nuevo Atleta</span>
+          </button>
+          <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:12px; color:#fbbf24; border-color:rgba(251,191,36,0.4);" onclick="abrirModalNuevoPago()">
+            <span>💵 + Registrar Cobro</span>
+          </button>
+          <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:12px; color:#a78bfa; border-color:rgba(167,139,250,0.4);" onclick="abrirModalDietaManual()">
+            <span>🥗 + Crear Dieta</span>
+          </button>
         </div>
       </div>
 
@@ -989,250 +1023,293 @@
             <span>Volver</span>
           </button>
           <div>
-            <h1>Planes de Rutina</h1>
-            <p class="page-subtitle">Asistente de rutinas + historial de programaciones</p>
+            <h1>Planes & Programaciones de Rutina</h1>
+            <p class="page-subtitle">Diseña prescripciones inteligentes con IA o administra el historial de tus atletas</p>
           </div>
         </div>
-        <button class="btn-primary" onclick="abrirModalPlanManual()" style="white-space:nowrap;">+ Plan Manual</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="abrirModalPlanManual()" style="white-space:nowrap;">✏️ + Diseñar Plan Manual</button>
+        </div>
       </header>
 
       <!-- ════════════════════════════════════════════════════════════ -->
-      <!-- ASISTENTE DE RUTINAS                                       -->
+      <!-- PESTAÑAS PRINCIPALES DEL MÓDULO (SEGMENTED TABS)             -->
       <!-- ════════════════════════════════════════════════════════════ -->
-      <div class="ai-assistant-panel" id="ai-assistant-panel">
-        <!-- Header del panel -->
-        <div class="ai-panel-header">
-          <div class="ai-panel-header-left">
-            <div class="ai-panel-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22" stroke-width="1.8">
-                <path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"/>
-                <path d="M12 10v12"/>
-                <path d="M8 14l4-4 4 4"/>
-                <circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
-                <path d="M7 19h10"/>
-              </svg>
+      <div class="module-tab-nav" style="margin-bottom: 22px;">
+        <button type="button" class="module-tab-btn active" id="tab-btn-planes-creador" onclick="cambiarPestañaModuloPlanes('creador')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Asistente de Prescripción & IA</span>
+        </button>
+        <button type="button" class="module-tab-btn" id="tab-btn-planes-historial" onclick="cambiarPestañaModuloPlanes('historial')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Historial de Planes Guardados</span>
+          <span class="module-tab-badge" id="badge-total-planes-tab">0</span>
+        </button>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- PESTAÑA 1: ASISTENTE DE RUTINAS & GENERADOR                  -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div id="tab-planes-content-creador">
+        <div class="ai-assistant-panel" id="ai-assistant-panel">
+          <!-- Header del panel -->
+          <div class="ai-panel-header">
+            <div class="ai-panel-header-left">
+              <div class="ai-panel-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22" stroke-width="1.8">
+                  <path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"/>
+                  <path d="M12 10v12"/>
+                  <path d="M8 14l4-4 4 4"/>
+                  <circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+                  <path d="M7 19h10"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="ai-panel-title">Asistente Inteligente de Prescripción</h2>
+                <p class="ai-panel-subtitle">Motor biomecánico de prescripción avanzada — filtra ejercicios según perfil, nivel y restricciones</p>
+              </div>
             </div>
+            <div class="ai-badge-live">
+              <span class="ai-badge-dot"></span>
+              <span>Motor Activo</span>
+            </div>
+          </div>
+
+          <!-- Configurador: 3 columnas en desktop, 1 en móvil -->
+          <div class="ai-config-grid">
+
+            <!-- Columna 1: Perfil del Atleta -->
+            <div class="ai-config-group">
+              <div class="ai-config-group-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Perfil del Atleta
+              </div>
+
+              <label for="ai-objetivo">Objetivo Principal</label>
+              <select id="ai-objetivo" class="select-field" onchange="actualizarVistaAsistente()">
+                <option value="hipertrofia">💪 Hipertrofia — Máxima Masa Muscular</option>
+                <option value="fuerza">🏋️ Fuerza Máxima — Powerlifting / Neuromuscular</option>
+                <option value="definicion">🔥 Definición Estética — Metabólico / Tonificación</option>
+                <option value="readaptacion">🩹 Readaptación — Rehabilitación & Salud</option>
+                <option value="resistencia">🏃 Resistencia Muscular — Circuito / Funcional</option>
+              </select>
+
+              <label for="ai-nivel" style="margin-top:12px;">Nivel del Atleta</label>
+              <select id="ai-nivel" class="select-field" onchange="actualizarVistaAsistente()">
+                <option value="principiante">🟢 Principiante — 0 a 12 meses</option>
+                <option value="intermedio" selected>🟡 Intermedio — 1 a 3 años</option>
+                <option value="avanzado">🔴 Avanzado — 3+ años / Competidor</option>
+              </select>
+
+              <label for="ai-dias-semana" style="margin-top:12px;">Días de Entrenamiento</label>
+              <select id="ai-dias-semana" class="select-field">
+                <option value="3">3 Días / Semana</option>
+                <option value="4" selected>4 Días / Semana (Frecuencia 2)</option>
+                <option value="5">5 Días / Semana (PPL / Split)</option>
+                <option value="6">6 Días / Semana (PPL × 2 / Arnold)</option>
+              </select>
+            </div>
+
+            <!-- Columna 2: Restricciones Articulares -->
+            <div class="ai-config-group">
+              <div class="ai-config-group-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Restricciones & Lesiones
+              </div>
+
+              <label for="ai-restriccion-texto">Condición / Lesión Reportada</label>
+              <input type="text" id="ai-restriccion-texto" class="input-field"
+                placeholder="ej: molestia en rodilla, dolor lumbar L5..."
+                oninput="actualizarChipsRestriccion(this.value)">
+
+              <label style="margin-top:12px; display:block; margin-bottom:8px;">Zonas Articulares con Restricción</label>
+              <div class="ai-chip-grid" id="ai-chip-grid">
+                <label class="ai-chip" id="chip-lumbar">
+                  <input type="checkbox" id="ai-chk-lumbar" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M5 8h14M5 16h14"/></svg>
+                  Zona Lumbar
+                </label>
+                <label class="ai-chip" id="chip-rodilla">
+                  <input type="checkbox" id="ai-chk-rodilla" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+                  Rodilla
+                </label>
+                <label class="ai-chip" id="chip-hombro">
+                  <input type="checkbox" id="ai-chk-hombro" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 12c-4 0-6 2-6 4v1h12v-1c0-2-2-4-6-4z"/><circle cx="12" cy="7" r="3"/></svg>
+                  Hombro
+                </label>
+                <label class="ai-chip" id="chip-cadera">
+                  <input type="checkbox" id="ai-chk-cadera" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M8 3l-3 6 3 6M16 3l3 6-3 6M5 12h14"/></svg>
+                  Cadera
+                </label>
+                <label class="ai-chip" id="chip-tobillo">
+                  <input type="checkbox" id="ai-chk-tobillo" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M9 7l3 5 3-5"/></svg>
+                  Tobillo / Pie
+                </label>
+                <label class="ai-chip" id="chip-codo">
+                  <input type="checkbox" id="ai-chk-codo" onchange="sincronizarChips()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M3 12h18M12 3v18"/></svg>
+                  Codo / Muñeca
+                </label>
+              </div>
+
+              <label for="ai-riesgo-max" style="margin-top:14px;">Nivel Máximo de Riesgo Permitido</label>
+              <select id="ai-riesgo-max" class="select-field">
+                <option value="bajo">🟢 Solo Bajo Riesgo</option>
+                <option value="moderado" selected>🟡 Bajo + Moderado</option>
+                <option value="alto">🔴 Todos (Sin Restricción)</option>
+              </select>
+            </div>
+
+            <!-- Columna 3: Equipamiento Disponible -->
+            <div class="ai-config-group">
+              <div class="ai-config-group-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+                Equipamiento Disponible
+              </div>
+
+              <label style="margin-bottom:8px; display:block;">Selecciona el material disponible</label>
+              <div class="ai-equip-grid" id="ai-equip-grid">
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-barra" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🏗️</div>
+                  <span>Barra Olímpica</span>
+                </label>
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-mancuerna" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🥊</div>
+                  <span>Mancuernas</span>
+                </label>
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-maquina" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🤖</div>
+                  <span>Máquinas</span>
+                </label>
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-polea" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🔌</div>
+                  <span>Poleas</span>
+                </label>
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-corporal" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🏃</div>
+                  <span>Peso Corporal</span>
+                </label>
+                <label class="ai-equip-item">
+                  <input type="checkbox" id="ai-eq-banda" checked onchange="sincronizarEquipamiento()">
+                  <div class="ai-equip-icon">🟡</div>
+                  <span>Bandas</span>
+                </label>
+              </div>
+
+              <!-- Preview de filtros aplicados -->
+              <div class="ai-preview-box" id="ai-preview-box">
+                <div class="ai-preview-stat">
+                  <span class="ai-preview-num" id="ai-preview-total">—</span>
+                  <span class="ai-preview-label">Ejercicios disponibles</span>
+                </div>
+                <div class="ai-preview-stat">
+                  <span class="ai-preview-num" id="ai-preview-dias">4</span>
+                  <span class="ai-preview-label">Días de plan</span>
+                </div>
+                <div class="ai-preview-stat">
+                  <span class="ai-preview-num" id="ai-preview-excluidos">—</span>
+                  <span class="ai-preview-label">Ejercicios excluidos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA de generación -->
+          <div class="ai-cta-row">
+            <div class="ai-cta-hint" id="ai-cta-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              Configura el perfil y haz clic en Generar para obtener tu plan personalizado
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn-secondary" onclick="resetearAsistenteIA()" id="btn-reset-ia" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Reiniciar
+              </button>
+              <button class="btn-primary ai-generate-btn" id="btn-generar-ia" onclick="generarRutinaIA()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Generar Rutina con IA
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULTADO DEL PLAN GENERADO -->
+        <div id="ai-plan-result" class="hidden">
+          <!-- Header del resultado -->
+          <div class="ai-result-header">
+            <div class="ai-result-header-left">
+              <div class="ai-result-title-group">
+                <span class="ai-result-badge" id="ai-result-badge">Hipertrofia</span>
+                <h2 class="ai-result-title" id="ai-result-title">Plan Generado</h2>
+              </div>
+              <p class="ai-result-subtitle" id="ai-result-subtitle">Motor biomecánico FitPro — Prescripción optimizada</p>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <button class="btn-secondary" style="padding:8px 14px; font-size:13px;" onclick="imprimirPlanIA()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Imprimir / PDF
+              </button>
+              <button class="btn-primary" style="padding:8px 14px; font-size:13px; background:var(--accent-green); border-color:var(--accent-green);" onclick="guardarPlanIA()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Guardar en Historial
+              </button>
+            </div>
+          </div>
+
+          <!-- Resumen de parámetros aplicados -->
+          <div class="ai-params-summary" id="ai-params-summary"></div>
+
+          <!-- Barra de navegación y selector de vista (Tabs vs Semana Completa) -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+            <div class="ai-day-tabs" id="ai-day-tabs" style="margin-bottom:0;"></div>
+            <div class="view-mode-toggle">
+              <button type="button" class="view-mode-btn active" id="btn-vista-dia" onclick="cambiarModoVistaIA('tabs')">📅 Por Días</button>
+              <button type="button" class="view-mode-btn" id="btn-vista-completa" onclick="cambiarModoVistaIA('completa')">📋 Semana Completa (Todos)</button>
+            </div>
+          </div>
+
+          <!-- Contenido de los días -->
+          <div id="ai-days-content"></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- PESTAÑA 2: HISTORIAL DE PLANES GUARDADOS                     -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div id="tab-planes-content-historial" class="hidden">
+        <div class="card">
+          <div class="card-header" style="margin-bottom:16px; flex-wrap:wrap; gap:12px;">
             <div>
-              <h2 class="ai-panel-title">Asistente de rutinas</h2>
-              <p class="ai-panel-subtitle">Motor biomecánico de prescripción inteligente — filtra la biblioteca según perfil y restricciones</p>
+              <h2 class="card-title" style="margin:0;">📋 Historial de Programaciones Guardadas</h2>
+              <div style="font-size:12px; color:var(--text-muted);">Administra, edita, duplica e imprime las prescripciones de tu centro</div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn-secondary" onclick="cambiarPestañaModuloPlanes('creador')" style="padding:7px 14px; font-size:13px; color:#38bdf8; border-color:#38bdf8;">⚡ Asistente IA</button>
+              <button class="btn-primary" onclick="abrirModalPlanManual()" style="padding:7px 14px; font-size:13px;">✏️ + Diseñar Plan Manual</button>
             </div>
           </div>
-          <div class="ai-badge-live">
-            <span class="ai-badge-dot"></span>
-            <span>Motor Activo</span>
+
+          <!-- Barra de búsqueda y filtros -->
+          <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+            <input type="text" id="input-buscar-plan" class="input-field" placeholder="🔎 Buscar por nombre de atleta u objetivo..." style="flex:2; min-width:200px;" oninput="filtrarPlanesHistorial(this.value)">
+            <div class="view-mode-toggle">
+              <button type="button" class="view-mode-btn active" id="btn-filtro-plan-todos" onclick="filtrarTipoPlanHistorial('todos')">Todos</button>
+              <button type="button" class="view-mode-btn" id="btn-filtro-plan-manual" onclick="filtrarTipoPlanHistorial('manual')">✏️ Manuales</button>
+              <button type="button" class="view-mode-btn" id="btn-filtro-plan-ia" onclick="filtrarTipoPlanHistorial('ia')">⚡ Motor IA</button>
+            </div>
           </div>
+
+          <div id="plans-list-container" style="display:flex; flex-direction:column; gap:16px;"></div>
         </div>
-
-        <!-- Configurador: 3 columnas en desktop, 1 en móvil -->
-        <div class="ai-config-grid">
-
-          <!-- Columna 1: Perfil del Atleta -->
-          <div class="ai-config-group">
-            <div class="ai-config-group-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Perfil del Atleta
-            </div>
-
-            <label for="ai-objetivo">Objetivo Principal</label>
-            <select id="ai-objetivo" class="select-field" onchange="actualizarVistaAsistente()">
-              <option value="hipertrofia">💪 Hipertrofia — Máxima Masa Muscular</option>
-              <option value="fuerza">🏋️ Fuerza Máxima — Powerlifting / Neuromuscular</option>
-              <option value="definicion">🔥 Definición Estética — Metabólico / Tonificación</option>
-              <option value="readaptacion">🩹 Readaptación — Rehabilitación & Salud</option>
-              <option value="resistencia">🏃 Resistencia Muscular — Circuito / Funcional</option>
-            </select>
-
-            <label for="ai-nivel" style="margin-top:12px;">Nivel del Atleta</label>
-            <select id="ai-nivel" class="select-field" onchange="actualizarVistaAsistente()">
-              <option value="principiante">🟢 Principiante — 0 a 12 meses</option>
-              <option value="intermedio" selected>🟡 Intermedio — 1 a 3 años</option>
-              <option value="avanzado">🔴 Avanzado — 3+ años / Competidor</option>
-            </select>
-
-            <label for="ai-dias-semana" style="margin-top:12px;">Días de Entrenamiento</label>
-            <select id="ai-dias-semana" class="select-field">
-              <option value="3">3 Días / Semana</option>
-              <option value="4" selected>4 Días / Semana (Frecuencia 2)</option>
-              <option value="5">5 Días / Semana (PPL)</option>
-            </select>
-          </div>
-
-          <!-- Columna 2: Restricciones Articulares -->
-          <div class="ai-config-group">
-            <div class="ai-config-group-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Restricciones & Lesiones
-            </div>
-
-            <label for="ai-restriccion-texto">Condición / Lesión Reportada</label>
-            <input type="text" id="ai-restriccion-texto" class="input-field"
-              placeholder="ej: molestia en rodilla, dolor lumbar L5..."
-              oninput="actualizarChipsRestriccion(this.value)">
-
-            <label style="margin-top:12px; display:block; margin-bottom:8px;">Zonas Articulares con Restricción</label>
-            <div class="ai-chip-grid" id="ai-chip-grid">
-              <label class="ai-chip" id="chip-lumbar">
-                <input type="checkbox" id="ai-chk-lumbar" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M5 8h14M5 16h14"/></svg>
-                Zona Lumbar
-              </label>
-              <label class="ai-chip" id="chip-rodilla">
-                <input type="checkbox" id="ai-chk-rodilla" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
-                Rodilla
-              </label>
-              <label class="ai-chip" id="chip-hombro">
-                <input type="checkbox" id="ai-chk-hombro" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 12c-4 0-6 2-6 4v1h12v-1c0-2-2-4-6-4z"/><circle cx="12" cy="7" r="3"/></svg>
-                Hombro
-              </label>
-              <label class="ai-chip" id="chip-cadera">
-                <input type="checkbox" id="ai-chk-cadera" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M8 3l-3 6 3 6M16 3l3 6-3 6M5 12h14"/></svg>
-                Cadera
-              </label>
-              <label class="ai-chip" id="chip-tobillo">
-                <input type="checkbox" id="ai-chk-tobillo" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M12 2v20M9 7l3 5 3-5"/></svg>
-                Tobillo / Pie
-              </label>
-              <label class="ai-chip" id="chip-codo">
-                <input type="checkbox" id="ai-chk-codo" onchange="sincronizarChips()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M3 12h18M12 3v18"/></svg>
-                Codo / Muñeca
-              </label>
-            </div>
-
-            <label for="ai-riesgo-max" style="margin-top:14px;">Nivel Máximo de Riesgo Permitido</label>
-            <select id="ai-riesgo-max" class="select-field">
-              <option value="bajo">🟢 Solo Bajo Riesgo</option>
-              <option value="moderado" selected>🟡 Bajo + Moderado</option>
-              <option value="alto">🔴 Todos (Sin Restricción)</option>
-            </select>
-          </div>
-
-          <!-- Columna 3: Equipamiento Disponible -->
-          <div class="ai-config-group">
-            <div class="ai-config-group-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-              Equipamiento Disponible
-            </div>
-
-            <label style="margin-bottom:8px; display:block;">Selecciona el material disponible</label>
-            <div class="ai-equip-grid" id="ai-equip-grid">
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-barra" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🏗️</div>
-                <span>Barra Olímpica</span>
-              </label>
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-mancuerna" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🥊</div>
-                <span>Mancuernas</span>
-              </label>
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-maquina" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🤖</div>
-                <span>Máquinas</span>
-              </label>
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-polea" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🔌</div>
-                <span>Poleas</span>
-              </label>
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-corporal" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🏃</div>
-                <span>Peso Corporal</span>
-              </label>
-              <label class="ai-equip-item">
-                <input type="checkbox" id="ai-eq-banda" checked onchange="sincronizarEquipamiento()">
-                <div class="ai-equip-icon">🟡</div>
-                <span>Bandas</span>
-              </label>
-            </div>
-
-            <!-- Preview de filtros aplicados -->
-            <div class="ai-preview-box" id="ai-preview-box">
-              <div class="ai-preview-stat">
-                <span class="ai-preview-num" id="ai-preview-total">—</span>
-                <span class="ai-preview-label">Ejercicios disponibles</span>
-              </div>
-              <div class="ai-preview-stat">
-                <span class="ai-preview-num" id="ai-preview-dias">4</span>
-                <span class="ai-preview-label">Días de plan</span>
-              </div>
-              <div class="ai-preview-stat">
-                <span class="ai-preview-num" id="ai-preview-excluidos">—</span>
-                <span class="ai-preview-label">Ejercicios excluidos</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CTA de generación -->
-        <div class="ai-cta-row">
-          <div class="ai-cta-hint" id="ai-cta-hint">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-            Configura el perfil y haz clic en Generar para obtener tu plan personalizado
-          </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn-secondary" onclick="resetearAsistenteIA()" id="btn-reset-ia" style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              Reiniciar
-            </button>
-            <button class="btn-primary ai-generate-btn" id="btn-generar-ia" onclick="generarRutinaIA()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Generar Rutina con IA
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ════════════════════════════════════════════════════════════ -->
-      <!-- RESULTADO DEL PLAN GENERADO                                -->
-      <!-- ════════════════════════════════════════════════════════════ -->
-      <div id="ai-plan-result" class="hidden">
-        <!-- Header del resultado -->
-        <div class="ai-result-header">
-          <div class="ai-result-header-left">
-            <div class="ai-result-title-group">
-              <span class="ai-result-badge" id="ai-result-badge">Hipertrofia</span>
-              <h2 class="ai-result-title" id="ai-result-title">Plan Generado</h2>
-            </div>
-            <p class="ai-result-subtitle" id="ai-result-subtitle">Motor biomecánico FitPro — Prescripción optimizada</p>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button class="btn-secondary" style="padding:8px 14px; font-size:13px;" onclick="imprimirPlanIA()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Imprimir / PDF
-            </button>
-            <button class="btn-primary" style="padding:8px 14px; font-size:13px; background:var(--accent-green); border-color:var(--accent-green);" onclick="guardarPlanIA()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar en Historial
-            </button>
-          </div>
-        </div>
-
-        <!-- Resumen de parámetros aplicados -->
-        <div class="ai-params-summary" id="ai-params-summary"></div>
-
-        <!-- Tabs de los días del plan -->
-        <div class="ai-day-tabs" id="ai-day-tabs"></div>
-
-        <!-- Contenido de los días -->
-        <div id="ai-days-content"></div>
-      </div>
-
-      <!-- ════════════════════════════════════════════════════════════ -->
-      <!-- HISTORIAL DE PLANES GUARDADOS                               -->
-      <!-- ════════════════════════════════════════════════════════════ -->
-      <div class="card" style="margin-top:28px;">
-        <div class="card-header" style="margin-bottom:16px;">
-          <h2 class="card-title">📋 Historial de Planes Guardados</h2>
-          <button class="btn-primary" onclick="abrirModalPlanManual()" style="padding:7px 14px; font-size:13px;">+ Plan Manual</button>
-        </div>
-        <div id="plans-list-container" style="display:flex; flex-direction:column; gap:16px;"></div>
       </div>
     </section>
 
@@ -1852,6 +1929,284 @@
       </div>
     </section>
 
+    <!-- ============================================================================== -->
+    <!-- ⚙️ VISTA: CONFIGURACIÓN DEL SISTEMA & CENTRO DE CONTROL SAAS                     -->
+    <!-- ============================================================================== -->
+    <section class="view" id="view-settings">
+      <header class="page-header">
+        <div class="header-title-container">
+          <button class="btn-back" onclick="volverAlDashboard()" title="Volver al Dashboard" aria-label="Volver al Dashboard">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Volver</span>
+          </button>
+          <div>
+            <h1>⚙️ Configuración del Sistema</h1>
+            <p class="page-subtitle">Ajustes generales de tu gimnasio, perfil de entrenador, preferencias biomecánicas y respaldos</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn-primary" onclick="guardarConfiguracionSistema(event)">
+            <span>💾 Guardar Cambios</span>
+          </button>
+        </div>
+      </header>
+
+      <form id="form-configuracion-sistema" onsubmit="guardarConfiguracionSistema(event)">
+        <div class="grid-2" style="margin-bottom:24px;">
+
+          <!-- TARJETA 1: DATOS DE LA SEDE / GIMNASIO -->
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:rgba(16, 185, 129, 0.15); color:var(--accent-green); display:flex; align-items:center; justify-content:center; font-size:18px;">🏢</div>
+                <div>
+                  <h3 class="card-title" style="margin:0; font-size:16px;">Datos del Centro / Gimnasio</h3>
+                  <div style="font-size:12px; color:var(--text-muted);">Información comercial visible en reportes y tickets</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div>
+                <label for="config-gym-nombre">Nombre Comercial del Gimnasio</label>
+                <input type="text" id="config-gym-nombre" class="input-field" placeholder="ej: FitPro Central Hub" value="FitPro Central Hub">
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label for="config-gym-telefono">Teléfono / WhatsApp</label>
+                  <input type="text" id="config-gym-telefono" class="input-field" placeholder="ej: +52 55 1234 5678" value="+52 55 8899 7700">
+                </div>
+                <div>
+                  <label for="config-gym-moneda">Moneda de Facturación</label>
+                  <select id="config-gym-moneda" class="select-field">
+                    <option value="$" selected>USD ($) Dólar Estadounidense</option>
+                    <option value="MXN $">MXN ($) Peso Mexicano</option>
+                    <option value="€">EUR (€) Euro</option>
+                    <option value="COP $">COP ($) Peso Colombiano</option>
+                    <option value="S/">PEN (S/) Sol Peruano</option>
+                    <option value="ARS $">ARS ($) Peso Argentino</option>
+                    <option value="CLP $">CLP ($) Peso Chileno</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label for="config-gym-direccion">Ubicación / Dirección Física</label>
+                <input type="text" id="config-gym-direccion" class="input-field" placeholder="ej: Av. Insurgentes Sur 1200, Piso 3" value="Av. Central #450, Centro Performance">
+              </div>
+
+              <div>
+                <label for="config-gym-slogan">Lema / Eslogan del Centro</label>
+                <input type="text" id="config-gym-slogan" class="input-field" placeholder="ej: Biomecánica & Rendimiento de Alto Nivel" value="Ciencia Aplicada al Rendimiento y la Salud">
+              </div>
+            </div>
+          </div>
+
+          <!-- TARJETA 2: PERFIL DEL COACH / ADMINISTRADOR -->
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:rgba(59, 130, 246, 0.15); color:var(--accent-blue); display:flex; align-items:center; justify-content:center; font-size:18px;">👤</div>
+                <div>
+                  <h3 class="card-title" style="margin:0; font-size:16px;">Perfil del Master Coach</h3>
+                  <div style="font-size:12px; color:var(--text-muted);">Identidad profesional y firma de prescripciones</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div>
+                <label for="config-coach-nombre">Nombre Completo del Entrenador</label>
+                <input type="text" id="config-coach-nombre" class="input-field" placeholder="ej: Coach Pro" value="Coach Pro">
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label for="config-coach-email">Correo Electrónico</label>
+                  <input type="email" id="config-coach-email" class="input-field" placeholder="coach@fitprosuite.com" value="coach@fitprosuite.com">
+                </div>
+                <div>
+                  <label for="config-coach-avatar">Iniciales / Badge</label>
+                  <input type="text" id="config-coach-avatar" class="input-field" maxlength="3" placeholder="PT" value="PT" style="text-transform:uppercase; font-weight:700; text-align:center;">
+                </div>
+              </div>
+
+              <div>
+                <label for="config-coach-titulo">Especialidad / Título Profesional</label>
+                <input type="text" id="config-coach-titulo" class="input-field" placeholder="ej: Especialista en Biomecánica & Fuerza" value="Especialista en Biomecánica & Fuerza">
+              </div>
+
+              <div>
+                <label for="config-coach-rol">Rol en la Plataforma</label>
+                <input type="text" id="config-coach-rol" class="input-field" value="SaaS Master Admin" readonly style="opacity:0.8; cursor:not-allowed;">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="grid-2" style="margin-bottom:24px;">
+
+          <!-- TARJETA 3: PREFERENCIAS BIOMECÁNICAS Y PRESCRIPCIÓN -->
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:rgba(245, 158, 11, 0.15); color:var(--warning); display:flex; align-items:center; justify-content:center; font-size:18px;">📐</div>
+                <div>
+                  <h3 class="card-title" style="margin:0; font-size:16px;">Parámetros Biomecánicos</h3>
+                  <div style="font-size:12px; color:var(--text-muted);">Cálculos matemáticos de 1RM y unidades por defecto</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label for="config-unidad-peso">Sistema de Unidades</label>
+                  <select id="config-unidad-peso" class="select-field">
+                    <option value="kg" selected>Métrico (kg / cm)</option>
+                    <option value="lbs">Imperial (lbs / in)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="config-formula-rm">Fórmula de 1RM por Defecto</label>
+                  <select id="config-formula-rm" class="select-field">
+                    <option value="brzycki" selected>Brzycki (Recomendada 1-10 reps)</option>
+                    <option value="epley">Epley (Fuerza & Potencia)</option>
+                    <option value="lander">Lander</option>
+                    <option value="lombardi">Lombardi</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label for="config-descanso-defecto">Descanso Estándar (Segundos)</label>
+                  <select id="config-descanso-defecto" class="select-field">
+                    <option value="60">60 segundos (Hipertrofia corta)</option>
+                    <option value="90" selected>90 segundos (Estándar)</option>
+                    <option value="120">120 segundos (Fuerza moderada)</option>
+                    <option value="180">180 segundos (Fuerza máxima)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="config-notif-dias">Aviso de Cuotas Vencidas</label>
+                  <select id="config-notif-dias" class="select-field">
+                    <option value="3" selected>3 días antes</option>
+                    <option value="5">5 días antes</option>
+                    <option value="7">7 días antes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px; font-size:12px; color:var(--text-muted); line-height:1.5;">
+                ℹ️ Los cálculos de 1RM y sobrecarga progresiva se sincronizan automáticamente con el Laboratorio Biomecánico y el Generador de Rutinas.
+              </div>
+            </div>
+          </div>
+
+          <!-- TARJETA 4: CONECTIVIDAD & SUPABASE CLOUD -->
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:rgba(16, 185, 129, 0.15); color:var(--accent-green); display:flex; align-items:center; justify-content:center; font-size:18px;">☁️</div>
+                <div>
+                  <h3 class="card-title" style="margin:0; font-size:16px;">Sincronización Cloud</h3>
+                  <div style="font-size:12px; color:var(--text-muted);">Estado de base de datos Postgres y almacenamiento distribuido</div>
+                </div>
+              </div>
+              <span class="badge badge-green">🟢 Activo</span>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.3); border-radius:var(--radius-sm); padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:13px; font-weight:700; color:#34D399;">Supabase Database Online</div>
+                  <div style="font-size:11.5px; color:var(--text-muted);">Modo híbrido local + replicación en tiempo real</div>
+                </div>
+                <button type="button" class="btn-secondary" style="font-size:11.5px; padding:5px 10px;" onclick="sincronizarTodoConSupabase()">
+                  🔄 Sincronizar Ahora
+                </button>
+              </div>
+
+              <div>
+                <label>Instancia de Supabase</label>
+                <input type="text" class="input-field" value="https://zkrkwffnphuonvwtpwhd.supabase.co" readonly style="font-family:monospace; font-size:12px; opacity:0.85;">
+              </div>
+
+              <div>
+                <label>Gestión de Sucursales Multi-Tenant</label>
+                <div style="display:flex; gap:10px;">
+                  <button type="button" class="btn-secondary" style="flex:1; justify-content:center;" onclick="abrirModalGestionSedes()">
+                    🏢 Administrar Sedes Registradas
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TARJETA 5: RESPALDO DE DATOS & COPIAS DE SEGURIDAD (FULL BACKUP ENGINE) -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:var(--radius-sm); background:rgba(59, 130, 246, 0.15); color:var(--accent-blue); display:flex; align-items:center; justify-content:center; font-size:18px;">💾</div>
+              <div>
+                <h3 class="card-title" style="margin:0; font-size:16px;">Centro de Copias de Seguridad & Respaldo (Backup Engine)</h3>
+                <div style="font-size:12px; color:var(--text-muted);">Exporta toda tu base de atletas, finanzas, rutinas y configuraciones a un archivo JSON seguro</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <strong style="color:var(--text-main); font-size:14px; display:block; margin-bottom:4px;">📦 Exportar Base de Datos Completa</strong>
+                <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.4;">
+                  Descarga un archivo JSON cifrado local con toda la información de clientes, historiales de pago, diagnósticos clínicos y plantillas.
+                </p>
+              </div>
+              <button type="button" class="btn-primary" onclick="exportarCopiaSeguridadJSON()" style="width:100%; justify-content:center;">
+                ⬇️ Descargar Respaldo JSON
+              </button>
+            </div>
+
+            <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <strong style="color:var(--text-main); font-size:14px; display:block; margin-bottom:4px;">📥 Restaurar desde Copia de Seguridad</strong>
+                <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.4;">
+                  Carga un archivo de respaldo JSON generado previamente para sincronizar o restaurar tus datos en caso de cambio de dispositivo.
+                </p>
+              </div>
+              <div>
+                <input type="file" id="input-archivo-backup" accept=".json" style="display:none;" onchange="importarCopiaSeguridadJSON(this)">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('input-archivo-backup').click()" style="width:100%; justify-content:center;">
+                  ⬆️ Seleccionar Archivo JSON y Restaurar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 6: INFORMACIÓN DEL SISTEMA -->
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+          <div>
+            <div style="font-weight:700; color:var(--text-main); font-size:14px;">FitPro Suite Pro • Enterprise Edition</div>
+            <div style="font-size:12px; color:var(--text-muted);">Versión 2.5.0 • Motor Biomecánico & Gestión SaaS Activo</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="badge badge-primary">⚡ PWA Offline Ready</span>
+            <button type="submit" class="btn-primary" style="padding:8px 18px; font-size:13px;">
+              💾 Guardar Configuración
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </section>
+
   </main>
 
   <!-- ============================================================================== -->
@@ -1872,17 +2227,17 @@
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       </div>
-      <span class="bottom-nav-label">Clientes</span>
+      <span class="bottom-nav-label">Atletas</span>
     </button>
-    <button type="button" class="mobile-bottom-nav-item" data-view="calculator" onclick="navegarA('calculator')" title="Laboratorio Biomecánico">
+    <button type="button" class="mobile-bottom-nav-item" data-view="plans" onclick="navegarA('plans')" title="Planes & Rutinas">
       <div class="bottom-nav-icon-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><circle cx="15" cy="16" r="1.5"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
       </div>
-      <span class="bottom-nav-label">Calculadoras</span>
+      <span class="bottom-nav-label">Rutinas</span>
     </button>
-    <button type="button" class="mobile-bottom-nav-item" data-view="finances" onclick="navegarA('finances')" title="Finanzas & Facturación">
+    <button type="button" class="mobile-bottom-nav-item" data-view="finances" onclick="navegarA('finances')" title="Finanzas & Cobros">
       <div class="bottom-nav-icon-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="12" cy="15" r="2"/>
@@ -2294,13 +2649,20 @@
 
   <!-- MODAL DISEÑO Y CONFIGURACIÓN MANUAL DE PLAN -->
   <div class="modal-overlay hidden" id="modal-plan-manual">
-    <div class="modal-content modal-content-lg">
+    <div class="modal-content modal-content-xl">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-        <h2 style="font-family:var(--font-heading); margin:0; font-size:22px; color:#60a5fa;">✏️ Configurar y Diseñar Plan Manualmente</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; border-radius:8px; background:rgba(59, 130, 246, 0.15); display:flex; align-items:center; justify-content:center; color:#60a5fa; font-size:18px;">✏️</div>
+          <div>
+            <h2 style="font-family:var(--font-heading); margin:0; font-size:20px; color:#60a5fa;">Plantilla de Rutina Manual para Coach</h2>
+            <div style="font-size:12px; color:var(--text-muted);">Organizada por días con división muscular y catálogo de ejercicios</div>
+          </div>
+        </div>
         <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarModalPlanManual()">✕</button>
       </div>
 
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
+      <!-- Configuración General del Plan -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:16px; background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
         <div>
           <label for="manual-cliente-select">Atleta / Cliente *</label>
           <select id="manual-cliente-select" class="select-field"></select>
@@ -2316,29 +2678,89 @@
             <option value="Fuerza Máxima (Powerlifting)">Fuerza Máxima</option>
             <option value="Definición Estética">Definición Estética</option>
             <option value="Recondicionamiento">Rehabilitación & Salud</option>
+            <option value="Resistencia Muscular">Resistencia & Rendimiento</option>
+          </select>
+        </div>
+        <div>
+          <label for="manual-plantilla-preset">Cargar Plantilla Base</label>
+          <select id="manual-plantilla-preset" class="select-field" onchange="cambiarPlantillaManualPreset(this.value)">
+            <option value="custom">🛠️ Personalizada (Días a Medida)</option>
+            <option value="ppl3" selected>⚡ 3 Días: Push / Pull / Legs</option>
+            <option value="torso_pierna4">💪 4 Días: Torso / Pierna (Frec. 2)</option>
+            <option value="ppl_upper_lower5">🔥 5 Días: PPL + Torso/Pierna</option>
+            <option value="arnold6">🏆 6 Días: Arnold Split / PPL × 2</option>
+            <option value="fullbody3">🟢 3 Días: Full Body Completo</option>
           </select>
         </div>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-size:14px; color:#fff; font-weight:600;">🏋️ Ejercicios y Prescripción por Filas:</div>
-        <button class="btn-secondary" style="font-size:12px; padding:4px 10px;" onclick="agregarFilaEjercicioManual()">+ Añadir Ejercicio</button>
+      <!-- Barra de Días y Acciones -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:14px; font-weight:700; color:#fff;">📅 Estructura de Días y División Muscular:</span>
+          <span class="badge badge-green" id="manual-total-dias-badge">3 Días</span>
+        </div>
+        <button type="button" class="btn-secondary" style="font-size:12px; padding:6px 12px; border-color:var(--accent-green); color:var(--accent-green);" onclick="agregarDiaManual()">
+          + Añadir Nuevo Día
+        </button>
       </div>
 
-      <div id="manual-ejercicios-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px; max-height:320px; overflow-y:auto; padding-right:6px;">
-        <!-- Fila Inicial por Defecto -->
-        <div class="fila-ejercicio-manual" style="display:flex; gap:10px; align-items:center; background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
-          <input type="text" class="input-field input-ejercicio-nombre" placeholder="Nombre Ejercicio (ej: Press Inclinado)" style="flex:2;">
-          <input type="text" class="input-field input-ejercicio-series" placeholder="Series x Reps (ej: 4x10)" style="flex:1;">
-          <input type="text" class="input-field input-ejercicio-carga" placeholder="Carga / RPE (ej: 75kg RPE 8)" style="flex:1;">
-          <input type="text" class="input-field input-ejercicio-nota" placeholder="Táctica / Indicaciones" style="flex:1.5;">
-          <button style="background:transparent; border:none; color:var(--danger); font-size:18px; cursor:pointer;" onclick="this.parentElement.remove()">✕</button>
+      <!-- Contenedor Dinámico de Días y Ejercicios -->
+      <div id="manual-dias-container" style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; max-height:480px; overflow-y:auto; padding-right:6px;">
+        <!-- Se renderiza dinámicamente con renderizarDiasManuales() -->
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:12px; color:var(--text-muted);" id="manual-total-ejercicios-hint">
+          💡 Selecciona la división muscular de cada día para filtrar ejercicios recomendados o añade ejercicios libres.
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="cerrarModalPlanManual()">Cancelar</button>
+          <button type="button" class="btn-primary" onclick="guardarPlanManual()">💾 Guardar Rutina en Cartera del Atleta</button>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
-        <button class="btn-secondary" onclick="cerrarModalPlanManual()">Cancelar</button>
-        <button class="btn-primary" onclick="guardarPlanManual()">💾 Guardar Plan en Cartera del Atleta</button>
+  <!-- Datalist global para autocompletado de ejercicios desde la base de datos -->
+  <datalist id="datalist-ejercicios-db"></datalist>
+
+  <!-- MODAL EXPLORADOR Y SELECTOR RÁPIDO DE EJERCICIOS PARA RUTINA MANUAL -->
+  <div class="modal-overlay hidden" id="modal-selector-ejercicios-manual">
+    <div class="modal-content modal-content-lg" style="max-height:88vh; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; border-radius:8px; background:rgba(34, 197, 94, 0.15); display:flex; align-items:center; justify-content:center; color:var(--accent-green); font-size:18px;">📚</div>
+          <div>
+            <h3 style="font-family:var(--font-heading); margin:0; font-size:18px; color:#fff;">Explorador del Catálogo de Ejercicios</h3>
+            <div style="font-size:12px; color:var(--text-muted);" id="catalogo-modal-subtitle">Haz clic en un ejercicio para insertarlo con 1 clic en el día seleccionado</div>
+          </div>
+        </div>
+        <button style="background:transparent; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" onclick="cerrarSelectorEjerciciosManual()">✕</button>
+      </div>
+
+      <!-- Buscador y Filtro por Grupo Muscular -->
+      <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+        <input type="text" id="catalogo-modal-search" class="input-field" placeholder="🔎 Buscar ejercicio por nombre o equipamiento..." style="flex:2; min-width:200px;" oninput="filtrarEjerciciosModalCatalogo()">
+        <select id="catalogo-modal-grupo" class="select-field" style="flex:1; min-width:170px;" onchange="filtrarEjerciciosModalCatalogo()">
+          <option value="todos">Todos los Músculos</option>
+          <option value="cuadriceps">🦵 Cuádriceps</option>
+          <option value="isquios">🦵 Isquiotibiales & Glúteo</option>
+          <option value="espalda">🛡️ Espalda / Dorsal</option>
+          <option value="pecho">⚔️ Pecho / Pectoral</option>
+          <option value="hombros">🎯 Hombros / Deltoides</option>
+          <option value="brazos">💪 Brazos (Bíceps / Tríceps)</option>
+          <option value="core">⚡ Core & Abdomen</option>
+        </select>
+      </div>
+
+      <!-- Lista de Ejercicios -->
+      <div id="catalogo-modal-lista" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px; overflow-y:auto; padding-right:4px; flex:1; max-height:460px;">
+        <!-- Se renderiza dinámicamente -->
+      </div>
+      
+      <div style="display:flex; justify-content:flex-end; border-top:1px solid var(--border-color); padding-top:12px; margin-top:12px;">
+        <button type="button" class="btn-secondary" onclick="cerrarSelectorEjerciciosManual()">Cerrar Explorador</button>
       </div>
     </div>
   </div>
@@ -2659,7 +3081,7 @@
 
       <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
         <button type="button" class="btn-secondary" onclick="cerrarModalConfirmacionAccion()">Cancelar</button>
-        <button type="button" class="btn-primary" id="modal-conf-btn-confirmar">Confirmar Acción</button>
+        <button type="button" class="btn-primary" id="modal-conf-btn-confirmar" onclick="ejecutarAccionConfirmada()">Confirmar Acción</button>
       </div>
     </div>
   </div>

@@ -738,10 +738,18 @@ function alternarModoAuthDirecto(modo) {
   }
 }
 
-function alternarVisibilidadPassword() {
+function alternarVisibilidadPassword(event) {
+  if (event && event.preventDefault) event.preventDefault();
   const passInput = document.getElementById('auth-input-password');
+  const toggleBtn = document.querySelector('.auth-password-toggle') || (event && event.currentTarget);
   if (passInput) {
-    passInput.type = passInput.type === 'password' ? 'text' : 'password';
+    const esPassword = passInput.type === 'password';
+    passInput.type = esPassword ? 'text' : 'password';
+    if (toggleBtn) {
+      toggleBtn.innerHTML = esPassword ? '🙈' : '👁️';
+      toggleBtn.setAttribute('title', esPassword ? 'Ocultar contraseña' : 'Ver contraseña');
+      toggleBtn.setAttribute('aria-label', esPassword ? 'Ocultar contraseña' : 'Ver contraseña');
+    }
   }
 }
 
@@ -4162,6 +4170,10 @@ function navegarA(viewName, registrarHistorial = true) {
       }, 280);
     }
 
+    if (viewName === 'plans' && typeof renderPlanes === 'function') {
+      renderPlanes();
+    }
+
     const mainContent = document.querySelector('.main-content');
     if (mainContent) mainContent.scrollTop = 0;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4872,7 +4884,8 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
   const atletaSlug = encodeURIComponent(cliente.nombre);
   const atletaEmail = encodeURIComponent(cliente.email || '');
   const atletaId = cliente.id;
-  const directAthleteUrl = `https://curious-bavarois-54aab1.netlify.app/?atleta=${atletaSlug}&email=${atletaEmail}&id=${atletaId}&view=athlete`;
+  const appBaseUrl = window.location.origin;
+  const directAthleteUrl = `${appBaseUrl}/?atleta=${atletaSlug}&email=${atletaEmail}&id=${atletaId}&view=athlete`;
 
   const mensaje = 
     `¡Hola *${cliente.nombre}*! 👋\n\n` +
@@ -7355,13 +7368,272 @@ function exportarReporteAnalyticsCSV() {
   document.body.removeChild(link);
 }
 
-// Manual Plan Builder Functions
-function abrirModalPlanManual(nombreCliente = '') {
+// ==========================================
+// 🏋️ ENGINE COMPLETO DE RUTINAS MANUALES MULTI-DÍA
+// ==========================================
+
+let planManualState = {
+  cliente: '',
+  metodo: 'Plan Diseñado Manualmente',
+  objetivo: 'Hipertrofia Especifica',
+  preset: 'ppl3',
+  dias: []
+};
+
+let diaDestinoParaEjercicio = 0;
+
+const plantillasManualesPresets = {
+  ppl3: [
+    {
+      dia: "Día 1: Empuje (Push)",
+      musculos: "Pecho, Deltoides Anterior/Lateral, Tríceps",
+      ejercicios: [
+        { nombre: "Press de Banca Plano con Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Pausa de 1s en el pecho con control excéntrico" },
+        { nombre: "Press Inclinado con Mancuernas (30°)", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Máxima elongación de la clavicular" },
+        { nombre: "Aperturas en Polea / Cruces (Cable Flyes)", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Contracción isométrica 2s al cierre" },
+        { nombre: "Elevaciones Laterales con Mancuernas", series: "4", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Codos ligeramente flexionados, plano escapular" },
+        { nombre: "Extensión de Tríceps en Polea Alta con Cuerda", series: "3", reps: "12-15", carga: "RPE 8.5", descanso: "60s", notas: "Apertura en el punto de máxima contracción" },
+        { nombre: "Press Francés con Mancuernas en Banco Plano", series: "3", reps: "10-12", carga: "RPE 8.0", descanso: "75s", notas: "Enfoque en cabeza larga del tríceps" }
+      ]
+    },
+    {
+      dia: "Día 2: Tracción (Pull)",
+      musculos: "Espalda, Deltoides Posterior, Bíceps",
+      ejercicios: [
+        { nombre: "Jalón al Pecho Agarre Neutro en Polea", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Tracción dirigida hacia la clavícula" },
+        { nombre: "Remo con Barra 45° (Pronado o Supino)", series: "4", reps: "8-10", carga: "RPE 8.5", descanso: "90s", notas: "Mantener columna neutra y conducir codos" },
+        { nombre: "Remo Unilateral en Polea Baja", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "75s", notas: "Rotación controlada y máxima elongación dorsal" },
+        { nombre: "Face Pull en Polea con Rotación Externa", series: "4", reps: "15", carga: "RPE 8.0", descanso: "60s", notas: "Salud del manguito rotador y deltoides posterior" },
+        { nombre: "Curl de Bíceps con Barra Z en Banco Scott", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "75s", notas: "Evitar impulso, tensión constante" },
+        { nombre: "Curl Martillo con Mancuernas", series: "3", reps: "12", carga: "RPE 9.0", descanso: "60s", notas: "Énfasis en braquiorradial y braquial anterior" }
+      ]
+    },
+    {
+      dia: "Día 3: Pierna Completa & Core (Legs)",
+      musculos: "Cuádriceps, Isquiotibiales, Glúteo, Gemelos",
+      ejercicios: [
+        { nombre: "Sentadilla Trasera con Barra (Back Squat)", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2.5 min", notas: "Profundidad paralela con core bloqueado" },
+        { nombre: "Prensa de Piernas 45° Inclinada", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "2 min", notas: "Pies al ancho de hombros, rango completo" },
+        { nombre: "Peso Muerto Rumano con Mancuernas o Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Bisagra de cadera con rodillas semiflexionadas" },
+        { nombre: "Curl Femoral Tumbado en Máquina", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "75s", notas: "Control excéntrico de 3 segundos" },
+        { nombre: "Elevación de Talones de Pie (Gemelos)", series: "4", reps: "15-20", carga: "RPE 9.0", descanso: "60s", notas: "Pausa de 2s en máxima elongación" },
+        { nombre: "Plancha Abdominal Isométrica (Plank)", series: "3", reps: "45-60s", carga: "Peso Corporal", descanso: "60s", notas: "Activación pélvica y transverso del abdomen" }
+      ]
+    }
+  ],
+  torso_pierna4: [
+    {
+      dia: "Día 1: Torso A (Fuerza & Tensión)",
+      musculos: "Pectoral, Dorsal, Hombros, Brazos",
+      ejercicios: [
+        { nombre: "Press de Banca Plano con Barra", series: "4", reps: "6-8", carga: "RPE 8.5", descanso: "2.5 min", notas: "Fuerza básica horizontal" },
+        { nombre: "Remo con Barra Pendlay", series: "4", reps: "6-8", carga: "RPE 8.5", descanso: "2 min", notas: "Inicio desde el suelo con torso paralelo" },
+        { nombre: "Press Militar de Hombro con Barra", series: "3", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Cuerpo bloqueado sin balanceo" },
+        { nombre: "Jalón al Pecho Agarre Abierto", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Depresión escapular antes de tirar" },
+        { nombre: "Superserie: Curl Bíceps + Extensión Tríceps", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "75s", notas: "Bombeo metabólico final" }
+      ]
+    },
+    {
+      dia: "Día 2: Pierna A (Cuádriceps Dominante)",
+      musculos: "Cuádriceps, Glúteo, Gemelos",
+      ejercicios: [
+        { nombre: "Sentadilla Trasera con Barra (Back Squat)", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2.5 min", notas: "Patrón dominante de rodilla" },
+        { nombre: "Prensa 45° con Pies Bajos", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Máximo reclutamiento de vastos" },
+        { nombre: "Extensiones de Cuádriceps en Máquina", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Pausa de 1.5s en contracción" },
+        { nombre: "Elevación de Gemelos en Prensa", series: "4", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Rango articular completo" }
+      ]
+    },
+    {
+      dia: "Día 3: Torso B (Hipertrofia & Bombeo)",
+      musculos: "Dorsal, Pectoral Superior, Deltoides, Brazos",
+      ejercicios: [
+        { nombre: "Press Inclinado con Mancuernas", series: "4", reps: "8-10", carga: "RPE 8.5", descanso: "2 min", notas: "Énfasis haz clavicular" },
+        { nombre: "Remo en Polea Baja con Triángulo", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Tracción hacia el ombligo" },
+        { nombre: "Fondos en Paralelas (Dips)", series: "3", reps: "10-12", carga: "RPE 8.0", descanso: "90s", notas: "Inclinación frontal leve" },
+        { nombre: "Elevaciones Laterales en Polea", series: "4", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Tensión constante en el deltoides medio" },
+        { nombre: "Curl Martillo con Cuerda en Polea", series: "3", reps: "12-15", carga: "RPE 8.5", descanso: "60s", notas: "Control excéntrico estricto" }
+      ]
+    },
+    {
+      dia: "Día 4: Pierna B (Cadena Posterior)",
+      musculos: "Isquiotibiales, Glúteo Mayor, Core",
+      ejercicios: [
+        { nombre: "Peso Muerto Rumano con Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2.5 min", notas: "Gran estiramiento de isquiosurales" },
+        { nombre: "Hip Thrust con Barra y Almohadilla", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "2 min", notas: "Bloqueo pélvico arriba 2s" },
+        { nombre: "Curl Femoral Sentado en Máquina", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "75s", notas: "Pico de contracción controlado" },
+        { nombre: "Zancadas Búlgaras con Mancuernas", series: "3", reps: "10 por pierna", carga: "RPE 8.5", descanso: "90s", notas: "Torso ligeramente inclinado" },
+        { nombre: "Ab Wheel / Rueda Abdominal", series: "3", reps: "12-15", carga: "Peso Corporal", descanso: "60s", notas: "Control lumbar estricto" }
+      ]
+    }
+  ],
+  ppl_upper_lower5: [
+    {
+      dia: "Día 1: Empuje (Push)",
+      musculos: "Pecho, Hombro, Tríceps",
+      ejercicios: [
+        { nombre: "Press Banca Plano con Barra", series: "4", reps: "8", carga: "RPE 8.0", descanso: "2 min", notas: "Base de empuje" },
+        { nombre: "Press Militar con Mancuernas", series: "3", reps: "10", carga: "RPE 8.5", descanso: "90s", notas: "Rango completo" },
+        { nombre: "Cruces en Polea Baja", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Pectoral superior" },
+        { nombre: "Extensión Tríceps en Polea", series: "3", reps: "12-15", carga: "RPE 8.5", descanso: "60s", notas: "Bombeo final" }
+      ]
+    },
+    {
+      dia: "Día 2: Tracción (Pull)",
+      musculos: "Espalda, Bíceps, Posterior",
+      ejercicios: [
+        { nombre: "Jalón al Pecho", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Tracción vertical" },
+        { nombre: "Remo Gironda en Polea", series: "4", reps: "10", carga: "RPE 8.5", descanso: "90s", notas: "Densidad dorsal" },
+        { nombre: "Face Pull", series: "3", reps: "15", carga: "RPE 8.0", descanso: "60s", notas: "Deltoides posterior" },
+        { nombre: "Curl Bíceps con Barra Z", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "75s", notas: "Flexión de codo pura" }
+      ]
+    },
+    {
+      dia: "Día 3: Pierna (Legs)",
+      musculos: "Cuádriceps, Isquios, Glúteo",
+      ejercicios: [
+        { nombre: "Sentadilla Trasera con Barra", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2.5 min", notas: "Potencia y fuerza" },
+        { nombre: "Prensa Inclinada 45°", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "2 min", notas: "Volumen cuádriceps" },
+        { nombre: "Curl Femoral Tumbado", series: "3", reps: "12", carga: "RPE 9.0", descanso: "75s", notas: "Aislamiento isquios" },
+        { nombre: "Gemelos en Prensa", series: "4", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Pausa en elongación" }
+      ]
+    },
+    {
+      dia: "Día 4: Torso Completo",
+      musculos: "Pecho, Espalda, Hombros",
+      ejercicios: [
+        { nombre: "Press Inclinado con Mancuernas", series: "4", reps: "8-10", carga: "RPE 8.5", descanso: "2 min", notas: "Foco superior" },
+        { nombre: "Remo Unilateral con Mancuerna", series: "4", reps: "10", carga: "RPE 8.5", descanso: "90s", notas: "Apoyo en banco" },
+        { nombre: "Elevaciones Laterales", series: "4", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Aislamiento medio" },
+        { nombre: "Fondos en Paralelas", series: "3", reps: "12", carga: "RPE 8.5", descanso: "75s", notas: "Empuje compuesto" }
+      ]
+    },
+    {
+      dia: "Día 5: Pierna & Core",
+      musculos: "Cadena Posterior, Isquios, Glúteo, Abdomen",
+      ejercicios: [
+        { nombre: "Peso Muerto Rumano con Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Bisagra de cadera" },
+        { nombre: "Hip Thrust con Barra", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "2 min", notas: "Tensión en glúteo" },
+        { nombre: "Zancadas Caminando con Mancuernas", series: "3", reps: "12 pasos", carga: "RPE 8.5", descanso: "90s", notas: "Estabilidad unilateral" },
+        { nombre: "Plancha Abdominal", series: "3", reps: "60s", carga: "Corporal", descanso: "60s", notas: "Antiextensión lumbar" }
+      ]
+    }
+  ],
+  arnold6: [
+    { dia: "Día 1: Pecho & Espalda (A)", musculos: "Pectoral Mayor, Dorsal Ancho", ejercicios: [
+      { nombre: "Press Banca Plano", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Antagonista" },
+      { nombre: "Dominadas o Jalón al Pecho", series: "4", reps: "8-10", carga: "RPE 8.5", descanso: "2 min", notas: "Tracción vertical" },
+      { nombre: "Press Inclinado con Mancuernas", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Pectoral alto" },
+      { nombre: "Remo con Barra", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Espesor de espalda" }
+    ]},
+    { dia: "Día 2: Hombros & Brazos (A)", musculos: "Deltoides, Bíceps, Tríceps", ejercicios: [
+      { nombre: "Press Militar con Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Empuje vertical" },
+      { nombre: "Elevaciones Laterales con Mancuernas", series: "4", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Hombro lateral" },
+      { nombre: "Superserie: Curl Barra + Press Francés", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "75s", notas: "Hipertrofia brazos" }
+    ]},
+    { dia: "Día 3: Piernas & Core (A)", musculos: "Cuádriceps, Isquios, Glúteo", ejercicios: [
+      { nombre: "Sentadilla con Barra", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2.5 min", notas: "Básico pierna" },
+      { nombre: "Peso Muerto Rumano", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Isquiosurales" },
+      { nombre: "Prensa 45°", series: "3", reps: "12", carga: "RPE 8.5", descanso: "90s", notas: "Volumen" },
+      { nombre: "Gemelos de Pie", series: "4", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Pausa en contracción" }
+    ]},
+    { dia: "Día 4: Pecho & Espalda (B)", musculos: "Pectoral, Trapecios, Dorsales", ejercicios: [
+      { nombre: "Fondos en Paralelas lastrados", series: "4", reps: "8-10", carga: "RPE 8.5", descanso: "2 min", notas: "Fuerza pecho" },
+      { nombre: "Remo Unilateral Mancuerna", series: "4", reps: "10", carga: "RPE 8.5", descanso: "90s", notas: "Dorsal bajo" },
+      { nombre: "Aperturas en Polea", series: "3", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Aislamiento" }
+    ]},
+    { dia: "Día 5: Hombros & Brazos (B)", musculos: "Deltoides Posterior, Bíceps, Tríceps", ejercicios: [
+      { nombre: "Press Arnold con Mancuernas", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Rotación controlada" },
+      { nombre: "Face Pull con Polea", series: "4", reps: "15", carga: "RPE 8.0", descanso: "60s", notas: "Salud articular" },
+      { nombre: "Curl Martillo + Fondos Banco", series: "3", reps: "12", carga: "RPE 9.0", descanso: "60s", notas: "Bombeo braquial" }
+    ]},
+    { dia: "Día 6: Piernas & Core (B)", musculos: "Femoral, Glúteo, Abdomen", ejercicios: [
+      { nombre: "Hip Thrust con Barra", series: "4", reps: "10", carga: "RPE 8.5", descanso: "2 min", notas: "Glúteo mayor" },
+      { nombre: "Zancadas Búlgaras", series: "3", reps: "10 c/u", carga: "RPE 8.5", descanso: "90s", notas: "Unilateral" },
+      { nombre: "Extensiones Cuádriceps", series: "3", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Quemazón" }
+    ]}
+  ],
+  fullbody3: [
+    {
+      dia: "Día 1: Full Body A (Enfoque Tensión Mecánica)",
+      musculos: "Cuerpo Completo (Fuerza Base)",
+      ejercicios: [
+        { nombre: "Sentadilla Trasera con Barra", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2.5 min", notas: "Patrón dominante rodilla" },
+        { nombre: "Press de Banca Plano", series: "4", reps: "6-8", carga: "RPE 8.0", descanso: "2 min", notas: "Empuje horizontal" },
+        { nombre: "Remo con Barra Pendlay", series: "4", reps: "6-8", carga: "RPE 8.5", descanso: "2 min", notas: "Tracción horizontal" },
+        { nombre: "Elevaciones Laterales", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Deltoides lateral" },
+        { nombre: "Plancha Abdominal", series: "3", reps: "45s", carga: "Corporal", descanso: "60s", notas: "Estabilidad de core" }
+      ]
+    },
+    {
+      dia: "Día 2: Full Body B (Enfoque Hipertrofia & Bisagra)",
+      musculos: "Cuerpo Completo (Cadena Posterior & Vertical)",
+      ejercicios: [
+        { nombre: "Peso Muerto Rumano con Barra", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "2 min", notas: "Bisagra de cadera profunda" },
+        { nombre: "Press Militar con Mancuernas", series: "3", reps: "8-10", carga: "RPE 8.5", descanso: "90s", notas: "Empuje vertical" },
+        { nombre: "Jalón al Pecho Agarre Neutro", series: "4", reps: "8-10", carga: "RPE 8.0", descanso: "90s", notas: "Tracción vertical" },
+        { nombre: "Prensa de Piernas 45°", series: "3", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Volumen cuádriceps" },
+        { nombre: "Curl de Bíceps con Barra Z", series: "3", reps: "12", carga: "RPE 9.0", descanso: "60s", notas: "Aislamiento de brazos" }
+      ]
+    },
+    {
+      dia: "Día 3: Full Body C (Enfoque Unilateral & Bombeo)",
+      musculos: "Cuerpo Completo (Equilibrio & Estabilidad)",
+      ejercicios: [
+        { nombre: "Zancadas Búlgaras con Mancuernas", series: "3", reps: "10 por pierna", carga: "RPE 8.5", descanso: "90s", notas: "Pierna unilateral" },
+        { nombre: "Press Inclinado con Mancuernas", series: "4", reps: "10-12", carga: "RPE 8.5", descanso: "90s", notas: "Pectoral superior" },
+        { nombre: "Remo Unilateral en Polea", series: "3", reps: "12", carga: "RPE 8.5", descanso: "75s", notas: "Dorsal ancho" },
+        { nombre: "Extensión de Tríceps en Polea", series: "3", reps: "15", carga: "RPE 9.0", descanso: "60s", notas: "Bombeo de tríceps" },
+        { nombre: "Curl Femoral Tumbado", series: "3", reps: "12-15", carga: "RPE 9.0", descanso: "60s", notas: "Aislamiento femoral" }
+      ]
+    }
+  ],
+  custom: [
+    {
+      dia: "Día 1: Entrenamiento Personalizado",
+      musculos: "Grupo Muscular a Elección",
+      ejercicios: [
+        { nombre: "", series: "3", reps: "10", carga: "RPE 8.0", descanso: "90s", notas: "Indicación técnica" }
+      ]
+    }
+  ]
+};
+
+function poblarDatalistEjerciciosGlobal() {
+  const datalist = document.getElementById('datalist-ejercicios-db');
+  if (!datalist) return;
+  
+  if (typeof ejerciciosDB !== 'undefined' && Array.isArray(ejerciciosDB)) {
+    datalist.innerHTML = ejerciciosDB.map(e => `<option value="${e.nombre}">${e.categoria ? '[' + e.categoria.toUpperCase() + '] ' : ''}${e.musculoPrimario || ''}</option>`).join('');
+  }
+}
+
+function abrirModalPlanManual(nombreCliente = '', preset = 'ppl3') {
+  poblarDatalistEjerciciosGlobal();
+  
   const select = document.getElementById('manual-cliente-select');
   if (select) {
-    select.innerHTML = clientes.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    const clientesGym = getClientesActivos();
+    if (clientesGym.length > 0) {
+      select.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo || 'Atleta'})</option>`).join('');
+    } else {
+      select.innerHTML = `<option value="Atleta Pro">Atleta Pro (Sin Atletas Registrados)</option>`;
+    }
     if (nombreCliente) select.value = nombreCliente;
   }
+
+  const presetSelect = document.getElementById('manual-plantilla-preset');
+  if (presetSelect) {
+    presetSelect.value = preset;
+  }
+
+  const metodoInput = document.getElementById('manual-metodo');
+  if (metodoInput) {
+    const clienteNombre = select ? select.value : 'Atleta';
+    metodoInput.value = `Rutina Personalizada para ${clienteNombre}`;
+  }
+
+  cambiarPlantillaManualPreset(preset);
+
   const m = document.getElementById('modal-plan-manual');
   if (m) m.classList.remove('hidden');
 }
@@ -7371,21 +7643,284 @@ function cerrarModalPlanManual() {
   if (m) m.classList.add('hidden');
 }
 
-function agregarFilaEjercicioManual() {
-  const container = document.getElementById('manual-ejercicios-container');
+function cambiarPlantillaManualPreset(presetKey) {
+  planManualState.preset = presetKey;
+  const plantilla = plantillasManualesPresets[presetKey] || plantillasManualesPresets.custom;
+  
+  // Deep clone to avoid mutating preset reference
+  planManualState.dias = JSON.parse(JSON.stringify(plantilla));
+  renderizarDiasManuales();
+}
+
+function renderizarDiasManuales() {
+  const container = document.getElementById('manual-dias-container');
   if (!container) return;
 
-  const div = document.createElement('div');
-  div.className = 'fila-ejercicio-manual';
-  div.style.cssText = 'display:flex; gap:10px; align-items:center; background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color);';
-  div.innerHTML = `
-    <input type="text" class="input-field input-ejercicio-nombre" placeholder="Nombre Ejercicio" style="flex:2;">
-    <input type="text" class="input-field input-ejercicio-series" placeholder="Series x Reps" style="flex:1;">
-    <input type="text" class="input-field input-ejercicio-carga" placeholder="Carga / RPE" style="flex:1;">
-    <input type="text" class="input-field input-ejercicio-nota" placeholder="Táctica / Indicaciones" style="flex:1.5;">
-    <button style="background:transparent; border:none; color:var(--danger); font-size:18px; cursor:pointer;" onclick="this.parentElement.remove()">✕</button>
-  `;
-  container.appendChild(div);
+  container.innerHTML = '';
+  let totalEjercicios = 0;
+
+  planManualState.dias.forEach((diaObj, diaIndex) => {
+    totalEjercicios += (diaObj.ejercicios || []).length;
+    
+    const card = document.createElement('div');
+    card.className = 'dia-manual-card';
+    card.id = `dia-manual-card-${diaIndex}`;
+
+    card.innerHTML = `
+      <div class="dia-manual-header">
+        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:240px;">
+          <span style="font-size:16px;">📅</span>
+          <input type="text" class="dia-manual-title-input" value="${sanitizeText(diaObj.dia, 80)}" placeholder="ej: Día 1: Pecho y Tríceps" onchange="actualizarNombreDiaManual(${diaIndex}, this.value)">
+          <input type="text" class="dia-manual-enfoque-input" value="${sanitizeText(diaObj.musculos || '', 100)}" placeholder="Enfoque: ej. Pecho, Hombro, Tríceps" onchange="actualizarMusculosDiaManual(${diaIndex}, this.value)">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="badge badge-primary" style="font-size:11px;">${(diaObj.ejercicios || []).length} Ejercicios</span>
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:11px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirSelectorEjerciciosManual(${diaIndex})" title="Abrir catálogo interactivo de ejercicios">
+            🔍 Catálogo
+          </button>
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:11px; color:var(--accent-green); border-color:var(--accent-green);" onclick="agregarEjercicioADia(${diaIndex})" title="Añadir fila de ejercicio en blanco">
+            + Ejercicio
+          </button>
+          ${planManualState.dias.length > 1 ? `
+            <button type="button" class="btn-secondary danger" style="padding:4px 8px; font-size:11px;" onclick="eliminarDiaManual(${diaIndex})" title="Eliminar este día de entrenamiento">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="ejercicios-dia-lista" id="ejercicios-dia-${diaIndex}">
+        ${(diaObj.ejercicios || []).map((ej, ejIndex) => `
+          <div class="ejercicio-manual-row" id="ej-row-${diaIndex}-${ejIndex}">
+            <div style="position:relative; display:flex; align-items:center; gap:4px;">
+              <input type="text" class="input-field input-ej-nombre" list="datalist-ejercicios-db" placeholder="Nombre del Ejercicio" value="${sanitizeText(ej.nombre, 100)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'nombre', this.value)" style="width:100%; font-weight:600; font-size:13px;">
+              <button type="button" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:14px;" onclick="abrirSelectorEjerciciosManual(${diaIndex})" title="Buscar en catálogo">🔍</button>
+            </div>
+            <div>
+              <input type="text" class="input-field input-ej-series" placeholder="Series" value="${sanitizeText(ej.series || '4', 20)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'series', this.value)" style="font-size:12px; text-align:center;">
+            </div>
+            <div>
+              <input type="text" class="input-field input-ej-reps" placeholder="Reps" value="${sanitizeText(ej.reps || '10-12', 20)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'reps', this.value)" style="font-size:12px; text-align:center;">
+            </div>
+            <div>
+              <input type="text" class="input-field input-ej-carga" placeholder="Carga / RPE" value="${sanitizeText(ej.carga || 'RPE 8.0', 30)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'carga', this.value)" style="font-size:12px;">
+            </div>
+            <div>
+              <input type="text" class="input-field input-ej-descanso" placeholder="Descanso" value="${sanitizeText(ej.descanso || '90s', 25)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'descanso', this.value)" style="font-size:12px; text-align:center;">
+            </div>
+            <div>
+              <input type="text" class="input-field input-ej-notas" placeholder="Indicaciones / Tempo" value="${sanitizeText(ej.notas || '', 150)}" onchange="actualizarEjercicioFila(${diaIndex}, ${ejIndex}, 'notas', this.value)" style="font-size:12px;">
+            </div>
+            <div style="text-align:center;">
+              <button type="button" style="background:transparent; border:none; color:var(--danger); font-size:16px; cursor:pointer;" onclick="eliminarEjercicioDeDia(${diaIndex}, ${ejIndex})" title="Eliminar ejercicio">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  const badgeDias = document.getElementById('manual-total-dias-badge');
+  if (badgeDias) badgeDias.innerText = `${planManualState.dias.length} Días Programados`;
+
+  const hint = document.getElementById('manual-total-ejercicios-hint');
+  if (hint) hint.innerHTML = `💡 Total: <strong>${planManualState.dias.length} Días</strong> y <strong>${totalEjercicios} Ejercicios</strong> listos para prescribir. Personaliza las series, reps y descansos a medida.`;
+}
+
+function actualizarNombreDiaManual(diaIndex, valor) {
+  if (planManualState.dias[diaIndex]) {
+    planManualState.dias[diaIndex].dia = valor;
+  }
+}
+
+function actualizarMusculosDiaManual(diaIndex, valor) {
+  if (planManualState.dias[diaIndex]) {
+    planManualState.dias[diaIndex].musculos = valor;
+  }
+}
+
+function actualizarEjercicioFila(diaIndex, ejIndex, campo, valor) {
+  if (planManualState.dias[diaIndex] && planManualState.dias[diaIndex].ejercicios[ejIndex]) {
+    planManualState.dias[diaIndex].ejercicios[ejIndex][campo] = valor;
+  }
+}
+
+function agregarDiaManual(nombreDefault = '', musculosDefault = '') {
+  const nuevoNum = planManualState.dias.length + 1;
+  planManualState.dias.push({
+    dia: nombreDefault || `Día ${nuevoNum}: Sesión de Entrenamiento`,
+    musculos: musculosDefault || "Grupos Musculares Seleccionados",
+    ejercicios: [
+      { nombre: "", series: "4", reps: "10-12", carga: "RPE 8.0", descanso: "90s", notas: "Control de cadencia excéntrica" }
+    ]
+  });
+  renderizarDiasManuales();
+  showToast(`Día ${nuevoNum} añadido al plan.`, "info", "Día Añadido");
+}
+
+function eliminarDiaManual(diaIndex) {
+  if (planManualState.dias.length <= 1) {
+    showToast("El plan debe contener al menos 1 día de entrenamiento.", "warning", "Acción no permitida");
+    return;
+  }
+  if (!confirm(`¿Eliminar el ${planManualState.dias[diaIndex].dia}?`)) return;
+  planManualState.dias.splice(diaIndex, 1);
+  renderizarDiasManuales();
+}
+
+function agregarEjercicioADia(diaIndex, ejData = null) {
+  if (!planManualState.dias[diaIndex]) return;
+  
+  const nuevoEj = ejData || {
+    nombre: "",
+    series: "4",
+    reps: "10-12",
+    carga: "RPE 8.0",
+    descanso: "90s",
+    notas: "Ejecución estricta"
+  };
+  
+  planManualState.dias[diaIndex].ejercicios.push(nuevoEj);
+  renderizarDiasManuales();
+}
+
+function eliminarEjercicioDeDia(diaIndex, ejIndex) {
+  if (!planManualState.dias[diaIndex]) return;
+  planManualState.dias[diaIndex].ejercicios.splice(ejIndex, 1);
+  renderizarDiasManuales();
+}
+
+// ----------------------------------------------------
+// 📚 EXPLORADOR Y SELECTOR DE EJERCICIOS DESDE CATÁLOGO
+// ----------------------------------------------------
+
+function abrirSelectorEjerciciosManual(diaIndex) {
+  diaDestinoParaEjercicio = diaIndex;
+  const diaObj = planManualState.dias[diaIndex];
+  const subtitle = document.getElementById('catalogo-modal-subtitle');
+  if (subtitle && diaObj) {
+    subtitle.innerHTML = `Insertando en: <strong style="color:#60a5fa;">${diaObj.dia}</strong> (${diaObj.musculos || 'General'})`;
+  }
+  
+  const searchInput = document.getElementById('catalogo-modal-search');
+  if (searchInput) searchInput.value = '';
+  
+  const grupoSelect = document.getElementById('catalogo-modal-grupo');
+  if (grupoSelect) grupoSelect.value = 'todos';
+
+  renderizarCatalogoEjerciciosModal();
+  
+  const modal = document.getElementById('modal-selector-ejercicios-manual');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function cerrarSelectorEjerciciosManual() {
+  const modal = document.getElementById('modal-selector-ejercicios-manual');
+  if (modal) modal.classList.add('hidden');
+}
+
+function filtrarEjerciciosModalCatalogo() {
+  const search = (document.getElementById('catalogo-modal-search')?.value || '').toLowerCase().trim();
+  const grupo = document.getElementById('catalogo-modal-grupo')?.value || 'todos';
+  renderizarCatalogoEjerciciosModal(search, grupo);
+}
+
+function renderizarCatalogoEjerciciosModal(filtroTexto = '', filtroGrupo = 'todos') {
+  const container = document.getElementById('catalogo-modal-lista');
+  if (!container) return;
+
+  if (typeof ejerciciosDB === 'undefined' || !Array.isArray(ejerciciosDB)) {
+    container.innerHTML = `<div style="color:var(--text-muted); padding:20px; text-align:center;">Catálogo de ejercicios no disponible.</div>`;
+    return;
+  }
+
+  let filtrados = ejerciciosDB.filter(ej => {
+    const coincideTexto = !filtroTexto || 
+      (ej.nombre && ej.nombre.toLowerCase().includes(filtroTexto)) ||
+      (ej.musculos && ej.musculos.toLowerCase().includes(filtroTexto)) ||
+      (ej.equipamiento && ej.equipamiento.toLowerCase().includes(filtroTexto));
+
+    const coincideGrupo = filtroGrupo === 'todos' || 
+      (ej.categoria && ej.categoria.toLowerCase().includes(filtroGrupo.toLowerCase())) ||
+      (ej.musculoPrimario && ej.musculoPrimario.toLowerCase().includes(filtroGrupo.toLowerCase()));
+
+    return coincideTexto && coincideGrupo;
+  });
+
+  if (filtrados.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:30px; color:var(--text-muted);">No se encontraron ejercicios con ese criterio.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtrados.map(ej => `
+    <div class="catalogo-modal-card" onclick="seleccionarEjercicioParaDia('${escapeHtml(ej.nombre)}', '${escapeHtml(ej.categoria || '')}')">
+      <div>
+        <div class="catalogo-card-title">${ej.nombre}</div>
+        <div class="catalogo-card-badges" style="margin-top:6px;">
+          <span class="catalogo-badge catalogo-badge-green">${ej.musculoPrimario || ej.categoria || 'General'}</span>
+          <span class="catalogo-badge">${ej.equipamiento || 'Libre'}</span>
+          ${ej.riesgo ? `<span class="catalogo-badge" style="color:${ej.riesgo === 'Alto' ? '#f87171' : '#fbbf24'}">Riesgo: ${ej.riesgo}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+        <span style="font-size:11px; color:var(--text-muted);">${(ej.ejecucion || '').substring(0, 45)}...</span>
+        <button type="button" class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="event.stopPropagation(); seleccionarEjercicioParaDia('${escapeHtml(ej.nombre)}', '${escapeHtml(ej.categoria || '')}')">
+          + Insertar
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function seleccionarEjercicioParaDia(nombreEjercicio, categoria = '') {
+  if (!planManualState.dias[diaDestinoParaEjercicio]) return;
+  
+  // Determinación de series y descansos inteligentes por categoría
+  let series = "4";
+  let reps = "8-10";
+  let carga = "RPE 8.0";
+  let descanso = "90s";
+  let notas = "Control de tempo excéntrico 3-0-1";
+
+  if (categoria === 'cuadriceps' || categoria === 'isquios') {
+    series = "4";
+    reps = "8-12";
+    descanso = "2 min";
+    notas = "Rango completo con columna neutra";
+  } else if (categoria === 'brazos' || categoria === 'core') {
+    series = "3";
+    reps = "12-15";
+    descanso = "60s";
+    notas = "Contracción isométrica 1s en pico";
+  }
+
+  // Si el último ejercicio estaba vacío, reemplazarlo
+  const diaEjercicios = planManualState.dias[diaDestinoParaEjercicio].ejercicios;
+  if (diaEjercicios.length > 0 && !diaEjercicios[diaEjercicios.length - 1].nombre) {
+    diaEjercicios[diaEjercicios.length - 1] = {
+      nombre: nombreEjercicio,
+      series,
+      reps,
+      carga,
+      descanso,
+      notas
+    };
+  } else {
+    diaEjercicios.push({
+      nombre: nombreEjercicio,
+      series,
+      reps,
+      carga,
+      descanso,
+      notas
+    });
+  }
+
+  renderizarDiasManuales();
+  cerrarSelectorEjerciciosManual();
+  showToast(`Ejercicio "${nombreEjercicio}" agregado a ${planManualState.dias[diaDestinoParaEjercicio].dia}`, "success", "Ejercicio Agregado");
 }
 
 function guardarPlanManual() {
@@ -7394,25 +7929,29 @@ function guardarPlanManual() {
   const metodoInput = document.getElementById('manual-metodo');
   const objetivoSelect = document.getElementById('manual-objetivo');
 
-  const metodo = sanitizeText(metodoInput ? metodoInput.value : "Plan Manual Personalizado", 100);
+  const metodo = sanitizeText(metodoInput ? metodoInput.value : `Rutina Manual - ${clienteNombre}`, 100);
   const objetivo = sanitizeText(objetivoSelect ? objetivoSelect.value : "Hipertrofia Especifica", 60);
 
-  const filas = document.querySelectorAll('.fila-ejercicio-manual');
-  const ejercicios = [];
+  // Recopilar ejercicios estructurados por día
+  const diasValidados = [];
+  const ejerciciosPlanos = [];
 
-  filas.forEach(f => {
-    const nombre = sanitizeText(f.querySelector('.input-ejercicio-nombre')?.value, 100);
-    const series = sanitizeText(f.querySelector('.input-ejercicio-series')?.value, 30);
-    const carga = sanitizeText(f.querySelector('.input-ejercicio-carga')?.value, 40);
-    const nota = sanitizeText(f.querySelector('.input-ejercicio-nota')?.value, 150);
-
-    if (nombre) {
-      ejercicios.push(`${nombre} (${series || '3x10'} @ ${carga || 'Carga Libre'}) ${nota ? '- ' + nota : ''}`);
+  planManualState.dias.forEach(d => {
+    const ejsValidos = (d.ejercicios || []).filter(e => e.nombre && e.nombre.trim());
+    if (ejsValidos.length > 0) {
+      diasValidados.push({
+        dia: d.dia || "Día de Entrenamiento",
+        musculos: d.musculos || "General",
+        ejercicios: ejsValidos
+      });
+      ejsValidos.forEach(e => {
+        ejerciciosPlanos.push(`[${d.dia}] ${e.nombre} (${e.series || '4'}x${e.reps || '10'} @ ${e.carga || 'RPE 8'}) - Descanso: ${e.descanso || '90s'} ${e.notas ? '| ' + e.notas : ''}`);
+      });
     }
   });
 
-  if (ejercicios.length === 0) {
-    showToast("Por favor añade al menos un ejercicio al plan manual.", "warning", "Datos Incompletos");
+  if (diasValidados.length === 0 || ejerciciosPlanos.length === 0) {
+    showToast("Por favor añade al menos un ejercicio al plan manual antes de guardar.", "warning", "Datos Incompletos");
     return;
   }
 
@@ -7425,13 +7964,23 @@ function guardarPlanManual() {
     metodo: `✏️ ${metodo}`,
     objetivo,
     fecha: new Date().toISOString().split('T')[0],
-    ejercicios
+    dias: diasValidados,
+    ejercicios: ejerciciosPlanos,
+    tipo: 'manual'
   };
 
   planesGuardados.unshift(nuevoPlan);
+  window.planActivoGenerado = nuevoPlan;
+
+  // Actualizar plan activo en el expediente del cliente
+  const cli = clientes.find(c => c.nombre === clienteNombre);
+  if (cli) {
+    cli.planActivo = nuevoPlan.metodo;
+  }
+
   persistirDatosUsuarioActual();
 
-  // Sync to Supabase Cloud planes table
+  // Sync con Supabase Cloud
   if (supabaseClient && userId && !sesionUsuarioActual?.esModoDemo) {
     supabaseClient.from('planes').upsert({
       id: nuevoPlan.id,
@@ -7441,7 +7990,7 @@ function guardarPlanManual() {
       metodo: nuevoPlan.metodo,
       objetivo: nuevoPlan.objetivo,
       fecha: nuevoPlan.fecha,
-      ejercicios: Array.isArray(ejercicios) ? ejercicios.join(' | ') : ejercicios,
+      ejercicios: Array.isArray(ejerciciosPlanos) ? ejerciciosPlanos.join(' | ') : ejerciciosPlanos,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' }).then(({ error }) => {
       if (error) console.warn("Supabase planes manual sync error:", error.message);
@@ -7452,36 +8001,57 @@ function guardarPlanManual() {
   renderPlanes();
   cerrarModalPlanManual();
 
-  // Show Plan Result Modal
+  // Mostrar Modal con el Resumen Detallado y Multidía
   const modalBody = document.getElementById('modal-plan-body');
   if (modalBody) {
     modalBody.innerHTML = `
-      <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <h3 style="font-size:20px; color:#60a5fa; margin:0; font-family:var(--font-heading);">✏️ Plan Diseñado Manualmente: ${clienteNombre}</h3>
-          <span class="badge badge-green">Publicado</span>
+      <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+          <h3 style="font-size:19px; color:#60a5fa; margin:0; font-family:var(--font-heading);">✏️ Plan Diseñado: ${clienteNombre}</h3>
+          <span class="badge badge-green">Publicado en Expediente</span>
         </div>
-        <div style="font-size:13px; color:var(--text-muted);">Metodología: <strong style="color:#fff;">${metodo}</strong> • Objetivo: <strong style="color:var(--accent-green);">${objetivo}</strong></div>
+        <div style="font-size:13px; color:var(--text-muted);">
+          Metodología: <strong style="color:#fff;">${metodo}</strong> • Objetivo: <strong style="color:var(--accent-green);">${objetivo}</strong> • División: <strong style="color:#38bdf8;">${diasValidados.length} Días / Sem</strong>
+        </div>
       </div>
 
-      <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px;">
-        <h4 style="color:var(--accent-green); font-family:var(--font-heading); margin-bottom:10px; font-size:15px;">🏋️ Ejercicios Prescritos:</h4>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          ${ejercicios.map(e => `
-            <div style="background:var(--bg-surface); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:#fff; font-size:13px;">
-              • ${e}
+      <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; max-height:420px; overflow-y:auto; padding-right:4px;">
+        ${diasValidados.map((d, dIdx) => `
+          <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+              <strong style="color:#60a5fa; font-size:15px;">📅 ${d.dia}</strong>
+              <span style="font-size:12px; color:var(--text-muted);">${d.musculos}</span>
             </div>
-          `).join('')}
-        </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${d.ejercicios.map((ej, eIdx) => `
+                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
+                  <div>
+                    <strong style="color:#fff;">${eIdx + 1}. ${ej.nombre}</strong>
+                    <div style="font-size:11px; color:var(--text-muted);">${ej.notas || 'Control excéntrico'}</div>
+                  </div>
+                  <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
+                    <span><strong>${ej.series}</strong> series x <strong>${ej.reps}</strong> reps</span>
+                    <span style="color:#fbbf24;">${ej.carga || 'RPE 8'}</span>
+                    <span style="color:#94a3b8;">⏱️ ${ej.descanso || '90s'}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:12px;">
-        <button class="btn-secondary" onclick="cerrarModalPlan()">Cerrar</button>
-        <button class="btn-primary" onclick="imprimirPlan('${clienteNombre}', '${metodo}', 'Plan Manual Prescrito')">🖨️ Imprimir PDF</button>
+      <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn-secondary" onclick="cerrarModalPlan()">Cerrar</button>
+        <button type="button" class="btn-secondary" style="color:#22c55e; border-color:#22c55e;" onclick="enviarPlanPorWhatsApp(${nuevoPlan.id})">📲 WhatsApp</button>
+        <button type="button" class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="enviarPlanPorEmail(${nuevoPlan.id})">📧 Enviar Correo</button>
+        <button type="button" class="btn-primary" onclick="generarPDFPlan(${nuevoPlan.id})">🖨️ Generar PDF Pro</button>
       </div>
     `;
     document.getElementById('modal-plan-resultado').classList.remove('hidden');
   }
+
+  showToast(`Rutina manual guardada exitosamente para ${clienteNombre}.`, "success", "Rutina Guardada");
 }
 
 function toggleDropdownMenu(e, id) {
@@ -8823,35 +9393,101 @@ function guardarPlanGeneratedMultiBlock(cliente, metodo, objetivo, rutinaStr = '
   showToast(`Plan prescrito guardado exitosamente para ${cliente}.`, "success", "⚡ Plan Guardado");
 }
 
-function imprimirPlan(cliente, metodo, rutinaStr) {
+function imprimirPlan(cliente, metodo, rutinaStr, planObj = null) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     showToast("Permite ventanas emergentes para imprimir el plan.", "warning", "Ventana Bloqueada");
     return;
   }
+  
+  const targetPlan = planObj || resolverPlanData(cliente);
+  const tieneDias = targetPlan && targetPlan.dias && Array.isArray(targetPlan.dias) && targetPlan.dias.length > 0;
   const items = Array.isArray(rutinaStr) ? rutinaStr : (rutinaStr ? String(rutinaStr).split(' | ') : []);
+
   printWindow.document.write(`
+    <!DOCTYPE html>
     <html>
       <head>
-        <title>FitPro Suite — Plan Biomecánico ${cliente}</title>
+        <title>FitPro Suite — Plan de Entrenamiento ${cliente}</title>
         <style>
-          body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #111; }
-          h1 { color: #16a34a; border-bottom: 2px solid #16a34a; padding-bottom: 10px; }
-          .card { background: #f4f4f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-          ul { line-height: 1.8; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #0f172a; line-height: 1.5; }
+          .header { border-bottom: 3px solid #16a34a; padding-bottom: 12px; margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center; }
+          h1 { color: #16a34a; margin: 0; font-size: 24px; }
+          .card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+          .day-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 16px; page-break-inside: avoid; }
+          .day-title { font-size: 16px; font-weight: bold; color: #0284c7; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px; display:flex; justify-content:space-between; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+          th { background: #0f172a; color: #fff; text-align: left; padding: 8px 10px; }
+          td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; }
+          tr:nth-child(even) { background: #f8fafc; }
+          .footer { margin-top: 30px; font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
         </style>
       </head>
       <body>
-        <h1>FitPro Suite Pro — Reporte Biomecánico</h1>
-        <div class="card">
-          <p><strong>Atleta:</strong> ${cliente}</p>
-          <p><strong>Metodología:</strong> ${metodo}</p>
-          <p><strong>Fecha de Prescripción:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+        <div class="header">
+          <div>
+            <h1>FITPRO SUITE PRO — PRESCRIPCIÓN DE ENTRENAMIENTO</h1>
+            <div style="font-size:13px; color:#64748b; margin-top:3px;">Centro de Alto Rendimiento & Salud Biomecánica</div>
+          </div>
+          <div style="text-align:right; font-size:12px; color:#64748b;">
+            <div><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</div>
+            <div><strong>Expediente:</strong> #${targetPlan ? targetPlan.id : Date.now()}</div>
+          </div>
         </div>
-        <h2>Rutina Prescrita:</h2>
-        <ul>
-          ${items.map(e => `<li>${e}</li>`).join('')}
-        </ul>
+
+        <div class="card">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div><strong>Atleta / Alumno:</strong> ${cliente}</div>
+            <div><strong>Objetivo:</strong> ${targetPlan ? (targetPlan.objetivo || 'Hipertrofia & Rendimiento') : 'Rendimiento'}</div>
+            <div><strong>Metodología:</strong> ${metodo}</div>
+            <div><strong>Sede:</strong> ${getGimnasioActivo().nombre}</div>
+          </div>
+        </div>
+
+        ${tieneDias ? `
+          <h2>Estructura de Días & División Muscular:</h2>
+          ${targetPlan.dias.map(d => `
+            <div class="day-box">
+              <div class="day-title">
+                <span>📅 ${d.dia}</span>
+                <span style="font-size:12px; color:#64748b;">Enfoque: ${d.musculos || 'General'}</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:30px;">#</th>
+                    <th>Ejercicio</th>
+                    <th style="width:90px;">Series x Reps</th>
+                    <th style="width:90px;">Carga / RPE</th>
+                    <th style="width:80px;">Descanso</th>
+                    <th>Pautas Técnicas & Tempo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(d.ejercicios || []).map((ej, idx) => `
+                    <tr>
+                      <td>${idx + 1}</td>
+                      <td><strong>${ej.nombre}</strong></td>
+                      <td>${ej.series} x ${ej.reps}</td>
+                      <td>${ej.carga || 'RPE 8.0'}</td>
+                      <td>${ej.descanso || '90s'}</td>
+                      <td>${ej.notas || 'Control excéntrico 3-0-1'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `).join('')}
+        ` : `
+          <h2>Rutina Prescrita:</h2>
+          <ul>
+            ${items.map(e => `<li>${e}</li>`).join('')}
+          </ul>
+        `}
+
+        <div class="footer">
+          FitPro Suite Pro SaaS Engine • Documento de Prescripción Técnica • Generado para uso exclusivo del atleta
+        </div>
         <script>window.print();</script>
       </body>
     </html>
@@ -8998,31 +9634,53 @@ function generarPDFPlan(planIdOCliente, autoDownload = true) {
       doc.text(`Coach: ${coachName}`, 115, 64);
 
       // Exercises Table
-      const ejerciciosRaw = Array.isArray(plan.ejercicios) ? plan.ejercicios : (plan.ejercicios || '').split(' | ');
-      const rows = ejerciciosRaw.map((ej, index) => {
-        let nombreEj = ej;
-        let series = "4x10-12";
-        let rpe = "RPE 8.0";
-        let notas = "Cadencia 3-0-1 con control excéntrico";
+      let rows = [];
+      if (plan.dias && Array.isArray(plan.dias) && plan.dias.length > 0) {
+        plan.dias.forEach((d, dIdx) => {
+          rows.push([
+            `DÍA ${dIdx + 1}`,
+            `${d.dia.toUpperCase()} (${d.musculos || 'General'})`,
+            '---',
+            '---',
+            'DIVISIÓN MUSCULAR'
+          ]);
+          (d.ejercicios || []).forEach((ej, eIdx) => {
+            rows.push([
+              `  ${eIdx + 1}`,
+              ej.nombre,
+              `${ej.series || '4'} x ${ej.reps || '10'}`,
+              ej.carga || 'RPE 8.0',
+              `Descanso: ${ej.descanso || '90s'} ${ej.notas ? '| ' + ej.notas : ''}`
+            ]);
+          });
+        });
+      } else {
+        const ejerciciosRaw = Array.isArray(plan.ejercicios) ? plan.ejercicios : (plan.ejercicios || '').split(' | ');
+        rows = ejerciciosRaw.map((ej, index) => {
+          let nombreEj = ej;
+          let series = "4x10-12";
+          let rpe = "RPE 8.0";
+          let notas = "Cadencia 3-0-1 con control excéntrico";
 
-        if (ej.includes('(')) {
-          const parts = ej.split('(');
-          nombreEj = parts[0].trim();
-          const subparts = parts[1].split(')');
-          series = subparts[0].trim();
-          if (subparts[1] && subparts[1].includes('-')) {
-            notas = subparts[1].replace('-', '').trim();
+          if (ej.includes('(')) {
+            const parts = ej.split('(');
+            nombreEj = parts[0].trim();
+            const subparts = parts[1].split(')');
+            series = subparts[0].trim();
+            if (subparts[1] && subparts[1].includes('-')) {
+              notas = subparts[1].replace('-', '').trim();
+            }
           }
-        }
 
-        return [
-          `${index + 1}`,
-          nombreEj,
-          series,
-          rpe,
-          notas
-        ];
-      });
+          return [
+            `${index + 1}`,
+            nombreEj,
+            series,
+            rpe,
+            notas
+          ];
+        });
+      }
 
       if (typeof doc.autoTable === 'function') {
         doc.autoTable({
@@ -9666,11 +10324,101 @@ function eliminarDieta(id) {
   showToast("Plan nutricional eliminado.", "info", "Dieta Eliminada");
 }
 
+let filtroTextoPlanes = '';
+let filtroTipoPlanes = 'todos';
+
+function filtrarPlanesHistorial(texto) {
+  filtroTextoPlanes = (texto || '').toLowerCase().trim();
+  renderPlanes();
+}
+
+function filtrarTipoPlanHistorial(tipo) {
+  filtroTipoPlanes = tipo;
+  const btnTodos = document.getElementById('btn-filtro-plan-todos');
+  const btnManual = document.getElementById('btn-filtro-plan-manual');
+  const btnIa = document.getElementById('btn-filtro-plan-ia');
+
+  [btnTodos, btnManual, btnIa].forEach(b => { if (b) b.classList.remove('active'); });
+  if (tipo === 'todos' && btnTodos) btnTodos.classList.add('active');
+  if (tipo === 'manual' && btnManual) btnManual.classList.add('active');
+  if (tipo === 'ia' && btnIa) btnIa.classList.add('active');
+
+  renderPlanes();
+}
+
+function duplicarPlan(planId) {
+  const planOriginal = planesGuardados.find(p => p.id === planId || p.id == planId);
+  if (!planOriginal) return;
+
+  const clientesGym = getClientesActivos();
+  const opciones = clientesGym.map(c => c.nombre).join(', ');
+  const nuevoCliente = prompt(`¿A qué atleta deseas asignar la copia de esta rutina?\n(Disponibles: ${opciones || 'Escribe el nombre'}):`, planOriginal.cliente);
+  
+  if (nuevoCliente === null || !nuevoCliente.trim()) return;
+
+  const planClonado = JSON.parse(JSON.stringify(planOriginal));
+  planClonado.id = Date.now();
+  planClonado.cliente = sanitizeText(nuevoCliente.trim(), 80);
+  planClonado.fecha = new Date().toISOString().split('T')[0];
+  planClonado.metodo = `${planOriginal.metodo} (Copia)`;
+
+  planesGuardados.unshift(planClonado);
+  persistirDatosUsuarioActual();
+
+  const cli = clientes.find(c => c.nombre === planClonado.cliente);
+  if (cli) cli.planActivo = planClonado.metodo;
+
+  renderClientes();
+  renderPlanes();
+  showToast(`Rutina duplicada y asignada exitosamente a ${planClonado.cliente}.`, "success", "Rutina Duplicada");
+}
+
+function cambiarPestañaModuloPlanes(pestaña) {
+  const tabBtnCreador = document.getElementById('tab-btn-planes-creador');
+  const tabBtnHistorial = document.getElementById('tab-btn-planes-historial');
+  const contentCreador = document.getElementById('tab-planes-content-creador');
+  const contentHistorial = document.getElementById('tab-planes-content-historial');
+
+  if (pestaña === 'creador') {
+    if (tabBtnCreador) tabBtnCreador.classList.add('active');
+    if (tabBtnHistorial) tabBtnHistorial.classList.remove('active');
+    if (contentCreador) contentCreador.classList.remove('hidden');
+    if (contentHistorial) contentHistorial.classList.add('hidden');
+  } else if (pestaña === 'historial') {
+    if (tabBtnCreador) tabBtnCreador.classList.remove('active');
+    if (tabBtnHistorial) tabBtnHistorial.classList.add('active');
+    if (contentCreador) contentCreador.classList.add('hidden');
+    if (contentHistorial) contentHistorial.classList.remove('hidden');
+    renderPlanes();
+  }
+}
+
 function renderPlanes() {
   const container = document.getElementById('plans-list-container');
   const dashPlans = document.getElementById('dash-recent-plans');
+  const badgeTab = document.getElementById('badge-total-planes-tab');
 
-  const planesGym = getPlanesActivos();
+  const todosPlanesGym = getPlanesActivos();
+  if (badgeTab) {
+    badgeTab.innerText = todosPlanesGym.length;
+  }
+
+  let planesGym = [...todosPlanesGym];
+
+  // Aplicar filtros de búsqueda y tipo
+  if (filtroTextoPlanes) {
+    planesGym = planesGym.filter(p => 
+      (p.cliente && p.cliente.toLowerCase().includes(filtroTextoPlanes)) ||
+      (p.metodo && p.metodo.toLowerCase().includes(filtroTextoPlanes)) ||
+      (p.objetivo && p.objetivo.toLowerCase().includes(filtroTextoPlanes))
+    );
+  }
+
+  if (filtroTipoPlanes === 'manual') {
+    planesGym = planesGym.filter(p => p.tipo === 'manual' || (p.metodo && p.metodo.includes('✏️')));
+  } else if (filtroTipoPlanes === 'ia') {
+    planesGym = planesGym.filter(p => p.tipo !== 'manual' && (!p.metodo || !p.metodo.includes('✏️')));
+  }
 
   if (container) {
     if (planesGym.length === 0) {
@@ -9678,44 +10426,83 @@ function renderPlanes() {
         <div style="grid-column: 1 / -1;">
           <div class="empty-state-box">
             <div class="empty-state-icon">📋</div>
-            <h3 class="empty-state-title">No hay planes de rutina prescritos en esta sede</h3>
-            <p class="empty-state-desc">Utiliza el Generador de Rutinas Inteligente con motor biomecánico o diseña un plan manual para tus atletas.</p>
+            <h3 class="empty-state-title">No hay planes que coincidan con la búsqueda</h3>
+            <p class="empty-state-desc">Intenta cambiar el término de búsqueda o crea una nueva rutina para tus atletas.</p>
             <div class="empty-state-actions">
-              <button class="btn-primary" onclick="irAGenerador()">⚡ + Generar Plan con IA / Motor</button>
+              <button class="btn-primary" onclick="abrirModalPlanManual()">✏️ + Diseñar Rutina Manual</button>
+              <button class="btn-secondary" onclick="navegarA('generate')">⚡ + Generador IA</button>
             </div>
           </div>
         </div>
       `;
     } else {
-      container.innerHTML = planesGym.map(p => `
-        <div style="background:var(--bg-card); border:1px solid var(--border-color); padding:18px; border-radius:var(--radius-md); display:flex; flex-direction:column; justify-content:space-between;">
+      container.innerHTML = planesGym.map(p => {
+        const tieneDias = p.dias && Array.isArray(p.dias) && p.dias.length > 0;
+        const esManual = p.tipo === 'manual' || (p.metodo && p.metodo.includes('✏️'));
+
+        return `
+        <div style="background:var(--bg-card); border:1px solid var(--border-color); padding:18px; border-radius:var(--radius-md); display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 12px rgba(0,0,0,0.18); transition: transform 0.15s ease, border-color 0.15s ease;">
           <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h3 style="font-size:16px; color:#fff; font-family:var(--font-heading); margin:0;">${p.cliente} — ${p.objetivo}</h3>
-              <span style="font-size:12px; color:var(--text-muted);">${p.fecha}</span>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px;">
+              <div>
+                <h3 style="font-size:16px; color:#fff; font-family:var(--font-heading); margin:0; display:flex; align-items:center; gap:6px;">
+                  <span>👤 ${escapeHtml(p.cliente)}</span>
+                  <span class="badge ${esManual ? 'badge-primary' : 'badge-green'}" style="font-size:10px;">${esManual ? 'Manual' : 'Motor IA'}</span>
+                </h3>
+                <span style="font-size:12px; color:var(--accent-green); font-weight:600;">${escapeHtml(p.objetivo || 'Rendimiento')}</span>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:11px; color:var(--text-muted);">${p.fecha || ''}</span>
+                ${tieneDias ? `<div style="margin-top:2px;"><span class="badge badge-primary" style="font-size:10px;">${p.dias.length} Días</span></div>` : ''}
+              </div>
             </div>
-            <div style="font-size:13px; color:var(--accent-green); margin-bottom:10px;">Metodología: ${p.metodo}</div>
-            <div style="background:var(--bg-surface); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--text-muted); margin-bottom:12px;">
-              ${(Array.isArray(p.ejercicios) ? p.ejercicios : (p.ejercicios || '').split(' | ')).map(e => `• ${e}`).join('<br>')}
-            </div>
+            <div style="font-size:13px; color:#60a5fa; margin-bottom:10px;"><strong>Metodología:</strong> ${escapeHtml(p.metodo || 'Plan Personalizado')}</div>
+            
+            ${tieneDias ? `
+              <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; max-height:180px; overflow-y:auto; padding-right:4px;">
+                ${p.dias.map(d => `
+                  <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; color:#60a5fa; font-weight:600; margin-bottom:4px;">
+                      <span>📅 ${escapeHtml(d.dia)}</span>
+                      <span style="color:var(--text-muted); font-size:11px;">${escapeHtml(d.musculos || '')}</span>
+                    </div>
+                    <div style="color:var(--text-muted); line-height:1.4;">
+                      ${(d.ejercicios || []).map(e => `• <span style="color:#fff;">${escapeHtml(e.nombre)}</span> <span style="color:#4ade80;">(${e.series}x${e.reps || e.repeticiones || '10'})</span>`).join('<br>')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div style="background:var(--bg-surface); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--text-muted); margin-bottom:12px; max-height:160px; overflow-y:auto;">
+                ${(Array.isArray(p.ejercicios) ? p.ejercicios : (p.ejercicios || '').split(' | ')).map(e => `• ${escapeHtml(e)}`).join('<br>')}
+              </div>
+            `}
           </div>
 
-          <div style="border-top:1px solid var(--border-color); padding-top:10px; display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
-            <button class="btn-primary" style="padding:6px 10px; font-size:11px; background:rgba(56,189,248,0.15); color:#38bdf8; border-color:#38bdf8;" onclick="enviarPlanPorEmail(${p.id})">📧 Correo</button>
-            <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#22c55e; border-color:#22c55e;" onclick="enviarPlanPorWhatsApp(${p.id})">📲 WhatsApp</button>
-            <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#a78bfa; border-color:#a78bfa;" onclick="generarPDFPlan(${p.id})">📄 PDF</button>
-            <button class="btn-secondary danger" style="padding:6px 8px; font-size:11px;" onclick="eliminarPlan(${p.id})" title="Eliminar Plan">🗑️</button>
+          <div style="border-top:1px solid var(--border-color); padding-top:10px; display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px;">
+              <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#60a5fa; border-color:#60a5fa;" onclick="verDetallePlanGenerado(${p.id})">👁️ Ver Plan</button>
+              <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b;" onclick="duplicarPlan(${p.id})" title="Duplicar esta rutina para otro atleta">📋 Duplicar</button>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-primary" style="padding:6px 10px; font-size:11px; background:rgba(56,189,248,0.15); color:#38bdf8; border-color:#38bdf8;" onclick="enviarPlanPorEmail(${p.id})">📧 Correo</button>
+              <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#22c55e; border-color:#22c55e;" onclick="enviarPlanPorWhatsApp(${p.id})">📲 WhatsApp</button>
+              <button class="btn-secondary" style="padding:6px 10px; font-size:11px; color:#a78bfa; border-color:#a78bfa;" onclick="generarPDFPlan(${p.id})">📄 PDF</button>
+              <button class="btn-secondary danger" style="padding:6px 8px; font-size:11px;" onclick="eliminarPlan(${p.id})" title="Eliminar Plan">🗑️</button>
+            </div>
           </div>
         </div>
-      `).join('');
+        `;
+      }).join('');
     }
   }
 
   if (dashPlans) {
-    if (planesGym.length === 0) {
+    const todosPlanes = getPlanesActivos();
+    if (todosPlanes.length === 0) {
       dashPlans.innerHTML = `<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px; background:var(--bg-surface); border-radius:var(--radius-sm);">No hay planes prescritos aún en esta sede.</div>`;
     } else {
-      dashPlans.innerHTML = planesGym.slice(0, 3).map(p => `
+      dashPlans.innerHTML = todosPlanes.slice(0, 3).map(p => `
         <div style="background:var(--bg-card); padding:12px 16px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
           <div style="display:flex; justify-content:space-between;">
             <strong style="font-size:14px; color:#fff;">${p.cliente}</strong>
@@ -9729,6 +10516,81 @@ function renderPlanes() {
 
   renderDashboardStats();
 }
+
+function verDetallePlanGenerado(planId) {
+  const plan = planesGuardados.find(p => p.id === planId || p.id == planId);
+  if (!plan) {
+    showToast("No se encontró la información detallada del plan.", "warning", "Plan no encontrado");
+    return;
+  }
+
+  const modalBody = document.getElementById('modal-plan-body');
+  if (!modalBody) return;
+
+  const tieneDias = plan.dias && Array.isArray(plan.dias) && plan.dias.length > 0;
+
+  modalBody.innerHTML = `
+    <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <h3 style="font-size:19px; color:#60a5fa; margin:0; font-family:var(--font-heading);">📋 Expediente de Rutina: ${escapeHtml(plan.cliente)}</h3>
+        <span class="badge badge-green">Activo</span>
+      </div>
+      <div style="font-size:13px; color:var(--text-muted);">
+        Metodología: <strong style="color:#fff;">${escapeHtml(plan.metodo)}</strong> • Objetivo: <strong style="color:var(--accent-green);">${escapeHtml(plan.objetivo || 'Rendimiento')}</strong> • Fecha: <strong style="color:#38bdf8;">${plan.fecha || ''}</strong>
+      </div>
+    </div>
+
+    ${tieneDias ? `
+      <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; max-height:420px; overflow-y:auto; padding-right:4px;">
+        ${plan.dias.map((d, dIdx) => `
+          <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+              <strong style="color:#60a5fa; font-size:15px;">📅 ${escapeHtml(d.dia)}</strong>
+              <span style="font-size:12px; color:var(--text-muted);">${escapeHtml(d.musculos || '')}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${(d.ejercicios || []).map((ej, eIdx) => `
+                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
+                  <div>
+                    <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
+                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(ej.notas || '')}</div>
+                  </div>
+                  <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
+                    <span><strong>${ej.series}</strong> series x <strong>${ej.reps}</strong> reps</span>
+                    <span style="color:#fbbf24;">${ej.carga || 'RPE 8'}</span>
+                    <span style="color:#94a3b8;">⏱️ ${ej.descanso || '90s'}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px; max-height:400px; overflow-y:auto;">
+        <h4 style="color:var(--accent-green); font-family:var(--font-heading); margin-bottom:10px; font-size:15px;">🏋️ Ejercicios Prescritos:</h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${(Array.isArray(plan.ejercicios) ? plan.ejercicios : (plan.ejercicios || '').split(' | ')).map(e => `
+            <div style="background:var(--bg-surface); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:#fff; font-size:13px;">
+              • ${escapeHtml(e)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `}
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="btn-secondary" onclick="cerrarModalPlan()">Cerrar</button>
+      <button type="button" class="btn-secondary" style="color:#22c55e; border-color:#22c55e;" onclick="enviarPlanPorWhatsApp(${plan.id})">📲 WhatsApp</button>
+      <button type="button" class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="enviarPlanPorEmail(${plan.id})">📧 Correo</button>
+      <button type="button" class="btn-primary" onclick="generarPDFPlan(${plan.id})">🖨️ Imprimir / PDF</button>
+    </div>
+  `;
+
+  document.getElementById('modal-plan-resultado').classList.remove('hidden');
+}
+
+window.verDetallePlanGenerado = verDetallePlanGenerado;
 
 // Advanced Combined Filters (Category + Equipment + Risk Level + Search Text)
 let currentCategoria = 'todos';
@@ -10623,6 +11485,10 @@ function crearNuevaSedeSaaS() {
 window.abrirModalGestionSedes = abrirModalGestionSedes;
 window.cerrarModalGestionSedes = cerrarModalGestionSedes;
 window.crearNuevaSedeSaaS = crearNuevaSedeSaaS;
+window.filtrarPlanesHistorial = filtrarPlanesHistorial;
+window.filtrarTipoPlanHistorial = filtrarTipoPlanHistorial;
+window.duplicarPlan = duplicarPlan;
+window.cambiarPestañaModuloPlanes = cambiarPestañaModuloPlanes;
 
 function alternarEstadoPago(id) {
   const t = transaccionesFinancieras.find(x => x.id === id);
@@ -10836,7 +11702,19 @@ window.abrirModalPlan = abrirModalPlan;
 window.cerrarModalPlan = cerrarModalPlan;
 window.abrirModalPlanManual = abrirModalPlanManual;
 window.cerrarModalPlanManual = cerrarModalPlanManual;
-window.agregarFilaEjercicioManual = agregarFilaEjercicioManual;
+window.cambiarPlantillaManualPreset = cambiarPlantillaManualPreset;
+window.renderizarDiasManuales = renderizarDiasManuales;
+window.actualizarNombreDiaManual = actualizarNombreDiaManual;
+window.actualizarMusculosDiaManual = actualizarMusculosDiaManual;
+window.actualizarEjercicioFila = actualizarEjercicioFila;
+window.agregarDiaManual = agregarDiaManual;
+window.eliminarDiaManual = eliminarDiaManual;
+window.agregarEjercicioADia = agregarEjercicioADia;
+window.eliminarEjercicioDeDia = eliminarEjercicioDeDia;
+window.abrirSelectorEjerciciosManual = abrirSelectorEjerciciosManual;
+window.cerrarSelectorEjerciciosManual = cerrarSelectorEjerciciosManual;
+window.filtrarEjerciciosModalCatalogo = filtrarEjerciciosModalCatalogo;
+window.seleccionarEjercicioParaDia = seleccionarEjercicioParaDia;
 window.guardarPlanManual = guardarPlanManual;
 window.abrirModalLesion = abrirModalLesion;
 window.cerrarModalLesion = cerrarModalLesion;
@@ -11101,10 +11979,6 @@ function arrancarAplicacionFitPro() {
       switchBtn.addEventListener('click', () => alternarModoAuthDirecto());
     }
 
-    const pwdToggles = document.querySelectorAll('.auth-password-toggle');
-    pwdToggles.forEach(btn => {
-      btn.addEventListener('click', alternarVisibilidadPassword);
-    });
 
     const demoBtns = document.querySelectorAll('.auth-btn-demo');
     demoBtns.forEach(btn => {
@@ -12282,102 +13156,144 @@ const AI_RESTRICCIONES_MAP = {
   codo:     ['codo', 'muñeca', 'cárpico', 'túnel carpiano', 'epicondilitis', 'preacher', 'predicador']
 };
 
-// ── Splits de entrenamiento según objetivo y días
+// ── Splits de entrenamiento según objetivo y días (Cobertura total de todos los grupos musculares)
 const AI_SPLITS = {
   3: {
-    hipertrofia:  [
-      { nombre: 'Día A — Empuje',        grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Día B — Jale',           grupos: ['espalda', 'biceps'] },
-      { nombre: 'Día C — Piernas & Core', grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas', 'core'] }
+    hipertrofia: [
+      { nombre: 'Día 1 — Push (Pecho, Hombros & Tríceps)',        grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull (Espalda, Dorsales & Bíceps)',       grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs & Core (Piernas, Glúteos & Abdomen)', grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas', 'core'] }
     ],
-    fuerza:       [
-      { nombre: 'Día 1 — Sentadilla',     grupos: ['cuadriceps', 'isquiotibiales', 'core'] },
-      { nombre: 'Día 2 — Press',          grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Día 3 — Peso Muerto',    grupos: ['isquiotibiales', 'espalda', 'gluteos'] }
+    fuerza: [
+      { nombre: 'Día 1 — Sentadilla & Pierna Completa',            grupos: ['cuadriceps', 'gluteos', 'core', 'pantorrillas'] },
+      { nombre: 'Día 2 — Press Banca & Empuje Superior',           grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 3 — Peso Muerto & Tracción Espalda',          grupos: ['isquiotibiales', 'espalda', 'gluteos', 'biceps'] }
     ],
-    definicion:   [
-      { nombre: 'Día 1 — Tren Superior', grupos: ['pecho', 'espalda', 'hombros'] },
-      { nombre: 'Día 2 — Tren Inferior', grupos: ['cuadriceps', 'gluteos', 'isquiotibiales'] },
-      { nombre: 'Día 3 — Brazos & Core', grupos: ['biceps', 'triceps', 'core'] }
+    definicion: [
+      { nombre: 'Día 1 — Tren Superior (Pecho, Espalda & Hombros)', grupos: ['pecho', 'espalda', 'hombros'] },
+      { nombre: 'Día 2 — Tren Inferior (Piernas & Glúteos)',        grupos: ['cuadriceps', 'gluteos', 'isquiotibiales', 'pantorrillas'] },
+      { nombre: 'Día 3 — Brazos, Core & Densidad Metabólica',      grupos: ['biceps', 'triceps', 'core'] }
     ],
     readaptacion: [
-      { nombre: 'Día 1 — Movilidad & Cadera',   grupos: ['gluteos', 'core', 'pantorrillas'] },
-      { nombre: 'Día 2 — Tren Superior Seguro',  grupos: ['espalda', 'hombros', 'biceps'] },
-      { nombre: 'Día 3 — Piernas Controladas',   grupos: ['cuadriceps', 'isquiotibiales'] }
+      { nombre: 'Día 1 — Estabilidad Lumbopélvica & Cadena Post.',  grupos: ['gluteos', 'core', 'pantorrillas', 'isquiotibiales'] },
+      { nombre: 'Día 2 — Cintura Escapular & Tren Superior Seguro', grupos: ['espalda', 'hombros', 'biceps', 'triceps'] },
+      { nombre: 'Día 3 — Cadena Cinética Cerrada & Piernas',        grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] }
     ],
-    resistencia:  [
-      { nombre: 'Día 1 — Circuito Superior', grupos: ['pecho', 'espalda', 'hombros', 'biceps', 'triceps'] },
-      { nombre: 'Día 2 — Circuito Inferior', grupos: ['cuadriceps', 'gluteos', 'isquiotibiales', 'pantorrillas'] },
-      { nombre: 'Día 3 — Core & Full Body',  grupos: ['core', 'hombros', 'gluteos'] }
+    resistencia: [
+      { nombre: 'Día 1 — Circuito Empuje & Torso',                 grupos: ['pecho', 'hombros', 'triceps', 'core'] },
+      { nombre: 'Día 2 — Circuito Tracción & Espalda',             grupos: ['espalda', 'biceps', 'core'] },
+      { nombre: 'Día 3 — Circuito Inferior & Full Body',           grupos: ['cuadriceps', 'gluteos', 'isquiotibiales', 'pantorrillas'] }
     ]
   },
   4: {
-    hipertrofia:  [
-      { nombre: 'Día 1 — Pecho & Tríceps',      grupos: ['pecho', 'triceps'] },
-      { nombre: 'Día 2 — Espalda & Bíceps',     grupos: ['espalda', 'biceps'] },
-      { nombre: 'Día 3 — Piernas & Glúteos',    grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas'] },
-      { nombre: 'Día 4 — Hombros & Core',       grupos: ['hombros', 'core'] }
+    hipertrofia: [
+      { nombre: 'Día 1 — Torso Empuje (Pecho, Hombro & Tríceps)',   grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Torso Tracción (Espalda & Bíceps)',        grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Pierna Anterior & Glúteos (Cuádriceps)',   grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Pierna Posterior, Hombros & Core',        grupos: ['isquiotibiales', 'hombros', 'core'] }
     ],
-    fuerza:       [
-      { nombre: 'Día 1 — Sentadilla + Accesorios',  grupos: ['cuadriceps', 'core'] },
-      { nombre: 'Día 2 — Press + Hombros',          grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Día 3 — Peso Muerto + Espalda',    grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
-      { nombre: 'Día 4 — Accesorios & Brazos',      grupos: ['biceps', 'triceps', 'core'] }
+    fuerza: [
+      { nombre: 'Día 1 — Sentadilla + Accesorios Cuádriceps',       grupos: ['cuadriceps', 'gluteos', 'core'] },
+      { nombre: 'Día 2 — Press Banca + Deltoides & Tríceps',        grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 3 — Peso Muerto + Dorsales & Femoral',         grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 4 — Press Militar + Brazos & Core',            grupos: ['hombros', 'biceps', 'triceps', 'core', 'pantorrillas'] }
     ],
-    definicion:   [
-      { nombre: 'Día 1 — Push A',       grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Día 2 — Pull A',       grupos: ['espalda', 'biceps'] },
-      { nombre: 'Día 3 — Legs A',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
-      { nombre: 'Día 4 — Full Body B',  grupos: ['hombros', 'espalda', 'core', 'pantorrillas'] }
+    definicion: [
+      { nombre: 'Día 1 — Push A (Pecho, Hombros & Tríceps)',        grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull A (Espalda & Bíceps)',                grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs A (Cuádriceps, Femoral & Glúteos)',   grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
+      { nombre: 'Día 4 — Hombros, Core & Pantorrillas',            grupos: ['hombros', 'core', 'pantorrillas'] }
     ],
     readaptacion: [
-      { nombre: 'Día 1 — Cadera & Glúteos',       grupos: ['gluteos', 'isquiotibiales'] },
-      { nombre: 'Día 2 — Tren Superior Seguro',   grupos: ['espalda', 'hombros'] },
-      { nombre: 'Día 3 — Cuádriceps Controlado',  grupos: ['cuadriceps', 'pantorrillas'] },
-      { nombre: 'Día 4 — Core & Movilidad',       grupos: ['core', 'biceps', 'triceps'] }
+      { nombre: 'Día 1 — Cadera, Glúteos & Isquiotibiales',        grupos: ['gluteos', 'isquiotibiales', 'pantorrillas'] },
+      { nombre: 'Día 2 — Tren Superior Seguro & Postura',           grupos: ['espalda', 'hombros', 'biceps'] },
+      { nombre: 'Día 3 — Cuádriceps & Estabilidad Rodilla',         grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Core Profundo, Tríceps & Movilidad',       grupos: ['core', 'triceps', 'pecho'] }
     ],
-    resistencia:  [
-      { nombre: 'Día 1 — Upper Push Circuit',  grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Día 2 — Lower Circuit',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
-      { nombre: 'Día 3 — Upper Pull Circuit',  grupos: ['espalda', 'biceps'] },
-      { nombre: 'Día 4 — Core & Cardio',       grupos: ['core', 'pantorrillas', 'hombros'] }
+    resistencia: [
+      { nombre: 'Día 1 — Upper Push Circuit',                       grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Lower Quad & Glute Circuit',              grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 3 — Upper Pull Circuit',                       grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 4 — Lower Chain & Core Circuit',               grupos: ['isquiotibiales', 'core', 'gluteos'] }
     ]
   },
   5: {
-    hipertrofia:  [
-      { nombre: 'Push A — Pecho & Tríceps',   grupos: ['pecho', 'triceps'] },
-      { nombre: 'Pull A — Espalda & Bíceps',  grupos: ['espalda', 'biceps'] },
-      { nombre: 'Legs — Piernas & Glúteos',   grupos: ['cuadriceps', 'isquiotibiales', 'gluteos', 'pantorrillas'] },
-      { nombre: 'Push B — Hombros & Pecho',   grupos: ['hombros', 'pecho'] },
-      { nombre: 'Pull B — Dorsal & Core',     grupos: ['espalda', 'core'] }
+    hipertrofia: [
+      { nombre: 'Día 1 — Push A (Pecho & Tríceps)',                 grupos: ['pecho', 'triceps', 'hombros'] },
+      { nombre: 'Día 2 — Pull A (Espalda & Bíceps)',                grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs A (Cuádriceps, Glúteos & Pantorrilla)', grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Hombros & Core (Deltoides & Abdomen)',     grupos: ['hombros', 'core'] },
+      { nombre: 'Día 5 — Legs B & Brazos (Femoral, Glúteo & Brazos)', grupos: ['isquiotibiales', 'gluteos', 'biceps', 'triceps'] }
     ],
-    fuerza:       [
-      { nombre: 'Día 1 — Sentadilla',   grupos: ['cuadriceps', 'gluteos', 'core'] },
-      { nombre: 'Día 2 — Press Banca',  grupos: ['pecho', 'triceps', 'hombros'] },
-      { nombre: 'Día 3 — Peso Muerto',  grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
-      { nombre: 'Día 4 — Press OHP',    grupos: ['hombros', 'triceps'] },
-      { nombre: 'Día 5 — Accesorios',   grupos: ['biceps', 'core', 'pantorrillas'] }
+    fuerza: [
+      { nombre: 'Día 1 — Sentadilla Principal & Core',              grupos: ['cuadriceps', 'gluteos', 'core'] },
+      { nombre: 'Día 2 — Press Banca Principal & Tríceps',          grupos: ['pecho', 'triceps', 'hombros'] },
+      { nombre: 'Día 3 — Peso Muerto Principal & Espalda',          grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 4 — Press Militar Overhead & Hombros',         grupos: ['hombros', 'triceps', 'pecho'] },
+      { nombre: 'Día 5 — Accesorios Miofibrilares & Brazos',        grupos: ['biceps', 'core', 'pantorrillas', 'espalda'] }
     ],
-    definicion:   [
-      { nombre: 'Push A',       grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Pull A',       grupos: ['espalda', 'biceps'] },
-      { nombre: 'Legs A',       grupos: ['cuadriceps', 'isquiotibiales', 'gluteos'] },
-      { nombre: 'Push B',       grupos: ['hombros', 'pecho'] },
-      { nombre: 'Pull B & Core', grupos: ['espalda', 'core', 'pantorrillas'] }
+    definicion: [
+      { nombre: 'Día 1 — Push A (Pecho & Hombros)',                 grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull A (Espalda & Bíceps)',                grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs A (Cuádriceps & Glúteos)',            grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Push B (Hombro Lateral & Pecho Superior)', grupos: ['hombros', 'pecho', 'core'] },
+      { nombre: 'Día 5 — Pull B & Isquios (Espalda & Femoral)',     grupos: ['espalda', 'isquiotibiales', 'core'] }
     ],
     readaptacion: [
-      { nombre: 'Día 1 — Glúteos & Isquios',  grupos: ['gluteos', 'isquiotibiales'] },
-      { nombre: 'Día 2 — Espalda Segura',     grupos: ['espalda', 'biceps'] },
-      { nombre: 'Día 3 — Cuádriceps',         grupos: ['cuadriceps'] },
-      { nombre: 'Día 4 — Hombros Salud',      grupos: ['hombros', 'core'] },
-      { nombre: 'Día 5 — Core & Estabilidad', grupos: ['core', 'pantorrillas', 'triceps'] }
+      { nombre: 'Día 1 — Glúteos & Cadena Posterior',              grupos: ['gluteos', 'isquiotibiales'] },
+      { nombre: 'Día 2 — Espalda Segura & Cintura Escapular',       grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Cuádriceps & Cadena Cerrada',             grupos: ['cuadriceps', 'pantorrillas'] },
+      { nombre: 'Día 4 — Hombros Salud & Core Profundo',            grupos: ['hombros', 'core'] },
+      { nombre: 'Día 5 — Estabilidad Global & Movilidad',           grupos: ['core', 'pantorrillas', 'triceps', 'pecho'] }
     ],
     resistencia: [
-      { nombre: 'Circuito A — Push',   grupos: ['pecho', 'hombros', 'triceps'] },
-      { nombre: 'Circuito B — Pull',   grupos: ['espalda', 'biceps'] },
-      { nombre: 'Circuito C — Legs',   grupos: ['cuadriceps', 'gluteos', 'isquiotibiales'] },
-      { nombre: 'Circuito D — Core',   grupos: ['core', 'pantorrillas'] },
-      { nombre: 'Circuito E — Full',   grupos: ['hombros', 'espalda', 'core', 'gluteos'] }
+      { nombre: 'Día 1 — Circuito Push',                            grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Circuito Pull',                            grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Circuito Cuádriceps & Glúteos',            grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Circuito Core & Hombros',                  grupos: ['core', 'hombros', 'pantorrillas'] },
+      { nombre: 'Día 5 — Circuito Full Body & Isquios',             grupos: ['isquiotibiales', 'espalda', 'gluteos'] }
+    ]
+  },
+  6: {
+    hipertrofia: [
+      { nombre: 'Día 1 — Push A (Pecho, Hombro Anterior & Tríceps)', grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull A (Espalda & Bíceps)',                grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs A (Cuádriceps, Glúteos & Gemelos)',   grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Push B (Hombro Lateral, Pecho & Tríceps)',  grupos: ['hombros', 'pecho', 'triceps'] },
+      { nombre: 'Día 5 — Pull B (Espalda Media, Posterior & Bíceps)', grupos: ['espalda', 'hombros', 'biceps'] },
+      { nombre: 'Día 6 — Legs B & Core (Femoral, Glúteos & Abdomen)', grupos: ['isquiotibiales', 'gluteos', 'core', 'pantorrillas'] }
+    ],
+    fuerza: [
+      { nombre: 'Día 1 — Sentadilla Pesada + Cuádriceps',           grupos: ['cuadriceps', 'gluteos', 'core'] },
+      { nombre: 'Día 2 — Press Banca Pesado + Pecho/Tríceps',       grupos: ['pecho', 'triceps', 'hombros'] },
+      { nombre: 'Día 3 — Peso Muerto Pesado + Espalda/Femoral',     grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 4 — Sentadilla Dinámica & Pierna Accesorios',  grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 5 — Press Militar & Tracción Vertical',        grupos: ['hombros', 'espalda', 'triceps'] },
+      { nombre: 'Día 6 — Accesorios de Hipertrofia & Core',         grupos: ['biceps', 'triceps', 'core', 'isquiotibiales'] }
+    ],
+    definicion: [
+      { nombre: 'Día 1 — Push 1',                                   grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull 1',                                   grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs 1',                                   grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Push 2',                                   grupos: ['hombros', 'pecho', 'triceps'] },
+      { nombre: 'Día 5 — Pull 2',                                   grupos: ['espalda', 'core', 'biceps'] },
+      { nombre: 'Día 6 — Legs 2',                                   grupos: ['isquiotibiales', 'gluteos', 'core'] }
+    ],
+    readaptacion: [
+      { nombre: 'Día 1 — Glúteos & Cadera',                         grupos: ['gluteos', 'isquiotibiales'] },
+      { nombre: 'Día 2 — Espalda Segura',                           grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Cuádriceps Controlado',                    grupos: ['cuadriceps', 'pantorrillas'] },
+      { nombre: 'Día 4 — Hombros Salud',                            grupos: ['hombros', 'core'] },
+      { nombre: 'Día 5 — Isquiosurales & Estabilidad',              grupos: ['isquiotibiales', 'gluteos'] },
+      { nombre: 'Día 6 — Core & Reeducación Motora',                grupos: ['core', 'pantorrillas', 'triceps'] }
+    ],
+    resistencia: [
+      { nombre: 'Día 1 — Push Endurance',                           grupos: ['pecho', 'hombros', 'triceps'] },
+      { nombre: 'Día 2 — Pull Endurance',                           grupos: ['espalda', 'biceps'] },
+      { nombre: 'Día 3 — Legs Quad Endurance',                      grupos: ['cuadriceps', 'gluteos', 'pantorrillas'] },
+      { nombre: 'Día 4 — Core & Shoulder Metabolic',                grupos: ['hombros', 'core'] },
+      { nombre: 'Día 5 — Posterior Chain Circuit',                  grupos: ['isquiotibiales', 'espalda', 'gluteos'] },
+      { nombre: 'Día 6 — Full Body Athletic Conditioning',          grupos: ['cuadriceps', 'pecho', 'core', 'pantorrillas'] }
     ]
   }
 };
@@ -12413,12 +13329,10 @@ const AI_PRESCRIPCION = {
 
 // ── Ejercicios por día: cuántos colocar según nivel
 const AI_EX_POR_DIA = {
-  principiante: 4,
-  intermedio: 5,
-  avanzado: 6
+  principiante: 5,
+  intermedio: 6,
+  avanzado: 7
 };
-
-
 
 // ── Etiquetas de visualización para objetivos
 const AI_OBJETIVO_LABELS = {
@@ -12447,7 +13361,7 @@ function obtenerConfigAsistente() {
     lumbar:  document.getElementById('ai-chk-lumbar')?.checked  || restriccionTxt.includes('lumbar') || restriccionTxt.includes('espalda'),
     rodilla: document.getElementById('ai-chk-rodilla')?.checked || restriccionTxt.includes('rodilla'),
     hombro:  document.getElementById('ai-chk-hombro')?.checked  || restriccionTxt.includes('hombro'),
-    cadera:  document.getElementById('ai-chk-cadera')?.checked  || restriccionTxt.includes('cadera') || restriccionTxt.includes('cadera'),
+    cadera:  document.getElementById('ai-chk-cadera')?.checked  || restriccionTxt.includes('cadera'),
     tobillo: document.getElementById('ai-chk-tobillo')?.checked || restriccionTxt.includes('tobillo') || restriccionTxt.includes('pie'),
     codo:    document.getElementById('ai-chk-codo')?.checked    || restriccionTxt.includes('codo') || restriccionTxt.includes('muñeca')
   };
@@ -12547,26 +13461,41 @@ function sincronizarEquipamiento() {
   actualizarVistaAsistente();
 }
 
-// ── Selecciona N ejercicios para un conjunto de grupos musculares
+// ── Selecciona N ejercicios distribuyendo de manera equitativa entre todos los grupos musculares del día
 function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
-  // Ordenar grupos por prioridad para el objetivo
-  const pool = [];
-  for (const grupo of grupos) {
-    const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo);
-    // Mezclar aleatoriamente con seed pseudo-determinista
-    const mezcla = delGrupo.sort(() => Math.random() - 0.5);
-    pool.push(...mezcla);
-  }
-
-  // Eliminar duplicados y tomar los primeros N
-  const seen = new Set();
   const seleccionados = [];
-  for (const ej of pool) {
-    if (!seen.has(ej.nombre) && seleccionados.length < cantidad) {
-      seen.add(ej.nombre);
-      seleccionados.push(ej);
+  const seen = new Set();
+
+  // 1. Tomar al menos 1 o 2 ejercicios representativos de CADA grupo muscular del día
+  const porGrupoBase = Math.max(1, Math.floor(cantidad / grupos.length));
+  for (const grupo of grupos) {
+    const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
+    const mezcla = delGrupo.sort(() => Math.random() - 0.5);
+    let agregadosGrupo = 0;
+    for (const ej of mezcla) {
+      if (!seen.has(ej.nombre) && agregadosGrupo < porGrupoBase && seleccionados.length < cantidad) {
+        seen.add(ej.nombre);
+        seleccionados.push(ej);
+        agregadosGrupo++;
+      }
     }
   }
+
+  // 2. Si faltan para completar la meta del día, rellenar de los grupos asignados
+  if (seleccionados.length < cantidad) {
+    const pool = [];
+    for (const grupo of grupos) {
+      const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
+      pool.push(...delGrupo.sort(() => Math.random() - 0.5));
+    }
+    for (const ej of pool) {
+      if (!seen.has(ej.nombre) && seleccionados.length < cantidad) {
+        seen.add(ej.nombre);
+        seleccionados.push(ej);
+      }
+    }
+  }
+
   return seleccionados;
 }
 
@@ -12576,7 +13505,7 @@ function generarRutinaIA() {
   if (!btn) return;
 
   // Estado de carga
-  btn.innerHTML = `<span class="ai-spinner"></span> Generando plan…`;
+  btn.innerHTML = `<span class="ai-spinner"></span> Generando plan completo…`;
   btn.classList.add('loading');
 
   setTimeout(() => {
@@ -12593,9 +13522,9 @@ function generarRutinaIA() {
 
       // Obtener el split según días y objetivo
       const splitsDisponibles = AI_SPLITS[config.diasSemana] || AI_SPLITS[4];
-      const splitObjetivo = splitsDisponibles[config.objetivo] || splitsDisponibles['hipertrofia'];
+      const splitObjetivo = splitsDisponibles[config.objetivo] || splitsDisponibles['hipertrofia'] || splitsDisponibles[Object.keys(splitsDisponibles)[0]];
       const prescripcion = (AI_PRESCRIPCION[config.objetivo] || AI_PRESCRIPCION.hipertrofia)[config.nivel] || AI_PRESCRIPCION.hipertrofia.intermedio;
-      const nEjPorDia = AI_EX_POR_DIA[config.nivel] || 5;
+      const nEjPorDia = AI_EX_POR_DIA[config.nivel] || 6;
 
       // Construir los días del plan
       const diasPlan = splitObjetivo.map((dia, idx) => {
@@ -12615,7 +13544,8 @@ function generarRutinaIA() {
         dias: diasPlan,
         fechaGeneracion: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }),
         totalEjerciciosFiltrados: ejerciciosFiltrados.length,
-        totalExcluidos: ejerciciosDB.length - ejerciciosFiltrados.length
+        totalExcluidos: ejerciciosDB.length - ejerciciosFiltrados.length,
+        modoVista: 'tabs'
       };
 
       // Renderizar resultado
@@ -12627,9 +13557,9 @@ function generarRutinaIA() {
 
       // Actualizar hint
       const hint = document.getElementById('ai-cta-hint');
-      if (hint) hint.textContent = `✅ Plan generado el ${_aiPlanActual.fechaGeneracion} — ${ejerciciosFiltrados.length} ejercicios disponibles`;
+      if (hint) hint.textContent = `✅ Plan completo de ${config.diasSemana} días generado el ${_aiPlanActual.fechaGeneracion} — Todos los grupos musculares cubiertos`;
 
-      showToast(`Plan de ${config.diasSemana} días generado con ${ejerciciosFiltrados.length} ejercicios disponibles.`, 'success', '⚡ Plan IA Generado');
+      showToast(`Plan de ${config.diasSemana} días generado con éxito. Todos los músculos organizados por día.`, 'success', '⚡ Plan Completo Generado');
 
     } catch (err) {
       console.error('Error generarRutinaIA:', err);
@@ -12639,7 +13569,7 @@ function generarRutinaIA() {
     // Restaurar botón
     btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar Rutina con IA`;
     btn.classList.remove('loading');
-  }, 700); // Delay simulado para UX de "procesamiento"
+  }, 600);
 }
 
 // ── Renderiza el resultado del plan en el DOM
@@ -12655,8 +13585,8 @@ function renderizarPlanIA(plan) {
   const subtitleEl = document.getElementById('ai-result-subtitle');
 
   if (badgeEl)    badgeEl.textContent    = AI_OBJETIVO_LABELS[config.objetivo] || config.objetivo;
-  if (titleEl)    titleEl.textContent    = `Plan ${config.diasSemana} Días — ${AI_NIVEL_LABELS[config.nivel] || config.nivel}`;
-  if (subtitleEl) subtitleEl.textContent = `Generado el ${fechaGeneracion} · Motor Biomecánico FitPro`;
+  if (titleEl)    titleEl.textContent    = `Rutina Completa — ${config.diasSemana} Días (${AI_NIVEL_LABELS[config.nivel] || config.nivel})`;
+  if (subtitleEl) subtitleEl.textContent = `Generado el ${fechaGeneracion} · Motor Biomecánico FitPro · Todos los Músculos Cubiertos`;
 
   // Resumen de parámetros
   const summaryEl = document.getElementById('ai-params-summary');
@@ -12669,12 +13599,11 @@ function renderizarPlanIA(plan) {
     summaryEl.innerHTML = `
       <span class="ai-param-tag tag-green">🎯 ${AI_OBJETIVO_LABELS[config.objetivo]}</span>
       <span class="ai-param-tag tag-green">👤 ${AI_NIVEL_LABELS[config.nivel]}</span>
-      <span class="ai-param-tag">📅 ${config.diasSemana} días / semana</span>
+      <span class="ai-param-tag">📅 ${config.diasSemana} días programados</span>
       <span class="ai-param-tag">🏗️ ${config.equipamiento.join(', ') || 'Todo el equipo'}</span>
       ${config.riesgoMax !== 'alto' ? `<span class="ai-param-tag tag-amber">⚠️ Riesgo máx: ${config.riesgoMax}</span>` : ''}
       ${restriccionesActivas ? `<span class="ai-param-tag tag-red">🚫 Zonas excluidas: ${restriccionesActivas}</span>` : ''}
-      <span class="ai-param-tag">✅ ${totalEjerciciosFiltrados} ejercicios disponibles</span>
-      ${totalExcluidos > 0 ? `<span class="ai-param-tag tag-amber">🚫 ${totalExcluidos} excluidos</span>` : ''}
+      <span class="ai-param-tag">✅ ${totalEjerciciosFiltrados} ejercicios en catálogo</span>
     `;
   }
 
@@ -12682,7 +13611,9 @@ function renderizarPlanIA(plan) {
   const tabsEl = document.getElementById('ai-day-tabs');
   if (tabsEl) {
     tabsEl.innerHTML = dias.map((dia, i) =>
-      `<button class="ai-day-tab ${i === 0 ? 'active' : ''}" onclick="cambiarDiaIA(${i})" id="ai-tab-${i}">${dia.nombre.split('—')[0].trim()}</button>`
+      `<button class="ai-day-tab ${i === 0 ? 'active' : ''}" onclick="cambiarDiaIA(${i})" id="ai-tab-${i}">
+        📅 ${dia.nombre.split('—')[0].trim()}
+      </button>`
     ).join('');
   }
 
@@ -12698,6 +13629,37 @@ function renderizarPlanIA(plan) {
 
   // Activar primer día
   _aiDiaActivoIndex = 0;
+  cambiarModoVistaIA(plan.modoVista || 'tabs');
+}
+
+// ── Cambiar entre vista por pestañas y vista de semana completa
+function cambiarModoVistaIA(modo) {
+  if (!_aiPlanActual) return;
+  _aiPlanActual.modoVista = modo;
+
+  const btnTabs = document.getElementById('btn-vista-dia');
+  const btnCompleta = document.getElementById('btn-vista-completa');
+  const tabsEl = document.getElementById('ai-day-tabs');
+
+  if (btnTabs) btnTabs.classList.toggle('active', modo === 'tabs');
+  if (btnCompleta) btnCompleta.classList.toggle('active', modo === 'completa');
+
+  const panels = document.querySelectorAll('.ai-day-panel');
+  if (modo === 'completa') {
+    if (tabsEl) tabsEl.style.display = 'none';
+    panels.forEach(p => {
+      p.style.display = 'block';
+      p.style.marginBottom = '28px';
+      p.classList.add('active');
+    });
+  } else {
+    if (tabsEl) tabsEl.style.display = 'flex';
+    panels.forEach((p, i) => {
+      p.style.display = '';
+      p.style.marginBottom = '';
+      p.classList.toggle('active', i === _aiDiaActivoIndex);
+    });
+  }
 }
 
 // ── Renderiza el HTML de un día del plan
@@ -12705,7 +13667,7 @@ function renderizarDiaIA(dia, indice) {
   const { nombre, grupos, ejercicios, prescripcion } = dia;
 
   const muscleTagsHTML = grupos.map(g =>
-    `<span class="ai-muscle-tag">${capitalize(g)}</span>`
+    `<span class="ai-muscle-tag" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-weight:700; padding:4px 10px; border-radius:20px; font-size:12px;">💪 ${capitalize(g)}</span>`
   ).join('');
 
   let warningHTML = '';
@@ -12717,43 +13679,48 @@ function renderizarDiaIA(dia, indice) {
   }
 
   const ejerciciosHTML = ejercicios.length > 0 ? `
-    <table class="ai-exercise-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Ejercicio</th>
-          <th>Series × Reps</th>
-          <th>Equipamiento</th>
-          <th>Riesgo</th>
-          <th>Descanso</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${ejercicios.map((ej, idx) => `
+    <div style="overflow-x:auto;">
+      <table class="ai-exercise-table" style="width:100%;">
+        <thead>
           <tr>
-            <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
-            <td>
-              <div class="ai-ex-name">${ej.nombre}</div>
-              <div class="ai-ex-muscle">${ej.musculoPrimario}</div>
-            </td>
-            <td>
-              <span class="ai-prescripcion">${prescripcion.series} × ${prescripcion.reps}</span>
-              <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${prescripcion.rir}</div>
-            </td>
-            <td><span class="ai-equip-chip">${ej.equipamiento}</span></td>
-            <td><span class="ai-riesgo-badge ai-riesgo-${(ej.riesgo || '').toLowerCase().replace('é','e')}">${ej.riesgo}</span></td>
-            <td style="font-size:12px; color:var(--text-muted);">${prescripcion.descanso}</td>
+            <th>#</th>
+            <th>Ejercicio & Músculo</th>
+            <th>Series × Reps</th>
+            <th>Equipamiento</th>
+            <th>Riesgo</th>
+            <th>Descanso</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${ejercicios.map((ej, idx) => `
+            <tr>
+              <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
+              <td>
+                <div class="ai-ex-name" style="font-weight:700; color:#fff; font-size:13.5px;">${ej.nombre}</div>
+                <div class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8; margin-top:2px;">🎯 ${ej.musculoPrimario || ej.categoria}</div>
+              </td>
+              <td>
+                <span class="ai-prescripcion" style="font-weight:700; color:var(--accent-green);">${prescripcion.series} × ${prescripcion.reps}</span>
+                <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${prescripcion.rir}</div>
+              </td>
+              <td><span class="ai-equip-chip">${ej.equipamiento || 'Material Libre'}</span></td>
+              <td><span class="ai-riesgo-badge ai-riesgo-${(ej.riesgo || '').toLowerCase().replace('é','e')}">${ej.riesgo}</span></td>
+              <td style="font-size:12px; color:var(--text-muted); font-weight:600;">${prescripcion.descanso}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   ` : `<div style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px;">Sin ejercicios disponibles con los filtros actuales para este grupo muscular.</div>`;
 
   return `
-    <div class="ai-day-panel ${indice === 0 ? 'active' : ''}" id="ai-panel-${indice}">
-      <div class="ai-day-header">
-        <h3 class="ai-day-title">${nombre}</h3>
-        <div class="ai-day-muscle-tags">${muscleTagsHTML}</div>
+    <div class="ai-day-panel ${indice === 0 ? 'active' : ''}" id="ai-panel-${indice}" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px;">
+      <div class="ai-day-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <div>
+          <h3 class="ai-day-title" style="margin:0; font-size:17px; font-family:var(--font-heading); color:#fff;">📅 ${nombre}</h3>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Prescripción para ${grupos.length} grupos musculares</div>
+        </div>
+        <div class="ai-day-muscle-tags" style="display:flex; gap:6px; flex-wrap:wrap;">${muscleTagsHTML}</div>
       </div>
       ${warningHTML}
       ${ejerciciosHTML}
@@ -12865,8 +13832,23 @@ function guardarPlanIA() {
   const gymId = obtenerGymIdActivo ? obtenerGymIdActivo() : 'gym_default';
 
   const ejerciciosResumen = dias.flatMap(dia =>
-    dia.ejercicios.map(e => e.nombre)
-  ).join(' | ');
+    dia.ejercicios.map(e => `${e.nombre} (${dia.prescripcion.series}×${dia.prescripcion.reps} - ${e.musculoPrimario || e.categoria})`)
+  );
+
+  const diasEstructurados = dias.map(d => ({
+    nombre: d.nombre,
+    enfoque: d.grupos.map(capitalize).join(', '),
+    musculos: d.grupos,
+    ejercicios: d.ejercicios.map(e => ({
+      nombre: e.nombre,
+      series: parseInt(d.prescripcion.series) || 4,
+      repeticiones: d.prescripcion.reps,
+      descanso: d.prescripcion.descanso,
+      rir: d.prescripcion.rir,
+      rpe: d.prescripcion.rir.includes('0') ? 9.5 : d.prescripcion.rir.includes('1') ? 9 : 8.5,
+      notas: `${e.musculoPrimario || e.categoria} • ${e.equipamiento} • Riesgo ${e.riesgo}`
+    }))
+  }));
 
   const nuevoPlan = {
     id: Date.now(),
@@ -12876,15 +13858,17 @@ function guardarPlanIA() {
     metodo: `${AI_NIVEL_LABELS[config.nivel]} · ${config.diasSemana} días/semana`,
     fecha: fechaGeneracion,
     ejercicios: ejerciciosResumen,
+    dias: diasEstructurados,
     generadoPorIA: true
   };
 
   if (typeof planesGuardados !== 'undefined') {
-    planesGuardados.push(nuevoPlan);
+    planesGuardados.unshift(nuevoPlan);
+    if (typeof persistirDatosUsuarioActual === 'function') persistirDatosUsuarioActual();
     if (typeof renderPlanes === 'function') renderPlanes();
   }
 
-  showToast('Plan guardado en el historial de planes.', 'success', '✅ Guardado');
+  showToast('Plan guardado en el historial de planes con todos los días y músculos.', 'success', '✅ Guardado');
 }
 
 // ── Capitalizar primera letra
@@ -12901,6 +13885,7 @@ function initAsistenteIA() {
 // ── Exports globales del asistente IA
 window.generarRutinaIA        = generarRutinaIA;
 window.cambiarDiaIA           = cambiarDiaIA;
+window.cambiarModoVistaIA     = cambiarModoVistaIA;
 window.resetearAsistenteIA    = resetearAsistenteIA;
 window.imprimirPlanIA         = imprimirPlanIA;
 window.guardarPlanIA          = guardarPlanIA;
@@ -12909,10 +13894,228 @@ window.actualizarChipsRestriccion = actualizarChipsRestriccion;
 window.sincronizarChips       = sincronizarChips;
 window.sincronizarEquipamiento = sincronizarEquipamiento;
 
-// Inicializar contadores cuando el DOM esté listo
+// ==============================================================================
+// ⚙️ CENTRO DE CONTROL: CONFIGURACIÓN DEL SISTEMA Y RESPALDOS (SAAS ENGINE)
+// ==============================================================================
+
+const CONFIG_SISTEMA_STORAGE_KEY = 'fitpro_config_sistema_v2';
+
+function cargarConfiguracionSistema() {
+  try {
+    const raw = localStorage.getItem(CONFIG_SISTEMA_STORAGE_KEY);
+    if (!raw) return;
+    const cfg = JSON.parse(raw);
+
+    // 1. Datos del Gimnasio
+    const gymNombre = document.getElementById('config-gym-nombre');
+    const gymTel = document.getElementById('config-gym-telefono');
+    const gymMoneda = document.getElementById('config-gym-moneda');
+    const gymDir = document.getElementById('config-gym-direccion');
+    const gymSlogan = document.getElementById('config-gym-slogan');
+
+    if (gymNombre && cfg.gymNombre) gymNombre.value = cfg.gymNombre;
+    if (gymTel && cfg.gymTelefono) gymTel.value = cfg.gymTelefono;
+    if (gymMoneda && cfg.gymMoneda) gymMoneda.value = cfg.gymMoneda;
+    if (gymDir && cfg.gymDireccion) gymDir.value = cfg.gymDireccion;
+    if (gymSlogan && cfg.gymSlogan) gymSlogan.value = cfg.gymSlogan;
+
+    // 2. Perfil del Coach
+    const coachNombre = document.getElementById('config-coach-nombre');
+    const coachEmail = document.getElementById('config-coach-email');
+    const coachAvatar = document.getElementById('config-coach-avatar');
+    const coachTitulo = document.getElementById('config-coach-titulo');
+
+    if (coachNombre && cfg.coachNombre) coachNombre.value = cfg.coachNombre;
+    if (coachEmail && cfg.coachEmail) coachEmail.value = cfg.coachEmail;
+    if (coachAvatar && cfg.coachAvatar) coachAvatar.value = cfg.coachAvatar;
+    if (coachTitulo && cfg.coachTitulo) coachTitulo.value = cfg.coachTitulo;
+
+    // 3. Preferencias Biomecánicas
+    const unidadPeso = document.getElementById('config-unidad-peso');
+    const formulaRm = document.getElementById('config-formula-rm');
+    const descanso = document.getElementById('config-descanso-defecto');
+    const notifDias = document.getElementById('config-notif-dias');
+
+    if (unidadPeso && cfg.unidadPeso) unidadPeso.value = cfg.unidadPeso;
+    if (formulaRm && cfg.formulaRm) formulaRm.value = cfg.formulaRm;
+    if (descanso && cfg.descansoDefecto) descanso.value = cfg.descansoDefecto;
+    if (notifDias && cfg.notifDias) notifDias.value = cfg.notifDias;
+
+    // Aplicar a la UI en vivo (sidebar)
+    if (cfg.coachNombre) {
+      const elName = document.getElementById('sidebar-user-name');
+      if (elName) elName.innerText = cfg.coachNombre;
+    }
+    if (cfg.coachAvatar) {
+      const elAv = document.getElementById('sidebar-user-avatar');
+      if (elAv) elAv.innerText = cfg.coachAvatar.toUpperCase();
+    }
+  } catch (err) {
+    console.warn("No se pudo cargar la configuración personalizada:", err);
+  }
+}
+
+function guardarConfiguracionSistema(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  try {
+    const gymNombre = document.getElementById('config-gym-nombre')?.value?.trim() || 'FitPro Central Hub';
+    const gymTelefono = document.getElementById('config-gym-telefono')?.value?.trim() || '';
+    const gymMoneda = document.getElementById('config-gym-moneda')?.value || '$';
+    const gymDireccion = document.getElementById('config-gym-direccion')?.value?.trim() || '';
+    const gymSlogan = document.getElementById('config-gym-slogan')?.value?.trim() || '';
+
+    const coachNombre = document.getElementById('config-coach-nombre')?.value?.trim() || 'Coach Pro';
+    const coachEmail = document.getElementById('config-coach-email')?.value?.trim() || 'coach@fitprosuite.com';
+    const coachAvatar = (document.getElementById('config-coach-avatar')?.value?.trim() || 'PT').toUpperCase();
+    const coachTitulo = document.getElementById('config-coach-titulo')?.value?.trim() || 'Master Coach';
+
+    const unidadPeso = document.getElementById('config-unidad-peso')?.value || 'kg';
+    const formulaRm = document.getElementById('config-formula-rm')?.value || 'brzycki';
+    const descansoDefecto = document.getElementById('config-descanso-defecto')?.value || '90';
+    const notifDias = document.getElementById('config-notif-dias')?.value || '3';
+
+    const configData = {
+      gymNombre,
+      gymTelefono,
+      gymMoneda,
+      gymDireccion,
+      gymSlogan,
+      coachNombre,
+      coachEmail,
+      coachAvatar,
+      coachTitulo,
+      unidadPeso,
+      formulaRm,
+      descansoDefecto,
+      notifDias,
+      fechaActualizacion: new Date().toISOString()
+    };
+
+    localStorage.setItem(CONFIG_SISTEMA_STORAGE_KEY, JSON.stringify(configData));
+
+    // Actualizar elementos vivos en el Sidebar
+    const elName = document.getElementById('sidebar-user-name');
+    if (elName) elName.innerText = coachNombre;
+
+    const elAv = document.getElementById('sidebar-user-avatar');
+    if (elAv) elAv.innerText = coachAvatar;
+
+    showToast('Los cambios de configuración se han guardado y aplicado al sistema.', 'success', '⚙️ Ajustes Actualizados');
+  } catch (err) {
+    console.error("Error al guardar configuración:", err);
+    showToast('Ocurrió un error al guardar la configuración.', 'error', 'Error');
+  }
+}
+
+// 📦 EXPORTAR BASE DE DATOS COMPLETA EN FORMATO JSON
+function exportarCopiaSeguridadJSON() {
+  try {
+    const configRaw = localStorage.getItem(CONFIG_SISTEMA_STORAGE_KEY);
+    const backupData = {
+      sistema: "FitPro Suite Pro",
+      version: "2.5.0",
+      fechaExportacion: new Date().toISOString(),
+      configuracion: configRaw ? JSON.parse(configRaw) : null,
+      gimnasiosDB: typeof gimnasiosDB !== 'undefined' ? gimnasiosDB : [],
+      gimnasioActivoId: typeof gimnasioActivoId !== 'undefined' ? gimnasioActivoId : 'gym_central_01',
+      clientes: typeof clientes !== 'undefined' ? clientes : [],
+      planesGuardados: typeof planesGuardados !== 'undefined' ? planesGuardados : [],
+      transaccionesFinancieras: typeof transaccionesFinancieras !== 'undefined' ? transaccionesFinancieras : [],
+      lesionesDB: typeof lesionesDB !== 'undefined' ? lesionesDB : [],
+      bitacoraClinicaDB: typeof bitacoraClinicaDB !== 'undefined' ? bitacoraClinicaDB : [],
+      dietasGuardadas: typeof dietasGuardadas !== 'undefined' ? dietasGuardadas : [],
+      metricasEvolucionDB: typeof metricasEvolucionDB !== 'undefined' ? metricasEvolucionDB : [],
+      registrosFuerzaDB: typeof registrosFuerzaDB !== 'undefined' ? registrosFuerzaDB : []
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const fecha = new Date().toISOString().slice(0, 10);
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `fitpro_backup_${fecha}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    showToast('Archivo de respaldo generado y descargado correctamente.', 'success', '📦 Respaldo Exportado');
+  } catch (err) {
+    console.error("Error al exportar respaldo JSON:", err);
+    showToast('No se pudo generar la copia de seguridad.', 'error', 'Error');
+  }
+}
+
+// 📥 RESTAURAR DESDE ARCHIVO JSON
+function importarCopiaSeguridadJSON(inputElement) {
+  try {
+    const file = inputElement?.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data || (!data.clientes && !data.sistema)) {
+          showToast('El archivo seleccionado no tiene un formato válido de FitPro Suite.', 'warning', 'Archivo Inválido');
+          return;
+        }
+
+        if (Array.isArray(data.clientes) && typeof clientes !== 'undefined') {
+          clientes = data.clientes;
+          guardarEnStorage('fitpro_clientes_v1', clientes);
+        }
+        if (Array.isArray(data.planesGuardados) && typeof planesGuardados !== 'undefined') {
+          planesGuardados = data.planesGuardados;
+          guardarEnStorage('fitpro_planes_v1', planesGuardados);
+        }
+        if (Array.isArray(data.transaccionesFinancieras) && typeof transaccionesFinancieras !== 'undefined') {
+          transaccionesFinancieras = data.transaccionesFinancieras;
+          guardarEnStorage('fitpro_finanzas_v1', transaccionesFinancieras);
+        }
+        if (Array.isArray(data.lesionesDB) && typeof lesionesDB !== 'undefined') {
+          lesionesDB = data.lesionesDB;
+          guardarEnStorage('fitpro_lesiones_v1', lesionesDB);
+        }
+        if (data.configuracion) {
+          localStorage.setItem(CONFIG_SISTEMA_STORAGE_KEY, JSON.stringify(data.configuracion));
+          cargarConfiguracionSistema();
+        }
+
+        // Refrescar vistas en pantalla
+        if (typeof renderClientes === 'function') renderClientes();
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderFinanzas === 'function') renderFinanzas();
+        if (typeof renderPlanes === 'function') renderPlanes();
+        if (typeof renderLesiones === 'function') renderLesiones();
+
+        showToast('Todos los datos y configuraciones se restauraron con éxito.', 'success', '✅ Restauración Completa');
+      } catch (err) {
+        console.error("Error al procesar JSON:", err);
+        showToast('El archivo JSON está corrupto o contiene errores.', 'error', 'Error');
+      }
+    };
+    reader.readAsText(file);
+  } catch (err) {
+    console.error("Error al importar copia de seguridad:", err);
+    showToast('Error al leer el archivo seleccionado.', 'error', 'Error');
+  }
+}
+
+// Exports globales de Configuración
+window.guardarConfiguracionSistema = guardarConfiguracionSistema;
+window.cargarConfiguracionSistema  = cargarConfiguracionSistema;
+window.exportarCopiaSeguridadJSON  = exportarCopiaSeguridadJSON;
+window.importarCopiaSeguridadJSON  = importarCopiaSeguridadJSON;
+
+// Inicialización general en DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initAsistenteIA, 500);
+  setTimeout(() => {
+    if (typeof poblarDatalistEjerciciosGlobal === 'function') poblarDatalistEjerciciosGlobal();
+    if (typeof initAsistenteIA === 'function') initAsistenteIA();
+    cargarConfiguracionSistema();
+  }, 400);
 });
+
 
 
 
