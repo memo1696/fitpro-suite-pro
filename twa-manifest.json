@@ -1,6 +1,6 @@
 {
   "packageId": "com.fitprosuite.app",
-  "host": "curious-bavarois-54aab1.netlify.app",
+  "host": "fitpro-suite-pro.vercel.app",
   "name": "FitPro Suite Pro",
   "launcherName": "FitPro Suite",
   "display": "standalone",
@@ -23,7 +23,7 @@
   "splashScreenFadeOutDuration": 300,
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
-  "fullScopeUrl": "https://curious-bavarois-54aab1.netlify.app/",
+  "fullScopeUrl": "https://fitpro-suite-pro.vercel.app/",
   "minSdkVersion": 21,
   "orientation": "portrait"
 }

@@ -143,16 +143,32 @@ p {
 /* ============================================================================== */
 body.is-athlete-mode #app-sidebar,
 body.is-athlete-mode #mobile-header,
+body.is-athlete-mode .mobile-header,
 body.is-athlete-mode .mobile-menu-btn,
-body.is-athlete-mode .gym-selector-wrapper {
+body.is-athlete-mode .gym-selector-wrapper,
+body.is-athlete-mode #gym-selector-mobile-wrapper,
+body.is-athlete-mode .mobile-bottom-nav,
+body.is-athlete-mode .coach-only-tool,
+body.is-athlete-mode #btn-bottom-nav-menu,
+body.is-athlete-mode .sidebar-overlay {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 body.is-athlete-mode .main-content {
   margin-left: 0 !important;
   width: 100% !important;
-  padding: 24px 28px !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 20px 24px !important;
   overflow-y: auto !important;
+}
+
+@media (max-width: 768px) {
+  body.is-athlete-mode .main-content {
+    padding: 12px 14px 40px 14px !important;
+  }
 }
 
 .view {

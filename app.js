@@ -547,6 +547,16 @@ async function verificarYEscucharSupabaseAuth() {
     console.log("📲 Sesión de atleta restaurada automáticamente desde pantalla de inicio:", persistedAthlete.user.email);
     window.esSesionModoAtleta = true;
     document.body.classList.add('is-athlete-mode');
+    
+    // Cargar dinámicamente los datos actualizados del coach (rutinas, dietas, medidas)
+    if (typeof cargarDatosContextoAtleta === 'function') {
+      cargarDatosContextoAtleta({
+        id: persistedAthlete.user?.id || persistedAthlete.cliente?.id,
+        email: persistedAthlete.user?.email || persistedAthlete.cliente?.email,
+        nombre: persistedAthlete.user?.user_metadata?.full_name || persistedAthlete.cliente?.nombre
+      });
+    }
+
     ocultarPantallaAuth();
     renderPortalAtleta(persistedAthlete.user);
     navegarA('athlete-portal');
@@ -817,6 +827,36 @@ async function iniciarSesionSupabase(email, password) {
     return;
   }
 
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Escanear todos los clientes guardados en el almacenamiento del navegador
+  let listaClientes = Array.isArray(clientes) ? [...clientes] : [];
+  try {
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (k.startsWith('fitpro_clientes_') || k === 'fitpro_clientes') {
+        const d = leerStorageCifrado(k);
+        if (Array.isArray(d)) {
+          d.forEach(c => {
+            if (c && !listaClientes.some(exist => String(exist.id) === String(c.id))) {
+              listaClientes.push(c);
+            }
+          });
+        }
+      }
+    });
+  } catch (e) {
+    console.warn("Notice recopilando clientes en login:", e);
+  }
+
+  let clienteLocal = listaClientes.find(c => c.email && c.email.toLowerCase().trim() === cleanEmail);
+  if (!clienteLocal) {
+    const nombreFromEmail = cleanEmail.split('@')[0].replace(/\./g, ' ');
+    clienteLocal = listaClientes.find(c => c.nombre && c.nombre.toLowerCase().includes(nombreFromEmail.toLowerCase()) || (c.nombre && nombreFromEmail.toLowerCase().includes(c.nombre.toLowerCase())));
+  }
+
+  const esEmailAtleta = cleanEmail.includes('@atleta.') || cleanEmail.includes('@cliente.') || Boolean(new URLSearchParams(window.location.search).get('view') === 'athlete') || Boolean(new URLSearchParams(window.location.search).get('atleta')) || perfilAuthActual === 'athlete';
+
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
@@ -826,20 +866,6 @@ async function iniciarSesionSupabase(email, password) {
     console.warn("Error Supabase signInWithPassword:", error.message);
 
     // Fallback universal e inteligente para Atletas registrados
-    const cleanEmail = email.trim().toLowerCase();
-    let listaClientes = (clientes && clientes.length > 0) ? [...clientes] : [];
-    if (listaClientes.length === 0) {
-      listaClientes = getSeedClientesDemo().concat(leerStorageCifrado('fitpro_clientes_demo') || []);
-    }
-
-    let clienteLocal = listaClientes.find(c => c.email && c.email.toLowerCase() === cleanEmail);
-    if (!clienteLocal) {
-      const nombreFromEmail = cleanEmail.split('@')[0].replace(/\./g, ' ');
-      clienteLocal = listaClientes.find(c => c.nombre && c.nombre.toLowerCase().includes(nombreFromEmail.toLowerCase()) || (c.nombre && nombreFromEmail.toLowerCase().includes(c.nombre.toLowerCase())));
-    }
-
-    const esEmailAtleta = cleanEmail.includes('@atleta.') || cleanEmail.includes('@cliente.') || Boolean(new URLSearchParams(window.location.search).get('view') === 'athlete') || Boolean(new URLSearchParams(window.location.search).get('atleta'));
-
     if (clienteLocal || esEmailAtleta) {
       const nombreFinal = clienteLocal?.nombre || (cleanEmail.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
       console.log(`🔓 Acceso concedido a atleta: ${nombreFinal}`);
@@ -854,6 +880,7 @@ async function iniciarSesionSupabase(email, password) {
             must_change_password: clienteLocal ? (clienteLocal.must_change_password !== false) : true
           }
         },
+        esModoAtleta: true,
         access_token: 'local_athlete_token'
       };
       
@@ -876,6 +903,19 @@ async function iniciarSesionSupabase(email, password) {
   if (data && data.session) {
     const passInput = document.getElementById('auth-input-password');
     if (passInput) passInput.value = '';
+    
+    // Si es un atleta registrado o seleccionó perfil de atleta, marcar sesión como atleta
+    if (clienteLocal || esEmailAtleta) {
+      data.session.esModoAtleta = true;
+      if (data.session.user) {
+        data.session.user.user_metadata = {
+          ...(data.session.user.user_metadata || {}),
+          role: 'athlete',
+          full_name: clienteLocal?.nombre || data.session.user.user_metadata?.full_name || email.split('@')[0]
+        };
+      }
+    }
+
     mostrarExitoAuth("Autenticación exitosa. Abriendo FitPro Suite Pro...");
     establecerSesionActiva(data.session, data.user || data.session.user);
     showToast(`Bienvenido a FitPro Suite Pro, ${data.user?.user_metadata?.full_name || email}.`, "success", "🔓 Sesión Iniciada");
@@ -934,23 +974,30 @@ async function cerrarSesionSupabaseAuth(e) {
   try {
     const client = supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null);
     if (client && client.auth) {
-      const { error } = await client.auth.signOut();
-      if (!error) {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = 'index.html';
-        return;
-      } else {
-        console.warn("Supabase auth signOut error:", error.message);
-      }
+      await client.auth.signOut().catch(err => console.warn("Supabase signOut notice:", err));
     }
   } catch (err) {
     console.warn("Supabase auth signOut exception:", err);
   }
 
-  localStorage.clear();
+  // Limpiar únicamente las sesiones de autenticación activa para preservar datos locales
+  localStorage.removeItem('fitpro_persisted_athlete_session');
+  localStorage.removeItem('fitpro_local_auth_session');
+  
+  // Limpiar tokens de supabase en localStorage
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+      localStorage.removeItem(k);
+    }
+  });
+
   sessionStorage.clear();
-  window.location.href = 'index.html';
+  sesionUsuarioActual = null;
+  window.esSesionModoAtleta = false;
+  document.body.classList.remove('is-athlete-mode');
+  
+  // Redirigir a URL limpia sin parámetros de consulta
+  window.location.href = window.location.pathname;
 }
 
 // Aliases para máxima compatibilidad con llamadas de eventos
@@ -1588,6 +1635,23 @@ function inyectarOnboardingSiEsNuevo(userId) {
 // ──────────────────────────────────────────────────────────────
 // 🔗 ENLACE SEGURO DEL PORTAL DEL ATLETA — Tokens base64
 // ──────────────────────────────────────────────────────────────
+// 🌐 URL BASE DE PRODUCCIÓN — evita esquemas file:// en enlaces compartidos
+const FITPRO_PRODUCTION_URL = 'https://fitpro-suite-pro.vercel.app';
+
+/**
+ * Devuelve la URL base segura para construir enlaces compartibles.
+ * Si la app corre en un entorno web válido (http/https), usa la ubicación actual.
+ * De lo contrario cae al dominio de producción en Netlify.
+ */
+function getAppBaseUrl() {
+  const origin = window.location.origin;
+  // Detectar protocolos no web: file://, about:, chrome-extension:, etc.
+  if (origin && origin.startsWith('http')) {
+    return origin;
+  }
+  return FITPRO_PRODUCTION_URL;
+}
+
 function generarEnlaceAtleta(clienteId) {
   const cliente = clientes.find(c => c.id == clienteId);
   if (!cliente) return null;
@@ -1600,8 +1664,8 @@ function generarEnlaceAtleta(clienteId) {
   } catch(e) {
     token = btoa(encodeURIComponent(payload));
   }
-  const base = window.location.origin + window.location.pathname;
-  return `${base}?t=${token}`;
+  const base = getAppBaseUrl();
+  return `${base}/?t=${encodeURIComponent(token)}`;
 }
 
 function resolverTokenAtleta(token) {
@@ -1726,22 +1790,129 @@ function persistirDatosUsuarioActual() {
 function establecerSesionActiva(session, user = null) {
   sesionUsuarioActual = session;
   const u = user || session?.user;
+  const uEmail = (u?.email || '').toLowerCase().trim();
+  const urlParams = new URLSearchParams(window.location.search);
+  const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
+  const tokenParam = urlParams.get('t');
+  let atletaDeToken = null;
+  if (tokenParam) {
+    atletaDeToken = resolverTokenAtleta(tokenParam);
+  }
+
+  // 1. Recopilar cartera de clientes para verificar si este email pertenece a un atleta
+  let listaClientes = Array.isArray(clientes) ? [...clientes] : [];
+  try {
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (k.startsWith('fitpro_clientes_') || k === 'fitpro_clientes') {
+        const d = leerStorageCifrado(k);
+        if (Array.isArray(d)) {
+          d.forEach(c => {
+            if (c && !listaClientes.some(exist => String(exist.id) === String(c.id))) {
+              listaClientes.push(c);
+            }
+          });
+        }
+      }
+    });
+  } catch (e) {
+    console.warn("Notice escaneando clientes para sesión activa:", e);
+  }
+
+  const clienteRegistrado = listaClientes.find(c => c.email && c.email.toLowerCase().trim() === uEmail);
+  const rolMeta = String(u?.user_metadata?.role || '').toLowerCase();
+  const esCoachExplicito = rolMeta.includes('coach') || rolMeta.includes('admin') || rolMeta.includes('entrenador') || rolMeta.includes('readaptador') || rolMeta.includes('nutricionista');
+
+  // 2. Detección inequívoca de rol Atleta / Alumno
+  const esAtleta = perfilAuthActual === 'athlete' ||
+                   rolMeta.includes('athlete') ||
+                   rolMeta.includes('atleta') ||
+                   rolMeta.includes('alumn') ||
+                   uEmail.includes('@atleta.') ||
+                   uEmail.includes('@cliente.') ||
+                   window.esSesionModoAtleta === true ||
+                   session?.esModoAtleta === true ||
+                   Boolean(atletaParam) ||
+                   Boolean(atletaDeToken) ||
+                   urlParams.get('view') === 'athlete' ||
+                   (Boolean(clienteRegistrado) && !esCoachExplicito);
+
+  if (esAtleta) {
+    console.log("🔒 Modo Atleta Exclusivo Activado para:", uEmail || u?.user_metadata?.full_name);
+    window.esSesionModoAtleta = true;
+    document.body.classList.add('is-athlete-mode');
+    document.body.classList.remove('auth-pending');
+
+    const layout = document.getElementById('app-layout');
+    if (layout) layout.style.display = 'flex';
+
+    const authOverlay = document.getElementById('auth-overlay-view');
+    if (authOverlay) {
+      authOverlay.classList.add('hidden');
+      authOverlay.style.display = 'none';
+    }
+
+    // Ocultar forzosamente sidebar, cabeceras y barra inferior del coach
+    const sidebar = document.getElementById('app-sidebar');
+    if (sidebar) sidebar.style.setProperty('display', 'none', 'important');
+    const mobileHeader = document.querySelector('.mobile-header');
+    if (mobileHeader) mobileHeader.style.setProperty('display', 'none', 'important');
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    if (mobileMenuBtn) mobileMenuBtn.style.setProperty('display', 'none', 'important');
+    const mobileBottomNav = document.querySelector('.mobile-bottom-nav');
+    if (mobileBottomNav) mobileBottomNav.style.setProperty('display', 'none', 'important');
+
+    const athleteUser = {
+      id: clienteRegistrado?.id || u.id,
+      email: u.email,
+      user_metadata: {
+        full_name: clienteRegistrado?.nombre || u.user_metadata?.full_name || u.email?.split('@')[0],
+        role: 'athlete'
+      }
+    };
+
+    sesionUsuarioActual = {
+      ...session,
+      user: athleteUser,
+      esModoAtleta: true
+    };
+
+    guardarStorageCifrado('fitpro_persisted_athlete_session', {
+      user: athleteUser,
+      cliente: clienteRegistrado,
+      timestamp: Date.now()
+    });
+
+    // Cargar dinámicamente el plan, dieta y medidas asignadas al alumno
+    if (typeof cargarDatosContextoAtleta === 'function') {
+      cargarDatosContextoAtleta({
+        id: athleteUser.id,
+        email: athleteUser.email,
+        nombre: athleteUser.user_metadata.full_name
+      });
+    }
+
+    renderPortalAtleta(athleteUser);
+    navegarA('athlete-portal');
+    verificarCambioPasswordObligatorioWeb(athleteUser);
+    return;
+  }
+
+  // --- MODO COACH (ENTRENADOR CON ACCESO TOTAL) ---
+  console.log("🏋️ Modo Coach / Administración Activado para:", uEmail);
+  window.esSesionModoAtleta = false;
+  document.body.classList.remove('is-athlete-mode');
+  document.body.classList.remove('auth-pending');
+
   const userId = u?.id || 'demo_coach';
   const esDemo = session?.esModoDemo || false;
 
-  // 1. Cargar almacenamiento exclusivo para este usuario
+  // 1. Cargar almacenamiento exclusivo para el coach
   cargarDatosPorUsuario(userId, esDemo);
-
-  // 1b. Inyectar datos de onboarding si es un coach nuevo sin datos
   if (!esDemo) inyectarOnboardingSiEsNuevo(userId);
 
-  // 2. Remover bloqueo en body, ocultar pantalla auth y mostrar app layout
-  document.body.classList.remove('auth-pending');
-  
   const layout = document.getElementById('app-layout');
-  if (layout) {
-    layout.style.display = 'flex';
-  }
+  if (layout) layout.style.display = 'flex';
 
   const authOverlay = document.getElementById('auth-overlay-view');
   if (authOverlay) {
@@ -1749,7 +1920,17 @@ function establecerSesionActiva(session, user = null) {
     authOverlay.style.display = 'none';
   }
 
-  // 3. Actualizar UI del usuario (Avatar, Nombre, Rol, Gym)
+  // Restaurar visibilidad del sidebar y controles administrativos
+  const sidebar = document.getElementById('app-sidebar');
+  if (sidebar) sidebar.style.removeProperty('display');
+  const mobileHeader = document.querySelector('.mobile-header');
+  if (mobileHeader) mobileHeader.style.removeProperty('display');
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  if (mobileMenuBtn) mobileMenuBtn.style.removeProperty('display');
+  const mobileBottomNav = document.querySelector('.mobile-bottom-nav');
+  if (mobileBottomNav) mobileBottomNav.style.removeProperty('display');
+
+  // Actualizar UI del coach
   const nombre = u?.user_metadata?.full_name || u?.email?.split('@')[0] || (esDemo ? 'Coach Master Pro' : 'Coach Pro');
   const rol = u?.user_metadata?.role || 'Head Coach & Readaptador';
   const gymId = u?.user_metadata?.gym_id;
@@ -1769,7 +1950,7 @@ function establecerSesionActiva(session, user = null) {
     avatarEl.innerText = iniciales;
   }
 
-  // 4. Si es un usuario real, consultar sus datos aislados de Supabase Cloud y activar Realtime
+  // Si es un usuario real, consultar sus datos de Supabase Cloud
   if (!esDemo && supabaseClient) {
     cargarClientesDesdeSupabase();
     cargarFinanzasDesdeSupabase();
@@ -1777,7 +1958,7 @@ function establecerSesionActiva(session, user = null) {
     iniciarSuscripcionesRealtimeSupabase();
   }
 
-  // 5. Renderizar todas las vistas
+  // Renderizar vistas del coach
   renderClientes();
   renderPlanes();
   renderFinanzas();
@@ -1787,51 +1968,7 @@ function establecerSesionActiva(session, user = null) {
   renderAnalyticsAtleta();
   renderAlertasProactivas();
 
-  // 6. Verificar si la sesión pertenece a un Atleta (incluye soporte de token ?t=)
-  const urlParams = new URLSearchParams(window.location.search);
-  const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
-  const tokenParam = urlParams.get('t');
-  let atletaDeToken = null;
-  if (tokenParam) {
-    atletaDeToken = resolverTokenAtleta(tokenParam);
-    if (atletaDeToken) window.esSesionModoAtleta = true;
-  }
-  const esAtletaRole = u?.user_metadata?.role === 'athlete' || 
-                       (u?.user_metadata?.role && String(u.user_metadata.role).toLowerCase().includes('atleta')) || 
-                       (u?.email && String(u.email).toLowerCase().includes('@atleta.')) ||
-                       window.esSesionModoAtleta === true || 
-                       Boolean(atletaParam) ||
-                       Boolean(atletaDeToken) ||
-                       urlParams.get('view') === 'athlete';
-
-  if (esAtletaRole) {
-    console.log("🔒 Modo Atleta Exclusivo Activado — Ocultando menú de administración.");
-    document.body.classList.add('is-athlete-mode');
-    window.esSesionModoAtleta = true;
-    
-    // Ocultar forzosamente sidebar y menús de superadmin
-    const sidebar = document.getElementById('app-sidebar');
-    if (sidebar) sidebar.style.setProperty('display', 'none', 'important');
-    const mobileHeader = document.querySelector('.mobile-header');
-    if (mobileHeader) mobileHeader.style.setProperty('display', 'none', 'important');
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    if (mobileMenuBtn) mobileMenuBtn.style.setProperty('display', 'none', 'important');
-
-    renderPortalAtleta(u);
-    navegarA('athlete-portal');
-  } else {
-    document.body.classList.remove('is-athlete-mode');
-    window.esSesionModoAtleta = false;
-    const sidebar = document.getElementById('app-sidebar');
-    if (sidebar) sidebar.style.removeProperty('display');
-    const mobileHeader = document.querySelector('.mobile-header');
-    if (mobileHeader) mobileHeader.style.removeProperty('display');
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    if (mobileMenuBtn) mobileMenuBtn.style.removeProperty('display');
-    navegarA('dashboard');
-  }
-
-  // 7. Verificar si el usuario tiene bandera de cambio obligatorio de contraseña (Web / PWA)
+  navegarA('dashboard');
   verificarCambioPasswordObligatorioWeb(u);
 }
 
@@ -4111,7 +4248,7 @@ function navegarA(viewName, registrarHistorial = true) {
     if (!viewName) return;
 
     // Si el usuario es un Atleta, forzar que solo acceda al Portal del Atleta
-    if (document.body.classList.contains('is-athlete-mode') && viewName !== 'athlete-portal') {
+    if ((document.body.classList.contains('is-athlete-mode') || window.esSesionModoAtleta) && viewName !== 'athlete-portal') {
       viewName = 'athlete-portal';
     }
 
@@ -4883,8 +5020,8 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
   const gymName = getGimnasioActivo().nombre;
   const atletaSlug = encodeURIComponent(cliente.nombre);
   const atletaEmail = encodeURIComponent(cliente.email || '');
-  const atletaId = cliente.id;
-  const appBaseUrl = window.location.origin;
+  const atletaId = encodeURIComponent(cliente.id);
+  const appBaseUrl = getAppBaseUrl();
   const directAthleteUrl = `${appBaseUrl}/?atleta=${atletaSlug}&email=${atletaEmail}&id=${atletaId}&view=athlete`;
 
   const mensaje = 
@@ -12058,6 +12195,106 @@ function arrancarAplicacionFitPro() {
   }
 }
 
+function cargarDatosContextoAtleta(criterio = {}) {
+  try {
+    let todosClientes = Array.isArray(clientes) ? [...clientes] : [];
+    let todosPlanes = Array.isArray(planesGuardados) ? [...planesGuardados] : [];
+    let todasDietas = Array.isArray(dietasGuardadas) ? [...dietasGuardadas] : [];
+    let todasMetricas = Array.isArray(metricasEvolucionDB) ? [...metricasEvolucionDB] : [];
+    let todosFuerza = Array.isArray(registrosFuerzaDB) ? [...registrosFuerzaDB] : [];
+
+    // 1. Escanear todo el almacenamiento de claves en localStorage para recopilar datos creados por el coach
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (k.startsWith('fitpro_clientes_') || k === 'fitpro_clientes') {
+        const data = leerStorageCifrado(k);
+        if (Array.isArray(data)) {
+          data.forEach(c => {
+            if (c && !todosClientes.some(exist => String(exist.id) === String(c.id))) {
+              todosClientes.push(c);
+            }
+          });
+        }
+      }
+      if (k.startsWith('fitpro_planes_') || k === 'fitpro_planes') {
+        const data = leerStorageCifrado(k);
+        if (Array.isArray(data)) {
+          data.forEach(p => {
+            if (p && !todosPlanes.some(exist => String(exist.id) === String(p.id))) {
+              todosPlanes.push(p);
+            }
+          });
+        }
+      }
+      if (k.startsWith('fitpro_dietas_') || k === 'fitpro_dietas') {
+        const data = leerStorageCifrado(k);
+        if (Array.isArray(data)) {
+          data.forEach(d => {
+            if (d && !todasDietas.some(exist => String(exist.id) === String(d.id))) {
+              todasDietas.push(d);
+            }
+          });
+        }
+      }
+      if (k.startsWith('fitpro_metricas_') || k === 'fitpro_metricas') {
+        const data = leerStorageCifrado(k);
+        if (Array.isArray(data)) {
+          data.forEach(m => {
+            if (m && !todasMetricas.some(exist => String(exist.id) === String(m.id))) {
+              todasMetricas.push(m);
+            }
+          });
+        }
+      }
+      if (k.startsWith('fitpro_fuerza_') || k === 'fitpro_fuerza') {
+        const data = leerStorageCifrado(k);
+        if (Array.isArray(data)) {
+          data.forEach(f => {
+            if (f && !todosFuerza.some(exist => String(exist.id) === String(f.id))) {
+              todosFuerza.push(f);
+            }
+          });
+        }
+      }
+    });
+
+    // 2. Asignar referencias globales
+    clientes = todosClientes;
+    planesGuardados = todosPlanes;
+    dietasGuardadas = todasDietas;
+    metricasEvolucionDB = todasMetricas;
+    registrosFuerzaDB = todosFuerza;
+    window.clientes = clientes;
+    window.planesGuardados = planesGuardados;
+    window.dietasGuardadas = dietasGuardadas;
+    window.metricasEvolucionDB = metricasEvolucionDB;
+    window.registrosFuerzaDB = registrosFuerzaDB;
+
+    // 3. Buscar atleta por criterio
+    let match = null;
+    if (criterio.id) {
+      match = todosClientes.find(c => String(c.id) === String(criterio.id));
+    }
+    if (!match && criterio.email) {
+      const em = String(criterio.email).toLowerCase().trim();
+      match = todosClientes.find(c => c.email && c.email.toLowerCase().trim() === em);
+    }
+    if (!match && criterio.nombre) {
+      const nom = String(criterio.nombre).toLowerCase().trim();
+      match = todosClientes.find(c => c.nombre && c.nombre.toLowerCase().trim() === nom);
+    }
+    if (!match && todosClientes.length > 0) {
+      match = todosClientes[0];
+    }
+
+    return match;
+  } catch (err) {
+    console.warn("Notice cargando contexto dinámico de atleta:", err);
+    return null;
+  }
+}
+window.cargarDatosContextoAtleta = cargarDatosContextoAtleta;
+
 function procesarDeepLinkAtletaUrl() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -12067,102 +12304,78 @@ function procesarDeepLinkAtletaUrl() {
     const atletaIdParam = urlParams.get('id') || urlParams.get('atletaId');
     const vistaParam = urlParams.get('view') || urlParams.get('vista');
 
-    // 🔗 Resolver token seguro (enlace desde expediente del coach)
+    // Comprobar si hay señal de deep-link de atleta
+    const esDeepLink = Boolean(tokenParam || atletaParam || emailParam || atletaIdParam || vistaParam === 'athlete');
+    if (!esDeepLink) return;
+
+    // Activar modo atleta estricto
+    window.esSesionModoAtleta = true;
+    document.body.classList.add('is-athlete-mode');
+
+    // 🔗 Resolver token seguro si está presente
+    let clienteDeToken = null;
     if (tokenParam) {
-      const clienteDeToken = resolverTokenAtleta(tokenParam);
-      if (clienteDeToken) {
-        console.log(`🔗 Token de portal de atleta resuelto: ${clienteDeToken.nombre}`);
-        window.esSesionModoAtleta = true;
-        document.body.classList.add('is-athlete-mode');
-
-        const athleteUser = {
-          id: clienteDeToken.id,
-          email: clienteDeToken.email || '',
-          user_metadata: { full_name: clienteDeToken.nombre, role: 'athlete' }
-        };
-        sesionUsuarioActual = { user: athleteUser, esModoAtleta: true };
-        ocultarPantallaAuth();
-        renderPortalAtleta(athleteUser);
-        navegarA('athlete-portal');
-
-        if (window.history && window.history.replaceState) {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        setTimeout(() => abrirModalBienvenidaAtleta(clienteDeToken.nombre), 500);
-        return; // Token resuelto — no continuar con parámetros clásicos
-      }
+      clienteDeToken = resolverTokenAtleta(tokenParam);
     }
 
-    if (atletaParam || emailParam || atletaIdParam || vistaParam === 'athlete') {
-      console.log(`🔗 Enlace directo de atleta detectado vía URL`);
-      window.esSesionModoAtleta = true;
-      document.body.classList.add('is-athlete-mode');
+    // Cargar datos dinámicos actualizados del almacenamiento
+    const clienteEncontrado = cargarDatosContextoAtleta({
+      id: atletaIdParam || clienteDeToken?.id,
+      email: emailParam ? decodeURIComponent(emailParam) : clienteDeToken?.email,
+      nombre: atletaParam ? decodeURIComponent(atletaParam) : clienteDeToken?.nombre
+    });
 
-      // 1. Buscar o reconstruir perfil del atleta
-      let clienteObj = null;
-      if (atletaIdParam) {
-        clienteObj = clientes.find(c => String(c.id) === String(atletaIdParam));
-      }
-      if (!clienteObj && emailParam) {
-        const em = decodeURIComponent(emailParam).toLowerCase();
-        clienteObj = clientes.find(c => c.email && c.email.toLowerCase() === em);
-      }
-      if (!clienteObj && atletaParam) {
-        const nom = decodeURIComponent(atletaParam).toLowerCase();
-        clienteObj = clientes.find(c => c.nombre && c.nombre.toLowerCase() === nom);
-      }
-      if (!clienteObj && clientes.length > 0) {
-        clienteObj = clientes[0];
-      }
-      if (!clienteObj) {
-        clienteObj = {
-          id: atletaIdParam || `atleta_${Date.now()}`,
-          nombre: atletaParam ? decodeURIComponent(atletaParam) : "Carlos Mendoza",
-          email: emailParam ? decodeURIComponent(emailParam) : "atleta@fitprosuite.com",
-          objetivo: "Hipertrofia & Rendimiento",
-          entrenador: "Coach Master Pro",
-          peso: 75.0,
-          altura: 175,
-          estadoMembresia: "activa"
-        };
-      }
+    let clienteObj = clienteEncontrado || clienteDeToken;
 
-      const athleteUser = {
-        id: clienteObj.id,
-        email: clienteObj.email,
-        user_metadata: {
-          full_name: clienteObj.nombre,
-          role: 'athlete'
-        }
+    if (!clienteObj) {
+      clienteObj = {
+        id: atletaIdParam || `atleta_${Date.now()}`,
+        nombre: atletaParam ? decodeURIComponent(atletaParam) : "Carlos Mendoza",
+        email: emailParam ? decodeURIComponent(emailParam) : "atleta@fitprosuite.com",
+        objetivo: "Hipertrofia & Rendimiento",
+        entrenador: "Coach Master Pro",
+        peso: 75.0,
+        altura: 175,
+        estadoMembresia: "activa"
       };
+    }
 
-      // 2. Guardar sesión permanente para que el teléfono recuerde al atleta SIEMPRE
-      guardarStorageCifrado('fitpro_persisted_athlete_session', {
-        user: athleteUser,
-        cliente: clienteObj,
-        timestamp: Date.now()
-      });
+    const athleteUser = {
+      id: clienteObj.id,
+      email: clienteObj.email,
+      user_metadata: {
+        full_name: clienteObj.nombre,
+        role: 'athlete'
+      }
+    };
 
-      sesionUsuarioActual = {
-        user: athleteUser,
-        esModoAtleta: true
-      };
+    // Guardar sesión permanente para que el teléfono recuerde al atleta SIEMPRE
+    guardarStorageCifrado('fitpro_persisted_athlete_session', {
+      user: athleteUser,
+      cliente: clienteObj,
+      timestamp: Date.now()
+    });
 
-      // 3. Ocultar pantalla de login y entrar directamente al portal
-      ocultarPantallaAuth();
-      renderPortalAtleta(athleteUser);
-      navegarA('athlete-portal');
+    sesionUsuarioActual = {
+      user: athleteUser,
+      esModoAtleta: true
+    };
 
-      // 4. Abrir modal de bienvenida y auto-instalación en 1 toque
+    // Ocultar pantalla de login y entrar directamente al portal
+    ocultarPantallaAuth();
+    renderPortalAtleta(athleteUser);
+    navegarA('athlete-portal');
+
+    // Si viene de token o link directo, abrir modal de bienvenida
+    if (tokenParam || atletaParam) {
       setTimeout(() => {
         abrirModalBienvenidaAtleta(clienteObj.nombre);
       }, 500);
+    }
 
-      // 5. Limpiar parámetros sensibles de la barra de direcciones de forma segura
-      if (window.history && window.history.replaceState) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+    // Limpiar parámetros de la barra de direcciones de forma segura
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   } catch (err) {
     console.warn("Notice procesando deep link URL:", err);
@@ -12209,17 +12422,23 @@ function renderPortalAtleta(userObj) {
     // 1. Buscar atleta en la base de datos de clientes
     let cliente = null;
     if (atletaIdParam) {
-      cliente = clientes.find(c => String(c.id) === String(atletaIdParam));
+      cliente = (clientes || []).find(c => String(c.id) === String(atletaIdParam));
+    }
+    if (!cliente && (userObj?.id || userObj?.user_id)) {
+      const uId = userObj.id || userObj.user_id;
+      cliente = (clientes || []).find(c => String(c.id) === String(uId));
     }
     if (!cliente && (userObj?.email || userObj?.user_metadata?.email)) {
       const email = (userObj?.email || userObj?.user_metadata?.email || '').toLowerCase();
-      cliente = clientes.find(c => c.email && c.email.toLowerCase() === email);
+      cliente = (clientes || []).find(c => c.email && c.email.toLowerCase() === email);
     }
-    if (!cliente && atletaParam) {
-      const decoded = decodeURIComponent(atletaParam).toLowerCase();
-      cliente = clientes.find(c => c.nombre && c.nombre.toLowerCase() === decoded);
+    if (!cliente && (userObj?.user_metadata?.full_name || atletaParam)) {
+      const decoded = (userObj?.user_metadata?.full_name || (atletaParam ? decodeURIComponent(atletaParam) : '')).toLowerCase();
+      if (decoded) {
+        cliente = (clientes || []).find(c => c.nombre && c.nombre.toLowerCase() === decoded);
+      }
     }
-    if (!cliente && clientes.length > 0) {
+    if (!cliente && clientes && clientes.length > 0) {
       cliente = clientes[0];
     }
 
@@ -12251,7 +12470,7 @@ function renderPortalAtleta(userObj) {
 
     if (nombreEl) nombreEl.innerText = cliente.nombre;
     if (objetivoEl) objetivoEl.innerText = cliente.objetivo || "Hipertrofia & Rendimiento";
-    if (gymEl) gymEl.innerText = getGimnasioActivo().nombre;
+    if (gymEl) gymEl.innerText = (typeof getGimnasioActivo === 'function' ? getGimnasioActivo().nombre : "FitPro Central Hub");
     if (coachEl) coachEl.innerText = cliente.entrenador || "Coach Master Pro";
     if (avatarEl) {
       const iniciales = cliente.nombre.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'AT';
@@ -12265,9 +12484,9 @@ function renderPortalAtleta(userObj) {
     // 2. Renderizar Rutina del Atleta
     const rutinaContainer = document.getElementById('athlete-portal-rutina-container');
     if (rutinaContainer) {
-      let planesCliente = planesGuardados.filter(p => p.cliente && p.cliente.toLowerCase() === cliente.nombre.toLowerCase());
+      let planesCliente = (planesGuardados || []).filter(p => p.cliente && p.cliente.toLowerCase() === cliente.nombre.toLowerCase());
       
-      // Fallback inteligente a plan biomecánico de élite si aún no tiene uno creado
+      // Fallback inteligente a plan biomecánico si aún no tiene uno creado
       if (!planesCliente || planesCliente.length === 0) {
         planesCliente = [{
           metodo: "Sobrecarga Progresiva & Estímulo Biomecánico Adaptado",
@@ -12278,7 +12497,7 @@ function renderPortalAtleta(userObj) {
               nombre: "Día 1: Empuje & Hipertrofia Clavicular",
               enfoque: "Pecho / Deltoides Anterior / Tríceps",
               ejercicios: [
-                { nombre: "Press Inclinado con Mancuernas (30°)", series: 4, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "120s", notas: "Escápulas retraducidas y pausa isométrica de 1s en contracción máxima." },
+                { nombre: "Press Inclinado con Mancuernas (30°)", series: 4, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "120s", notas: "Escápulas retraídas y pausa isométrica de 1s en contracción máxima." },
                 { nombre: "Press Plano en Máquina Convergente", series: 3, repeticiones: "10-12", rpe: 8, rir: 2, descanso: "90s", notas: "Control excéntrico en 3 segundos para mayor tensión mecánica." },
                 { nombre: "Elevaciones Laterales en Polea Baja", series: 4, repeticiones: "12-15", rpe: 9, rir: 1, descanso: "60s", notas: "Línea escapular a 45 grados." },
                 { nombre: "Fondos en Paralelas Lastrados", series: 3, repeticiones: "8-10", rpe: 8.5, rir: 1, descanso: "90s", notas: "Torso inclinado 15 grados al frente." },
@@ -12312,6 +12531,32 @@ function renderPortalAtleta(userObj) {
       }
 
       const plan = planesCliente[0];
+
+      // Si el plan no tiene días estructurados pero sí ejercicios, estructurarlo automáticamente
+      if (!plan.dias || !Array.isArray(plan.dias) || plan.dias.length === 0) {
+        const ejsRaw = Array.isArray(plan.ejercicios) ? plan.ejercicios : (plan.ejercicios ? String(plan.ejercicios).split(' | ') : []);
+        plan.dias = [{
+          nombre: "Sesión Principal Prescrita",
+          enfoque: plan.objetivo || "Fuerza & Rendimiento",
+          ejercicios: ejsRaw.map(item => {
+            const str = String(item || '').trim();
+            const seriesMatch = str.match(/(\d+)\s*[x×]\s*(\d+[\-\d]*)/i);
+            const rpeMatch = str.match(/RPE\s*(\d+[\.\d]*)/i);
+            const descansoMatch = str.match(/Descanso:\s*([^\s\|]+)/i);
+            const nombreLimpio = str.replace(/\(.*?\)/g, '').replace(/- Descanso:.*/g, '').trim() || str;
+            return {
+              nombre: nombreLimpio,
+              series: seriesMatch ? parseInt(seriesMatch[1]) : 4,
+              repeticiones: seriesMatch ? seriesMatch[2] : "8-12",
+              rpe: rpeMatch ? parseFloat(rpeMatch[1]) : 8.5,
+              rir: 1,
+              descanso: descansoMatch ? descansoMatch[1] : "90s",
+              notas: str.includes('|') ? str.split('|').slice(1).join(' ').trim() : ''
+            };
+          })
+        }];
+      }
+
       let ejerciciosHtml = '';
       if (plan.dias && plan.dias.length > 0) {
         ejerciciosHtml = plan.dias.map((d, dIdx) => `
@@ -12425,13 +12670,13 @@ function renderPortalAtleta(userObj) {
     // 3. Renderizar Plan Nutricional
     const dietaContainer = document.getElementById('athlete-portal-dieta-container');
     if (dietaContainer) {
-      let dietasCliente = dietasGuardadas.filter(d => d.cliente && d.cliente.toLowerCase() === cliente.nombre.toLowerCase());
+      let dietasCliente = (dietasGuardadas || []).filter(d => d.cliente && d.cliente.toLowerCase() === cliente.nombre.toLowerCase());
       
       const pesoAtleta = parseFloat(cliente.peso) || 75.0;
-      const tdeeCalc = Math.round(pesoAtleta * 32);
-      const protCalc = Math.round(pesoAtleta * 2.2);
-      const grasaCalc = Math.round(pesoAtleta * 0.9);
-      const carbCalc = Math.round((tdeeCalc - (protCalc * 4 + grasaCalc * 9)) / 4);
+      const tdeeCalc = cliente.tdeeSincronizado || Math.round(pesoAtleta * 32);
+      const protCalc = cliente.proteinaGrs || Math.round(pesoAtleta * 2.2);
+      const grasaCalc = cliente.grasaGrs || Math.round(pesoAtleta * 0.9);
+      const carbCalc = cliente.carboGrs || Math.round((tdeeCalc - (protCalc * 4 + grasaCalc * 9)) / 4);
 
       const dieta = (dietasCliente && dietasCliente.length > 0) ? dietasCliente[0] : {
         tdee: tdeeCalc,
@@ -12439,6 +12684,51 @@ function renderPortalAtleta(userObj) {
         carbo: carbCalc,
         grasa: grasaCalc
       };
+
+      // Comidas estructuradas
+      let comidasHtml = '';
+      if (dieta.comidas && Array.isArray(dieta.comidas) && dieta.comidas.length > 0) {
+        comidasHtml = dieta.comidas.map((c, idx) => `
+          <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; color:#10b981; font-size:15px;">${c.titulo || c.nombre || `Comida ${idx + 1}`}</div>
+              <span style="font-size:12px; color:var(--text-muted);">${c.hora || ''}</span>
+            </div>
+            <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">${c.alimentos || c.descripcion || ''}</div>
+          </div>
+        `).join('');
+      } else {
+        comidasHtml = `
+          <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; color:#10b981; font-size:15px;">🍳 Comida 1: Desayuno Energético</div>
+              <span style="font-size:12px; color:var(--text-muted);">07:30 AM - 08:30 AM</span>
+            </div>
+            <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">3-4 Huevos enteros revueltos + 80g Avena integral cocida con frutos rojos, 1 manzana y 20g almendras.</div>
+          </div>
+          <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; color:#38bdf8; font-size:15px;">🍗 Comida 2: Almuerzo Principal (Anabolismo)</div>
+              <span style="font-size:12px; color:var(--text-muted);">01:00 PM - 02:00 PM</span>
+            </div>
+            <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">200g Pechuga de pollo a la plancha / Salmón fresco + 200g Arroz jazmín + Ensalada verde mixta con 1 cucharada de aceite de oliva extra virgen.</div>
+          </div>
+          <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; color:#fbbf24; font-size:15px;">🥪 Comida 3: Merienda Pre-Entrenamiento</div>
+              <span style="font-size:12px; color:var(--text-muted);">05:00 PM - 05:30 PM</span>
+            </div>
+            <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">1 Scoop Whey Protein Isolate en agua + 1 Plátano maduro + 2 tostadas de arroz con 30g de crema de cacahuate natural.</div>
+          </div>
+          <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; color:#a78bfa; font-size:15px;">🥩 Comida 4: Cena Tisular & Recuperación</div>
+              <span style="font-size:12px; color:var(--text-muted);">08:30 PM - 09:30 PM</span>
+            </div>
+            <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">180g Ternera magra / Pescado blanco al horno + 250g Camote asado + Espárragos o brócoli al vapor.</div>
+          </div>
+        `;
+      }
 
       dietaContainer.innerHTML = `
         <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
@@ -12453,7 +12743,7 @@ function renderPortalAtleta(userObj) {
             <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:24px;">🥩</div>
             <div>
               <div class="stat-value" style="font-size:24px; font-weight:900; font-family:var(--font-heading); color:#10b981;">${dieta.proteina || 165} <span style="font-size:14px; color:var(--text-muted);">g</span></div>
-              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Proteínas (2.2g / kg)</div>
+              <div class="stat-label" style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Proteínas</div>
             </div>
           </div>
           <div class="stat-card" style="background:rgba(18,26,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-card);">
@@ -12477,34 +12767,7 @@ function renderPortalAtleta(userObj) {
             🥗 Menú Estructurado de Comidas del Día
           </h3>
           <div style="display:grid; gap:14px;">
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <div style="font-weight:800; color:#10b981; font-size:15px;">🍳 Comida 1: Desayuno Energético</div>
-                <span style="font-size:12px; color:var(--text-muted);">07:30 AM - 08:30 AM</span>
-              </div>
-              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">3-4 Huevos enteros revueltos + 80g Avena integral cocida con frutos rojos, 1 manzana y 20g almendras.</div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <div style="font-weight:800; color:#38bdf8; font-size:15px;">🍗 Comida 2: Almuerzo Principal (Anabolismo)</div>
-                <span style="font-size:12px; color:var(--text-muted);">01:00 PM - 02:00 PM</span>
-              </div>
-              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">200g Pechuga de pollo a la plancha / Salmón fresco + 200g Arroz jazmín + Ensalada verde mixta con 1 cucharada de aceite de oliva extra virgen.</div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <div style="font-weight:800; color:#fbbf24; font-size:15px;">🥪 Comida 3: Merienda Pre-Entrenamiento</div>
-                <span style="font-size:12px; color:var(--text-muted);">05:00 PM - 05:30 PM</span>
-              </div>
-              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">1 Scoop Whey Protein Isolate en agua + 1 Plátano maduro + 2 tostadas de arroz con 30g de crema de cacahuate natural.</div>
-            </div>
-            <div style="background:rgba(10,15,26,0.6); padding:16px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <div style="font-weight:800; color:#a78bfa; font-size:15px;">🥩 Comida 4: Cena Tisular & Recuperación</div>
-                <span style="font-size:12px; color:var(--text-muted);">08:30 PM - 09:30 PM</span>
-              </div>
-              <div style="color:#e2e8f0; font-size:13.5px; line-height:1.5;">180g Ternera magra / Pescado blanco al horno + 250g Camote asado + Espárragos o brócoli al vapor.</div>
-            </div>
+            ${comidasHtml}
           </div>
         </div>
       `;
