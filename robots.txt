@@ -1,0 +1,7 @@
+# FitPro Suite Pro — Plataforma Integral de Entrenamiento y Nutrición
+User-agent: *
+Allow: /
+Disallow: /sw.js
+Disallow: /manifest.json
+
+Sitemap: https://fitpro-suite-pro.vercel.app/sitemap.xml

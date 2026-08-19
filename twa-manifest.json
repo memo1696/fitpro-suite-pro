@@ -1,0 +1,29 @@
+{
+  "packageId": "com.fitprosuite.app",
+  "host": "fitpro-suite-pro.vercel.app",
+  "name": "FitPro Suite Pro",
+  "launcherName": "FitPro Suite",
+  "display": "standalone",
+  "themeColor": "#0B0F19",
+  "navigationColor": "#0B0F19",
+  "navigationColorDark": "#0B0F19",
+  "navigationDividerColor": "#1E293B",
+  "navigationDividerColorDark": "#1E293B",
+  "backgroundColor": "#0B0F19",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+  "maskableIconUrl": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "fitpro"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "fullScopeUrl": "https://fitpro-suite-pro.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait"
+}

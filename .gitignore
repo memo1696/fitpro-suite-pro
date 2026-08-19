@@ -1,0 +1,42 @@
+# ==============================================================================
+# 🛡️ FITPRO SUITE PRO — .gitignore
+# ==============================================================================
+
+# Environment & Secrets
+.env
+.env.local
+.env.production
+*.keystore
+android.keystore
+
+# Dependencies
+node_modules/
+.expo/
+npm-debug.*
+yarn-error.*
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+release-apk/
+android-twa/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

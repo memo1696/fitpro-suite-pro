@@ -1,0 +1,79 @@
+{
+  "id": "/?source=pwa",
+  "name": "FitPro Suite Pro — Biomechanical & SaaS Training Suite",
+  "short_name": "FitPro Suite",
+  "description": "Plataforma profesional para entrenadores y gimnasios de prescripción biomecánica, nutrición y gestión de atletas.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0B0F19",
+  "theme_color": "#10B981",
+  "categories": [
+    "fitness",
+    "sports",
+    "health",
+    "productivity",
+    "medical"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard Central",
+      "short_name": "Dashboard",
+      "description": "Ver resumen y métricas de cartera",
+      "url": "./index.html#dashboard",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Base de Atletas",
+      "short_name": "Atletas",
+      "description": "Gestionar atletas y membresías",
+      "url": "./index.html#clients",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Laboratorio Calculadoras",
+      "short_name": "Calculadoras",
+      "description": "Calcular TDEE, 1RM y composición corporal",
+      "url": "./index.html#calculator",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Finanzas & Cobros",
+      "short_name": "Finanzas",
+      "description": "Registro de pagos e ingresos",
+      "url": "./index.html#finances",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2936/2936886.png", "sizes": "192x192" }]
+    }
+  ]
+}
