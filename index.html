@@ -195,15 +195,7 @@
         <span>Planes & Rutinas</span>
       </button>
 
-      <button class="nav-item" data-view="generate" onclick="navegarA('generate')" title="Generador de Rutinas">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span>Generador de Rutinas</span>
-      </button>
 
-      <button class="nav-item" data-view="calculator" onclick="navegarA('calculator')" title="Laboratorio Biomecánico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><circle cx="15" cy="16" r="1.5"/></svg>
-        <span>Laboratorio Biomecánico</span>
-      </button>
 
       <button class="nav-item" data-view="nutrition" onclick="navegarA('nutrition')" title="Nutrición & Dietas">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9s9-4.03 9-9A9 9 0 0 0 12 2zm0 16c-3.86 0-7-3.14-7-7a6.96 6.96 0 0 1 2.05-4.95L12 11l4.95-4.95A6.96 6.96 0 0 1 19 11c0 3.86-3.14 7-7 7z"/></svg>
@@ -1027,7 +1019,13 @@
             <p class="page-subtitle">Diseña prescripciones inteligentes con IA o administra el historial de tus atletas</p>
           </div>
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); padding:4px 10px; border-radius:6px; border:1px solid var(--border-color);">
+            <span style="font-size:12px; color:var(--text-muted); font-weight:600;">👤 Atleta:</span>
+            <select id="plans-atleta-select" class="select-field" style="width:160px; height:32px; padding:0 8px; font-size:12px; font-weight:700; margin:0;" onchange="window.sincronizarAtletaEnModuloPlanes(this.value)">
+              <!-- Llenado dinámicamente -->
+            </select>
+          </div>
           <button class="btn-primary" onclick="abrirModalPlanManual()" style="white-space:nowrap;">✏️ + Diseñar Plan Manual</button>
         </div>
       </header>
@@ -1254,6 +1252,9 @@
               <p class="ai-result-subtitle" id="ai-result-subtitle">Motor biomecánico FitPro — Prescripción optimizada</p>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <button class="btn-secondary" style="padding:8px 14px; font-size:13px; color:var(--accent-green); border-color:var(--accent-green);" onclick="generarRutinaIA()">
+                ✨ Re-generar Rutina con IA
+              </button>
               <button class="btn-secondary" style="padding:8px 14px; font-size:13px;" onclick="imprimirPlanIA()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Imprimir / PDF
