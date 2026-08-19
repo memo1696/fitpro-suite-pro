@@ -5,7 +5,10 @@
 -- 1. Tablas relacionales con Foreign Keys y Constraints (ON DELETE CASCADE)
 -- 2. Control de Concurrencia Optimista (columna 'version' y 'updated_at')
 -- 3. Publicación Realtime de Supabase para sincronización multi-dispositivo sin sobreescrituras
--- 4. Políticas de Row Level Security (RLS) aisladas por Coach y Atleta
+-- 4. Políticas de Row Level Security (RLS) aisladas por Gym (tenant), Coach y Atleta
+--
+-- ⚠️ REQUISITO: El user_metadata de cada usuario debe contener 'gym_id' y 'role'.
+--    Al registrar: options.data = { full_name, role, gym_id }
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
@@ -137,11 +140,15 @@ CREATE TABLE IF NOT EXISTS metricas_evolucion (
 CREATE INDEX IF NOT EXISTS idx_clients_user_gym ON clients(user_id, gym_id);
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_clients_auth_user_id ON clients(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_clients_gym_id ON clients(gym_id);
 CREATE INDEX IF NOT EXISTS idx_planes_user_gym ON planes(user_id, gym_id);
-CREATE INDEX IF NOT EXISTS idx_planes_cliente ON planes(cliente);
+CREATE INDEX IF NOT EXISTS idx_planes_client_id ON planes(client_id);
 CREATE INDEX IF NOT EXISTS idx_dietas_user_gym ON dietas(user_id, gym_id);
-CREATE INDEX IF NOT EXISTS idx_dietas_cliente ON dietas(cliente);
+CREATE INDEX IF NOT EXISTS idx_dietas_client_id ON dietas(client_id);
 CREATE INDEX IF NOT EXISTS idx_finances_user_gym ON finances(user_id, gym_id);
+CREATE INDEX IF NOT EXISTS idx_finances_client_id ON finances(client_id);
+CREATE INDEX IF NOT EXISTS idx_lesiones_client_id ON lesiones(client_id);
+CREATE INDEX IF NOT EXISTS idx_metricas_client_id ON metricas_evolucion(client_id);
 
 -- ------------------------------------------------------------------------------
 -- 3. HABILITACIÓN DE REALTIME EN SUPABASE (PUBLICACIÓN REACTIVA)
@@ -168,7 +175,11 @@ EXCEPTION
 END $$;
 
 -- ------------------------------------------------------------------------------
--- 4. ROW LEVEL SECURITY (RLS) CON AISLAMIENTO COACH / ATLETA
+-- 4. ROW LEVEL SECURITY (RLS) CON AISLAMIENTO POR GYM (TENANT), COACH Y ATLETA
+-- ------------------------------------------------------------------------------
+-- Las políticas de coach usan gym_id del JWT para aislar datos entre sedes.
+-- Las políticas de atleta usan auth_user_id (UUID directo) para identidad segura,
+-- con fallback a email para compatibilidad con registros legacy.
 -- ------------------------------------------------------------------------------
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE planes ENABLE ROW LEVEL SECURITY;
@@ -177,133 +188,219 @@ ALTER TABLE finances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lesiones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metricas_evolucion ENABLE ROW LEVEL SECURITY;
 
--- Limpiar políticas previas
+-- Limpiar políticas previas (incluye nombres legacy por si existen)
 DROP POLICY IF EXISTS "coaches_all_clients" ON clients;
+DROP POLICY IF EXISTS "coaches_gym_clients" ON clients;
 DROP POLICY IF EXISTS "athletes_select_own_client" ON clients;
 DROP POLICY IF EXISTS "athletes_update_own_client" ON clients;
 DROP POLICY IF EXISTS "coaches_all_planes" ON planes;
+DROP POLICY IF EXISTS "coaches_gym_planes" ON planes;
 DROP POLICY IF EXISTS "athletes_select_own_planes" ON planes;
 DROP POLICY IF EXISTS "coaches_all_dietas" ON dietas;
+DROP POLICY IF EXISTS "coaches_gym_dietas" ON dietas;
 DROP POLICY IF EXISTS "athletes_select_own_dietas" ON dietas;
 DROP POLICY IF EXISTS "coaches_all_finances" ON finances;
+DROP POLICY IF EXISTS "coaches_gym_finances" ON finances;
 DROP POLICY IF EXISTS "athletes_select_own_finances" ON finances;
 DROP POLICY IF EXISTS "coaches_all_lesiones" ON lesiones;
+DROP POLICY IF EXISTS "coaches_gym_lesiones" ON lesiones;
 DROP POLICY IF EXISTS "athletes_select_own_lesiones" ON lesiones;
 DROP POLICY IF EXISTS "coaches_all_metricas" ON metricas_evolucion;
+DROP POLICY IF EXISTS "coaches_gym_metricas" ON metricas_evolucion;
 DROP POLICY IF EXISTS "athletes_select_own_metricas" ON metricas_evolucion;
 DROP POLICY IF EXISTS "athletes_insert_own_metricas" ON metricas_evolucion;
 
 -- POLÍTICAS CLIENTS
-CREATE POLICY "coaches_all_clients" ON clients
+-- Coach/Admin: solo ve/edita clients de su propia sede (gym_id)
+CREATE POLICY "coaches_gym_clients" ON clients
   FOR ALL
   USING (
-    user_id = auth.uid() 
-    OR coach_id = auth.uid() 
-    OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+    user_id = auth.uid()
+    OR coach_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
   )
   WITH CHECK (
-    user_id = auth.uid() 
-    OR coach_id = auth.uid() 
-    OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+    user_id = auth.uid()
+    OR coach_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
   );
 
+-- Atleta: solo ve y edita su propio registro (por auth_user_id o email)
 CREATE POLICY "athletes_select_own_client" ON clients
   FOR SELECT
   USING (
-    auth_user_id = auth.uid() 
+    auth_user_id = auth.uid()
     OR email = (auth.jwt() ->> 'email')
   );
 
 CREATE POLICY "athletes_update_own_client" ON clients
   FOR UPDATE
   USING (
-    auth_user_id = auth.uid() 
+    auth_user_id = auth.uid()
     OR email = (auth.jwt() ->> 'email')
   )
   WITH CHECK (
-    auth_user_id = auth.uid() 
+    auth_user_id = auth.uid()
     OR email = (auth.jwt() ->> 'email')
   );
 
--- POLÍTICAS PLANES (CON CONTROL DE CONCURRENCIA)
-CREATE POLICY "coaches_all_planes" ON planes
+-- POLÍTICAS PLANES
+-- Coach/Admin: planes de su propia sede
+CREATE POLICY "coaches_gym_planes" ON planes
   FOR ALL
-  USING (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'))
-  WITH CHECK (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'));
+  USING (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  );
 
+-- Atleta: solo ve planes donde el client_id coincide con su registro
 CREATE POLICY "athletes_select_own_planes" ON planes
   FOR SELECT
   USING (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );
 
 -- POLÍTICAS DIETAS
-CREATE POLICY "coaches_all_dietas" ON dietas
+-- Coach/Admin: dietas de su propia sede
+CREATE POLICY "coaches_gym_dietas" ON dietas
   FOR ALL
-  USING (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'))
-  WITH CHECK (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'));
+  USING (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  );
 
+-- Atleta: solo ve dietas donde el client_id coincide con su registro
 CREATE POLICY "athletes_select_own_dietas" ON dietas
   FOR SELECT
   USING (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );
 
 -- POLÍTICAS FINANCES
-CREATE POLICY "coaches_all_finances" ON finances
+-- Coach/Admin: finanzas de su propia sede
+CREATE POLICY "coaches_gym_finances" ON finances
   FOR ALL
-  USING (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'))
-  WITH CHECK (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'));
+  USING (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  );
 
+-- Atleta: solo ve finanzas donde el client_id coincide con su registro
 CREATE POLICY "athletes_select_own_finances" ON finances
   FOR SELECT
   USING (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );
 
--- POLÍTICAS LESIONES & MÉTRICAS
-CREATE POLICY "coaches_all_lesiones" ON lesiones
+-- POLÍTICAS LESIONES
+-- Coach/Admin: lesiones de su propia sede
+CREATE POLICY "coaches_gym_lesiones" ON lesiones
   FOR ALL
-  USING (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'))
-  WITH CHECK (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'));
+  USING (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  );
 
+-- Atleta: solo ve lesiones donde el client_id coincide con su registro
 CREATE POLICY "athletes_select_own_lesiones" ON lesiones
   FOR SELECT
   USING (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );
 
-CREATE POLICY "coaches_all_metricas" ON metricas_evolucion
+-- POLÍTICAS MÉTRICAS DE EVOLUCIÓN
+-- Coach/Admin: métricas de su propia sede
+CREATE POLICY "coaches_gym_metricas" ON metricas_evolucion
   FOR ALL
-  USING (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'))
-  WITH CHECK (user_id = auth.uid() OR (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin'));
+  USING (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR (
+      (auth.jwt() -> 'user_metadata' ->> 'role') IN ('coach', 'admin')
+      AND gym_id = (auth.jwt() -> 'user_metadata' ->> 'gym_id')
+    )
+  );
 
+-- Atleta: solo ve métricas donde el client_id coincide con su registro
 CREATE POLICY "athletes_select_own_metricas" ON metricas_evolucion
   FOR SELECT
   USING (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );
 
+-- Atleta: puede insertar sus propias métricas (check-ins)
 CREATE POLICY "athletes_insert_own_metricas" ON metricas_evolucion
   FOR INSERT
   WITH CHECK (
-    cliente IN (
-      SELECT nombre FROM clients 
+    client_id IN (
+      SELECT id FROM clients
       WHERE auth_user_id = auth.uid() OR email = (auth.jwt() ->> 'email')
     )
   );

@@ -9,8 +9,8 @@ Este repositorio incluye toda la configuración necesaria para compilar y empaqu
 El repositorio cuenta con el flujo de trabajo CI/CD configurado en `.github/workflows/build-apk.yml`.
 
 1. Haz un **Push** a la rama `main` o ejecuta el flujo manualmente desde la pestaña **Actions** en GitHub (*"Build Android APK (TWA Bubblewrap)"* -> *"Run workflow"*).
-2. El runner de GitHub configurará automáticamente JDK 17, Node.js y Android SDK, compilará el APK firmado con Bubblewrap y lo subirá como un artefacto descargable: **`android-app-release`**.
-3. Descarga el archivo `.apk` y colócalo en la raíz del hosting para habilitar la descarga directa desde el botón de la app.
+2. El runner de GitHub configurará automáticamente JDK 17, Node.js y Android SDK, compilárá el APK firmado con Bubblewrap y lo subirá como un artefacto descargable: **`android-app-release`**.
+3. Descarga el archivo `.apk` y distribúyelo a tus atletas o entrenadores.
 
 ---
 
@@ -40,7 +40,7 @@ Si deseas generar el APK localmente en tu equipo:
    bubblewrap build
    ```
 
-4. Se generará el archivo `app-release-signed.apk`. Renómbralo como **`android-app-release.apk`** y distribúyelo a tus atletas o entrenadores.
+4. Se generará el archivo `app-release-signed.apk`. Renómbralo como **`android-app-release.apk`** y distribúyelo.
 
 ---
 

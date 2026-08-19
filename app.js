@@ -264,13 +264,13 @@ function cambiarGimnasioActivo(nuevoGymId) {
 // ==========================================
 // ☁️ SUPABASE CLOUD DATABASE ENGINE (MULTI-GYM & SECURE ISOLATION)
 // ==========================================
-// Obtención segura y limpia de credenciales públicas (Variables de Entorno o Fallback Anon)
+// Obtención segura de credenciales públicas desde variables de entorno inyectadas
 const getRawSupabaseUrl = () => {
   const url = (typeof window !== 'undefined' && window.ENV && window.ENV.SUPABASE_URL)
     || (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__.SUPABASE_URL)
     || (typeof process !== 'undefined' && process.env && process.env.SUPABASE_URL)
     || localStorage.getItem('fitpro_supabase_url')
-    || "https://rshpzqppvciujwtuzniv.supabase.co";
+    || "";
   return String(url).trim().replace(/^["']|["']$/g, '');
 };
 
@@ -279,7 +279,7 @@ const getRawSupabaseKey = () => {
     || (typeof window !== 'undefined' && window.__ENV__ && (window.__ENV__.SUPABASE_ANON_KEY || window.__ENV__.SUPABASE_PUBLISHABLE_KEY))
     || (typeof process !== 'undefined' && process.env && (process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY))
     || localStorage.getItem('fitpro_supabase_key')
-    || "sb_publishable_nrgHXvg2NJOM1eKbhfd-Nw__RJdg6hx";
+    || "";
   return String(key).trim().replace(/^["']|["']$/g, '');
 };
 
@@ -360,8 +360,14 @@ window.actualizarBadgeSupabaseUI = actualizarBadgeSupabaseUI;
 
 function initSupabaseClient() {
   try {
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+      console.warn("⚠️ Supabase credentials not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in your environment variables or Vercel dashboard.");
+      actualizarBadgeSupabaseUI("local", `🟡 Modo Local (${gimnasioActivoId})`);
+      return;
+    }
+
     if (!validarSeguridadClaveSupabase(SUPABASE_PUBLISHABLE_KEY)) {
-      actualizarBadgeSupabaseUI("error", "🚨 Seguridad: Clave Inválida");
+      actualizarBadgeSupabaseUI("error", "🚨 Seguridad: Clave Inválida o service_role detectada");
       return;
     }
 
@@ -8079,7 +8085,16 @@ function guardarPlanManual() {
       diasValidados.push({
         dia: d.dia || "Día de Entrenamiento",
         musculos: d.musculos || "General",
-        ejercicios: ejsValidos
+        ejercicios: ejsValidos.map(e => {
+          // Mapear con el repositorio oficial
+          const repoEj = window.obtenerEjercicioDeRepositorio(e.nombre, e);
+          return {
+            ...e,
+            nombre: repoEj.nombre,
+            explicacion_tecnica: repoEj.explicacion_tecnica,
+            url_gif: repoEj.url_gif
+          };
+        })
       });
       ejsValidos.forEach(e => {
         ejerciciosPlanos.push(`[${d.dia}] ${e.nombre} (${e.series || '4'}x${e.reps || '10'} @ ${e.carga || 'RPE 8'}) - Descanso: ${e.descanso || '90s'} ${e.notas ? '| ' + e.notas : ''}`);
@@ -8163,7 +8178,12 @@ function guardarPlanManual() {
               ${d.ejercicios.map((ej, eIdx) => `
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
                   <div>
-                    <strong style="color:#fff;">${eIdx + 1}. ${ej.nombre}</strong>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <strong style="color:#fff;">${eIdx + 1}. ${ej.nombre}</strong>
+                      <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+                        📺 Demo
+                      </button>
+                    </div>
                     <div style="font-size:11px; color:var(--text-muted);">${ej.notas || 'Control excéntrico'}</div>
                   </div>
                   <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
@@ -10689,7 +10709,12 @@ function verDetallePlanGenerado(planId) {
               ${(d.ejercicios || []).map((ej, eIdx) => `
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
                   <div>
-                    <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
+                      <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+                        📺 Demo
+                      </button>
+                    </div>
                     <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(ej.notas || '')}</div>
                   </div>
                   <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
@@ -13791,7 +13816,16 @@ function generarRutinaIA() {
 
       // Construir los días del plan
       const diasPlan = splitObjetivo.map((dia, idx) => {
-        const ejercicios = seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, dia.grupos, nEjPorDia);
+        const ejercicios = seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, dia.grupos, nEjPorDia).map(ej => {
+          // Mapear con el repositorio oficial centralizado
+          const repoEj = window.obtenerEjercicioDeRepositorio(ej.nombre, ej);
+          return {
+            ...ej,
+            nombre: repoEj.nombre,
+            explicacion_tecnica: repoEj.explicacion_tecnica,
+            url_gif: repoEj.url_gif
+          };
+        });
         return {
           numero: idx + 1,
           nombre: dia.nombre,
@@ -13960,7 +13994,12 @@ function renderizarDiaIA(dia, indice) {
               <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
               <td>
                 <div class="ai-ex-name" style="font-weight:700; color:#fff; font-size:13.5px;">${ej.nombre}</div>
-                <div class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8; margin-top:2px;">🎯 ${ej.musculoPrimario || ej.categoria}</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+                  <span class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8;">🎯 ${ej.musculoPrimario || ej.categoria}</span>
+                  <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px; transition:all 0.2s;">
+                    📺 Demostración
+                  </button>
+                </div>
               </td>
               <td>
                 <span class="ai-prescripcion" style="font-weight:700; color:var(--accent-green);">${prescripcion.series} × ${prescripcion.reps}</span>

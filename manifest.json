@@ -10,7 +10,7 @@
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
   "orientation": "any",
-  "background_color": "#F8FAFC",
+  "background_color": "#0B0F19",
   "theme_color": "#10B981",
   "categories": [
     "fitness",
