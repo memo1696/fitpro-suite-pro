@@ -767,43 +767,61 @@
           if (sub) sub.innerText = 'Sin animación disponible (Muestra Vectorial)';
         }, { once: true });
       });
-      // Dispara el primer intento
+      // Efecto "flip-book": free-exercise-db no trae GIF animado, pero sí
+      // hasta 2 fotos por ejercicio (posición inicial y final). Si la foto
+      // principal carga bien (sin caer a un respaldo) y existe la segunda,
+      // se alternan para simular el movimiento — sin depender de ningún
+      // GIF/API externo. Ritmo pausado (1.8s por foto) a propósito: es una
+      // guía técnica para entender la postura, no una animación fluida; muy
+      // rápido no da tiempo a fijarse en la posición de cada frame. Si la
+      // principal tuvo que caer a un respaldo (CDN2 / categoría / SVG), se
+      // deja estática: es preferible una imagen correcta y quieta a
+      // "animar" frames que no correspondan al mismo ejercicio.
+      //
+      // IMPORTANTE: el listener de 'load' se registra ANTES de asignar
+      // `imgEl.src` (más abajo). Si se registrara después, una imagen ya
+      // cacheada por el navegador (visitas repetidas al mismo ejercicio)
+      // podía disparar 'load' antes de que el listener existiera, y la
+      // animación nunca arrancaba — exactamente el bug reportado de
+      // "solo un ejercicio anima, el resto no".
+      const frame0Url = urls[0];
+      const frame2Url = ej.url_gif_frame2;
+      function iniciarFlipbookSiCorresponde() {
+        if (imgEl.src !== frame0Url) return; // ya cayó a un respaldo, no animar
+        const preload = new Image();
+        preload.onload = function () {
+          if (imgEl.src !== frame0Url) return; // pudo cambiar mientras precargaba
+          let mostrandoFrame0 = true;
+          window._demoFlipbookInterval = setInterval(() => {
+            if (!document.body.contains(imgEl)) {
+              clearInterval(window._demoFlipbookInterval);
+              window._demoFlipbookInterval = null;
+              return;
+            }
+            mostrandoFrame0 = !mostrandoFrame0;
+            imgEl.src = mostrandoFrame0 ? frame0Url : frame2Url;
+          }, 1800);
+        };
+        preload.src = frame2Url;
+      }
+      if (frame0Url && frame2Url) {
+        imgEl.addEventListener('load', function onFrame0Loaded() {
+          imgEl.removeEventListener('load', onFrame0Loaded);
+          iniciarFlipbookSiCorresponde();
+        }, { once: true });
+      }
+
+      // Dispara el primer intento (después de registrar el listener de arriba)
       if (urls.length > 0) {
         imgEl.src = urls[0];
       } else {
         imgEl.src = fallbackGifCategoria;
       }
-
-      // Efecto "flip-book": free-exercise-db no trae GIF animado, pero sí
-      // hasta 2 fotos por ejercicio (posición inicial y final). Si la foto
-      // principal carga bien (sin caer a un respaldo) y existe la segunda,
-      // se alternan cada 700ms para simular el movimiento — sin depender de
-      // ningún GIF/API externo. Si la principal tuvo que caer a un
-      // respaldo (CDN2 / categoría / SVG), se deja estática: es preferible
-      // una imagen correcta y quieta a "animar" frames que no correspondan
-      // al mismo ejercicio.
-      const frame0Url = urls[0];
-      const frame2Url = ej.url_gif_frame2;
-      if (frame0Url && frame2Url) {
-        imgEl.addEventListener('load', function onFrame0Loaded() {
-          imgEl.removeEventListener('load', onFrame0Loaded);
-          if (imgEl.src !== frame0Url) return; // ya cayó a un respaldo, no animar
-          const preload = new Image();
-          preload.onload = function () {
-            if (imgEl.src !== frame0Url) return; // pudo cambiar mientras precargaba
-            let mostrandoFrame0 = true;
-            window._demoFlipbookInterval = setInterval(() => {
-              if (!document.body.contains(imgEl)) {
-                clearInterval(window._demoFlipbookInterval);
-                window._demoFlipbookInterval = null;
-                return;
-              }
-              mostrandoFrame0 = !mostrandoFrame0;
-              imgEl.src = mostrandoFrame0 ? frame0Url : frame2Url;
-            }, 700);
-          };
-          preload.src = frame2Url;
-        }, { once: true });
+      // Respaldo extra: si la imagen ya estaba en caché, el navegador puede
+      // marcarla 'complete' de inmediato al asignar `src`, sin disparar
+      // 'load' async. Se cubre ese caso también.
+      if (frame0Url && frame2Url && imgEl.complete && imgEl.src === frame0Url) {
+        iniciarFlipbookSiCorresponde();
       }
     }
 

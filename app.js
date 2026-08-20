@@ -11182,12 +11182,17 @@ function renderBiblioteca() {
           </div>
 
           ${ej.github_id ? `
-          <div style="border-radius:var(--radius-md); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); margin-bottom:12px; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;">
+          <div style="cursor:pointer; border-radius:var(--radius-md); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); margin-bottom:12px; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" title="Ver demostración">
             <img src="${ej.url_thumbnail}" alt="${ej.nombre}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.src=window.SVG_PLACEHOLDER;}">
           </div>` : ''}
 
-          <h3 style="color:#fff; margin:0 0 8px 0; font-size:16px; font-family:var(--font-heading); line-height:1.3;">${ej.nombre}</h3>
-          
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+            <h3 style="color:#fff; margin:0; font-size:16px; font-family:var(--font-heading); line-height:1.3;">${ej.nombre}</h3>
+            <button type="button" class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="flex-shrink:0; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+              📺 Demo
+            </button>
+          </div>
+
           <div style="font-size:12px; color:#38bdf8; font-weight:600; margin-bottom:12px;">
             🎯 Enfoque: ${ej.musculoPrimario || ej.categoria}
           </div>
