@@ -938,6 +938,12 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
     return;
   }
 
+  // Si el correo con el que te registras coincide con window.ENV.ADMIN_EMAIL
+  // (configurado en Vercel), la cuenta queda aprobada de una vez: evita que
+  // el propio administrador de la plataforma quede bloqueado esperando su
+  // propia aprobación, sin necesidad de tocar nada a mano en Supabase.
+  const esCorreoAdmin = email.toLowerCase().trim() === (window.ENV?.ADMIN_EMAIL || '').toLowerCase().trim() && Boolean(window.ENV?.ADMIN_EMAIL);
+
   const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
@@ -950,8 +956,8 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
         // administrador de la plataforma; no obtiene acceso hasta que se
         // apruebe desde el panel "🛡️ Aprobar Entrenadores" (ver
         // establecerSesionActiva, que bloquea el acceso mientras esté en
-        // este estado).
-        approval_status: 'pending'
+        // este estado). Excepción: el propio admin (ver esCorreoAdmin arriba).
+        approval_status: esCorreoAdmin ? 'approved' : 'pending'
       }
     }
   });
@@ -968,14 +974,18 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
   }
 
   if (data && data.session) {
-    // establecerSesionActiva detecta approval_status:'pending' y corta el
-    // acceso solo mostrando el aviso correspondiente; no hace falta avisar
-    // "accediendo" aquí porque nunca va a entrar todavía.
-    mostrarExitoAuth(`Registro recibido para ${nombre}. Tu cuenta quedó pendiente de aprobación del administrador.`);
+    // Si NO es el admin, establecerSesionActiva detecta approval_status:
+    // 'pending' y corta el acceso mostrando su propio aviso; por eso aquí
+    // solo se anuncia "accediendo" cuando sí se sabe que va a entrar.
+    mostrarExitoAuth(esCorreoAdmin
+      ? `¡Cuenta de administrador creada! Accediendo a la suite...`
+      : `Registro recibido para ${nombre}. Tu cuenta quedó pendiente de aprobación del administrador.`);
     establecerSesionActiva(data.session, data.user);
   } else if (data && data.user) {
     mostrarExitoAuth(`Usuario registrado con éxito. Se ha enviado un enlace de confirmación a ${email}.`);
-    showToast(`Usuario registrado. Por favor verifica tu correo en ${email}. Tras confirmarlo, tu cuenta quedará pendiente de aprobación del administrador.`, "info", "📧 Verificación Enviada", 8000);
+    showToast(esCorreoAdmin
+      ? `Usuario registrado. Verifica tu correo en ${email} para poder iniciar sesión como administrador.`
+      : `Usuario registrado. Por favor verifica tu correo en ${email}. Tras confirmarlo, tu cuenta quedará pendiente de aprobación del administrador.`, "info", "📧 Verificación Enviada", 8000);
     setTimeout(() => cambiarModoAuth('login'), 2500);
   }
 }
