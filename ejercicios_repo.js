@@ -956,6 +956,20 @@
       aiRestriccionInput.value = (cliente.lesiones || []).map(l => l.condicion).join(', ');
     }
 
+    // Tope de riesgo sugerido según el IMC del atleta (medidas corporales
+    // reales del expediente, no solo objetivo/nivel declarados). Un IMC alto
+    // suele acompañar menor tolerancia articular/cardiovascular a ejercicios
+    // de riesgo alto en las primeras semanas; se autocompleta como punto de
+    // partida razonable, pero el coach lo puede cambiar libremente después
+    // — igual que ya pasa con objetivo y nivel.
+    const aiRiesgoSelect = document.getElementById('ai-riesgo-max');
+    if (aiRiesgoSelect && cliente.imc) {
+      if (cliente.imc >= 30) aiRiesgoSelect.value = 'bajo';
+      else if (cliente.imc >= 25) aiRiesgoSelect.value = 'moderado';
+      else if (cliente.nivel && cliente.nivel.toLowerCase().includes('avanzado')) aiRiesgoSelect.value = 'alto';
+      else aiRiesgoSelect.value = 'moderado';
+    }
+
     const checkIds = ['ai-chk-lumbar', 'ai-chk-rodilla', 'ai-chk-hombro', 'ai-chk-cadera', 'ai-chk-tobillo', 'ai-chk-codo'];
     checkIds.forEach(id => {
       const el = document.getElementById(id);

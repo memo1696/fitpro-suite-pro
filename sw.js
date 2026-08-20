@@ -1,10 +1,11 @@
-const CACHE_NAME = 'fitpro-suite-pro-v3.3.0-saas-design';
+const CACHE_NAME = 'fitpro-suite-pro-v3.3.1-self-hosted-icon';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
+  './icons/app-icon-512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',

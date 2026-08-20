@@ -14103,6 +14103,39 @@ function sincronizarEquipamiento() {
   actualizarVistaAsistente();
 }
 
+// PRNG determinista (mulberry32) sembrado por texto, para variar la
+// selección de ejercicios entre mesociclos de forma reproducible: mismo
+// atleta + mismo mesociclo -> mismo resultado si se regenera sin guardar,
+// pero mesociclos distintos -> barajado realmente distinto entre sí (a
+// diferencia del ordenamiento anterior por hash % 11, que con pools chicos
+// de ejercicios filtrados tendía a devolver siempre los mismos 1-2 primeros
+// sin importar el mesociclo).
+function semillaDesdeTexto(texto) {
+  let h = 1779033703 ^ texto.length;
+  for (let i = 0; i < texto.length; i++) {
+    h = Math.imul(h ^ texto.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return h >>> 0;
+}
+function crearPRNG(semilla) {
+  let a = semilla;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function barajarConSemilla(array, rng) {
+  const copia = array.slice();
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
 // ── Selecciona N ejercicios distribuyendo de manera equitativa entre todos los grupos musculares del día
 function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
   const seleccionados = [];
@@ -14113,15 +14146,14 @@ function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
   const historial = typeof planesGuardados !== 'undefined' ? planesGuardados.filter(p => p.cliente === selectedAtletaName) : [];
   const mesocicloNumero = historial.length + 1;
 
+  const rngPase1 = crearPRNG(semillaDesdeTexto(`${selectedAtletaName}|${mesocicloNumero}|pase1`));
+  const rngPase2 = crearPRNG(semillaDesdeTexto(`${selectedAtletaName}|${mesocicloNumero}|pase2`));
+
   // 1. Tomar al menos 1 o 2 ejercicios representativos de CADA grupo muscular del día
   const porGrupoBase = Math.max(1, Math.floor(cantidad / grupos.length));
   for (const grupo of grupos) {
     const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
-    const mezcla = delGrupo.sort((a, b) => {
-      const hashA = (a.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-      const hashB = (b.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-      return ((hashA * mesocicloNumero) % 11) - ((hashB * mesocicloNumero) % 11);
-    });
+    const mezcla = barajarConSemilla(delGrupo, rngPase1);
     let agregadosGrupo = 0;
     for (const ej of mezcla) {
       if (!seen.has(ej.nombre) && agregadosGrupo < porGrupoBase && seleccionados.length < cantidad) {
@@ -14137,12 +14169,7 @@ function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
     const pool = [];
     for (const grupo of grupos) {
       const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
-      const mezcla = delGrupo.sort((a, b) => {
-        const hashA = (a.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-        const hashB = (b.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-        return ((hashA * (mesocicloNumero + 1)) % 11) - ((hashB * (mesocicloNumero + 1)) % 11);
-      });
-      pool.push(...mezcla);
+      pool.push(...barajarConSemilla(delGrupo, rngPase2));
     }
     for (const ej of pool) {
       if (!seen.has(ej.nombre) && seleccionados.length < cantidad) {
