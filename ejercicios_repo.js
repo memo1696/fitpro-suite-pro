@@ -128,6 +128,29 @@
   // proyecto -> causaba "ReferenceError: escapeHtml is not defined" al
   // entrar a Planes. No es parte de la integración del dataset, pero se
   // define aquí (que carga antes que app.js) para no dejar la app rota.
+  // Para valores que caen DENTRO de un atributo de evento, es decir en
+  // contexto JavaScript anidado en HTML: onclick="fn('AQUI')".
+  // escapeHtml no alcanza ahi: convierte < y > pero deja pasar la comilla
+  // simple, que cierra el string de JS y permite inyectar codigo. Y al reves,
+  // escapar solo para JS deja pasar la comilla doble, que cierra el atributo.
+  // Hay que hacer las dos cosas, en este orden: primero JS (barra invertida y
+  // comilla simple), despues HTML (para que la comilla doble no corte el
+  // atributo).
+  if (typeof window.escapeJsAttr !== 'function') {
+    window.escapeJsAttr = function (str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+  }
+
   if (typeof window.escapeHtml !== 'function') {
     window.escapeHtml = function (str) {
       if (str === null || str === undefined) return '';

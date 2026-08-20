@@ -245,7 +245,7 @@ function cambiarGimnasioActivo(nuevoGymId) {
   if (mobileBadge) mobileBadge.innerText = nuevoGymId;
 
   const gymObj = getGimnasioActivo();
-  console.log(`🏢 Conmutando entorno a: ${gymObj.nombre} (gym_id: ${nuevoGymId})`);
+  console.log(`🏢 Conmutando entorno a: ${escapeHtml(gymObj.nombre)} (gym_id: ${nuevoGymId})`);
 
   // Query Supabase for this gym's data
   cargarClientesDesdeSupabase();
@@ -2724,7 +2724,7 @@ async function sincronizarTodoConSupabase() {
     await cargarClientesDesdeSupabase();
     const gymObj = getGimnasioActivo();
     actualizarBadgeSupabaseUI(`☁️ Supabase Cloud: Sincronizado`, "badge-green");
-    showToast(`Sincronización multi-gimnasio completada. ${clientesGym.length} atletas verificados y respaldados en la nube para ${gymObj.nombre}.`, 'success', '☁️ Nube Supabase Sincronizada');
+    showToast(`Sincronización multi-gimnasio completada. ${clientesGym.length} atletas verificados y respaldados en la nube para ${escapeHtml(gymObj.nombre)}.`, 'success', '☁️ Nube Supabase Sincronizada');
   } else {
     actualizarBadgeSupabaseUI(`☁️ Nube: Modo Local (${gimnasioActivoId})`, "badge-primary");
     showToast(`Modo Local Multi-Gym activo (${gimnasioActivoId}). Datos resguardados y filtrados localmente.`, 'info', '⚡ Modo Local Multi-Gym');
@@ -4939,7 +4939,7 @@ function guardarCliente() {
   renderLesiones();
   renderSeniorsList();
   cerrarModalCliente();
-  showToast(`Atleta "${nombre}" registrado. 📧 ${nuevoCliente.email} | 🔑 ${passwordAtleta}`, "success", "👤 Credenciales Creadas", 8000);
+  showToast(`Atleta "${nombre}" registrado. 📧 ${escapeHtml(nuevoCliente.email)} | 🔑 ${passwordAtleta}`, "success", "👤 Credenciales Creadas", 8000);
 
   nombreInput.value = '';
   const emailInput = document.getElementById('modal-email');
@@ -5067,7 +5067,7 @@ async function registrarCredencialesAtletaSupabase(cliente, password, mustChange
   if (!cliente.email || !password || password.length < 6) return null;
 
   try {
-    console.log(`🔐 Creando credenciales de acceso Supabase Auth para atleta: ${cliente.email} (must_change_password: ${mustChangePassword})...`);
+    console.log(`🔐 Creando credenciales de acceso Supabase Auth para atleta: ${escapeHtml(cliente.email)} (must_change_password: ${mustChangePassword})...`);
     const { data, error } = await supabaseClient.auth.signUp({
       email: cliente.email,
       password: password,
@@ -5086,7 +5086,7 @@ async function registrarCredencialesAtletaSupabase(cliente, password, mustChange
     if (error) {
       console.warn("Notice al registrar credenciales de atleta:", error.message);
       if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('user already exists')) {
-        showToast(`El correo ${cliente.email} ya posee cuenta en Supabase. Atleta vinculado correctamente.`, "info", "👤 Usuario Existente", 5000);
+        showToast(`El correo ${escapeHtml(cliente.email)} ya posee cuenta en Supabase. Atleta vinculado correctamente.`, "info", "👤 Usuario Existente", 5000);
       }
       return null;
     }
@@ -5096,7 +5096,7 @@ async function registrarCredencialesAtletaSupabase(cliente, password, mustChange
       cliente.must_change_password = mustChangePassword;
       persistirDatosUsuarioActual();
       sincronizarClienteConSupabase(cliente);
-      showToast(`¡Cuenta móvil creada para ${cliente.nombre}! Correo: ${cliente.email}`, "success", "📲 Credenciales Móviles Listas", 6000);
+      showToast(`¡Cuenta móvil creada para ${escapeHtml(cliente.nombre)}! Correo: ${escapeHtml(cliente.email)}`, "success", "📲 Credenciales Móviles Listas", 6000);
       return data.user.id;
     }
   } catch (err) {
@@ -5146,7 +5146,7 @@ async function generarUsuarioYPasswordAtleta(clienteId) {
   // La funcion serverless usa la Admin API con email_confirm:true, asi la
   // cuenta nace confirmada y signInWithPassword funciona de entrada.
   if (supabaseClient && !sesionUsuarioActual?.esModoDemo) {
-    showToast(`Creando cuenta de acceso para ${cliente.nombre}...`, "info", "🔐 Autenticación", 3000);
+    showToast(`Creando cuenta de acceso para ${escapeHtml(cliente.nombre)}...`, "info", "🔐 Autenticación", 3000);
     try {
       const { data: sesion } = await supabaseClient.auth.getSession();
       const token = sesion?.session?.access_token;
@@ -5186,7 +5186,7 @@ async function generarUsuarioYPasswordAtleta(clienteId) {
   persistirDatosUsuarioActual();
   renderClientes();
 
-  showToast(`✅ Credenciales generadas:\n📧 ${cliente.email}\n🔑 ${cliente.password_provisional}`, "success", "👤 Usuario & Clave Creados", 8000);
+  showToast(`✅ Credenciales generadas:\n📧 ${escapeHtml(cliente.email)}\n🔑 ${cliente.password_provisional}`, "success", "👤 Usuario & Clave Creados", 8000);
   return { email: cliente.email, password: cliente.password_provisional };
 }
 
@@ -5204,7 +5204,7 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
 
   let telefono = cliente.telefono || await obtenerTelefonoCliente(cliente.nombre);
   if (!telefono) {
-    const inputTel = prompt(`Ingresa el número de WhatsApp para ${cliente.nombre} (ej: +5215512345678):`, "");
+    const inputTel = prompt(`Ingresa el número de WhatsApp para ${escapeHtml(cliente.nombre)} (ej: +5215512345678):`, "");
     if (inputTel === null) return;
     telefono = inputTel.trim();
     if (telefono) {
@@ -5227,7 +5227,7 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
   const directAthleteUrl = `${appBaseUrl}/?atleta=${atletaSlug}&email=${atletaEmail}&id=${atletaId}&view=athlete`;
 
   const mensaje = 
-    `¡Hola *${cliente.nombre}*! 👋\n\n` +
+    `¡Hola *${escapeHtml(cliente.nombre)}*! 👋\n\n` +
     `Te damos la bienvenida a *FitPro Suite Pro* en *${gymName}*. 🏋️‍♂️\n\n` +
     `Tu entrenador (*${coachName}*) ha configurado tu acceso directo para que puedas consultar tu rutina biomecánica, tu plan de nutrición y registrar tus avances en tiempo real.\n\n` +
     `🌐 *TU ENLACE DIRECTO PERSONALIZADO:* \n` +
@@ -5235,7 +5235,7 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
     `📱 *CÓMO USARLA COMO APP EN TU CELULAR:*\n` +
     `Abre el enlace en tu navegador (Chrome / Safari) y presiona *"Añadir a pantalla de inicio"* o *"Instalar aplicación"*. Entrarás directamente a tu panel deportivo sin pasos complicados.\n\n` +
     `🔐 *TUS DATOS DE ACCESO:*\n` +
-    `📧 *Correo:* ${cliente.email}\n` +
+    `📧 *Correo:* ${escapeHtml(cliente.email)}\n` +
     `🔒 *Contraseña temporal:* ${cliente.password_provisional}\n\n` +
     `💡 _Por tu seguridad, en tu primer inicio se te solicitará confirmar tu clave personal. Una vez dentro, tu rutina y dieta asignadas se cargarán de inmediato._\n\n` +
     `¡A darlo todo en cada sesión! 💪🔥\n` +
@@ -5246,7 +5246,7 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
     : `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;
 
   window.open(waUrl, '_blank');
-  showToast(`💬 Mensaje de WhatsApp preparado para ${cliente.nombre} (${telefono}).`, "success", "📲 WhatsApp Listo", 7000);
+  showToast(`💬 Mensaje de WhatsApp preparado para ${escapeHtml(cliente.nombre)} (${telefono}).`, "success", "📲 WhatsApp Listo", 7000);
 }
 
 function calcularEstadoCicloRutina(clienteNombre) {
@@ -5491,7 +5491,7 @@ function renderClientes(filtro = '') {
                     ${c.nombre.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()}
                   </div>
                   <div style="min-width:0;">
-                    <strong class="client-name-link" style="color:#fff; font-size:14px; cursor:pointer;" onclick="abrirDetalleCliente(${c.id})">${c.nombre}</strong>
+                    <strong class="client-name-link" style="color:#fff; font-size:14px; cursor:pointer;" onclick="abrirDetalleCliente(${c.id})">${escapeHtml(c.nombre)}</strong>
                     <div style="font-size:11.5px; color:var(--text-muted);">${c.edad || 28} años • <span style="color:var(--accent-green); font-weight:600;">${c.nivel || 'Atleta'}</span></div>
                   </div>
                 </div>
@@ -5501,12 +5501,12 @@ function renderClientes(filtro = '') {
               </div>
             </td>
             <td class="col-card-goal" data-label="Objetivo & Sede">
-              <div style="font-size:13px; color:#e2e8f0; font-weight:500;">🎯 ${c.objetivo}</div>
+              <div style="font-size:13px; color:#e2e8f0; font-weight:500;">🎯 ${escapeHtml(c.objetivo)}</div>
               <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">🏢 <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span></div>
             </td>
             <td class="col-card-contact" data-label="Contacto">
               <div style="font-size:12.5px; color:#38bdf8;">📧 ${c.email || '<span style="color:var(--text-muted);">Sin correo</span>'}</div>
-              <div style="font-size:12px; color:#4ade80; margin-top:2px;">${c.telefono ? `📱 ${c.telefono}` : '<span style="color:var(--text-muted);">Sin teléfono</span>'}</div>
+              <div style="font-size:12px; color:#4ade80; margin-top:2px;">${c.telefono ? `📱 ${escapeHtml(c.telefono)}` : '<span style="color:var(--text-muted);">Sin teléfono</span>'}</div>
             </td>
             <td class="col-card-membership" data-label="Membresía">
               <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
@@ -5522,13 +5522,13 @@ function renderClientes(filtro = '') {
             <td class="col-card-actions" data-label="Acciones & WhatsApp">
               <div class="client-actions-wrapper">
                 <!-- BOTÓN PRINCIPAL DE WHATSAPP DIRECTO -->
-                <button class="btn-primary btn-whatsapp-direct" style="padding:7px 12px; font-size:12px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:5px;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar credenciales y enlace del APK por WhatsApp a ${c.nombre}">
+                <button class="btn-primary btn-whatsapp-direct" style="padding:7px 12px; font-size:12px; background:#22c55e; border-color:#22c55e; color:#000; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:5px;" onclick="enviarEnlaceWhatsAppAtleta(${c.id})" title="Enviar credenciales y enlace del APK por WhatsApp a ${escapeHtml(c.nombre)}">
                   💬 Enviar WhatsApp
                 </button>
                 <div class="client-action-icon-buttons">
                   <button class="btn-secondary" style="padding:6px 9px; font-size:12px;" onclick="abrirDetalleCliente(${c.id})" title="Ver Expediente Deportivo">📋</button>
                   <button class="btn-secondary" style="padding:6px 9px; font-size:12px; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="generarUsuarioYPasswordAtleta(${c.id})" title="Generar / Resetear Clave App">👤</button>
-                  <button class="btn-secondary" style="padding:6px 9px; font-size:12px; color:var(--accent-green);" onclick="renovarRutinaMensual('${c.nombre}')" title="Renovación Automática de Rutina">🔄</button>
+                  <button class="btn-secondary" style="padding:6px 9px; font-size:12px; color:var(--accent-green);" onclick="renovarRutinaMensual('${escapeJsAttr(c.nombre)}')" title="Renovación Automática de Rutina">🔄</button>
                   <button class="btn-secondary danger" style="padding:6px 9px; font-size:12px;" onclick="confirmarEliminarCliente(${c.id})" title="Eliminar Atleta">🗑️</button>
                 </div>
               </div>
@@ -5566,7 +5566,7 @@ function renderClientes(filtro = '') {
           <div class="client-card" style="position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <strong style="font-size:16px; color:#fff;">${c.nombre}</strong>
+                <strong style="font-size:16px; color:#fff;">${escapeHtml(c.nombre)}</strong>
                 <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
                   <span class="badge badge-green">${c.nivel || 'Atleta'}</span>
                   <span class="badge ${badgeMembresiaClass}">${badgeMembresiaText}</span>
@@ -5581,19 +5581,19 @@ function renderClientes(filtro = '') {
                   <button class="dropdown-item" onclick="abrirDetalleCliente(${c.id})"><span>📋</span> Clientes activos (Expediente)</button>
                   <button class="dropdown-item" onclick="generarUsuarioYPasswordAtleta(${c.id})"><span style="color:#38bdf8;">👤</span> Generar Usuario y Contraseña</button>
                   <button class="dropdown-item" onclick="enviarEnlaceWhatsAppAtleta(${c.id})"><span style="color:#22c55e;">💬</span> Enviar Enlace por WhatsApp</button>
-                  <button class="dropdown-item" onclick="renovarRutinaMensual('${c.nombre}')"><span style="color:var(--accent-green);">⚡</span> Renovación Automática</button>
-                  <button class="dropdown-item" onclick="abrirModalPlanManual('${c.nombre}')"><span style="color:#60a5fa;">✏️</span> Crear Plan Manual</button>
+                  <button class="dropdown-item" onclick="renovarRutinaMensual('${escapeJsAttr(c.nombre)}')"><span style="color:var(--accent-green);">⚡</span> Renovación Automática</button>
+                  <button class="dropdown-item" onclick="abrirModalPlanManual('${escapeJsAttr(c.nombre)}')"><span style="color:#60a5fa;">✏️</span> Crear Plan Manual</button>
                   <button class="dropdown-item danger" onclick="confirmarEliminarCliente(${c.id})"><span>🗑️</span> Eliminar cliente</button>
                 </div>
               </div>
             </div>
 
             <div style="color:var(--text-muted); font-size:13px; margin-top:10px;">
-              🎯 <strong>Objetivo:</strong> ${c.objetivo}<br>
+              🎯 <strong>Objetivo:</strong> ${escapeHtml(c.objetivo)}<br>
               📊 <strong>Adherencia:</strong> ${c.adherencia || '90%'}<br>
-              ${c.email ? `📧 <strong>Email App:</strong> <span style="color:#38bdf8;">${c.email}</span><br>` : ''}
+              ${c.email ? `📧 <strong>Email App:</strong> <span style="color:#38bdf8;">${escapeHtml(c.email)}</span><br>` : ''}
               ${c.password_provisional ? `🔑 <strong>Clave App:</strong> <span style="color:#fbbf24; font-family:monospace; font-weight:700;">${c.password_provisional}</span><br>` : ''}
-              ${c.telefono ? `📱 <strong>Teléfono:</strong> <span style="color:#4ade80;">${c.telefono}</span><br>` : ''}
+              ${c.telefono ? `📱 <strong>Teléfono:</strong> <span style="color:#4ade80;">${escapeHtml(c.telefono)}</span><br>` : ''}
               🏢 <strong>Sede:</strong> <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span> • 📅 <strong>Fecha:</strong> ${c.fecha || 'Reciente'}
             </div>
 
@@ -5611,7 +5611,7 @@ function renderClientes(filtro = '') {
 
             <div style="margin-top:auto; display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--border-color);">
               <button class="btn-secondary" style="padding:6px 12px; font-size:12px; flex:1;" onclick="abrirDetalleCliente(${c.id})">📋 Expediente</button>
-              <button class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="renovarRutinaMensual('${c.nombre}')">🔄 Renovar</button>
+              <button class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="renovarRutinaMensual('${escapeJsAttr(c.nombre)}')">🔄 Renovar</button>
             </div>
           </div>
         `;
@@ -5628,8 +5628,8 @@ function renderClientes(filtro = '') {
       dashList.innerHTML = clientesGym.slice(0, 4).map(c => `
         <div style="background:var(--bg-card); padding:12px 16px; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <strong style="font-size:14px; color:#fff;">${c.nombre}</strong>
-            <div style="font-size:12px; color:var(--text-muted);">${c.objetivo} • ${c.nivel || 'Atleta'}</div>
+            <strong style="font-size:14px; color:#fff;">${escapeHtml(c.nombre)}</strong>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(c.objetivo)} • ${c.nivel || 'Atleta'}</div>
           </div>
           <span class="badge badge-green">${c.adherencia || '90%'} Adherencia</span>
         </div>
@@ -5638,17 +5638,17 @@ function renderClientes(filtro = '') {
   }
 
   if (selectGen) {
-    selectGen.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    selectGen.innerHTML = clientesGym.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
   }
 
   const plansAtletaSelect = document.getElementById('plans-atleta-select');
   if (plansAtletaSelect) {
-    plansAtletaSelect.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+    plansAtletaSelect.innerHTML = clientesGym.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('');
   }
 
   const selectCalc = document.getElementById('calc-cliente-select');
   if (selectCalc) {
-    selectCalc.innerHTML = `<option value="">-- Seleccionar Atleta (${getGimnasioActivo().nombre}) --</option>` + clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    selectCalc.innerHTML = `<option value="">-- Seleccionar Atleta (${getGimnasioActivo().nombre}) --</option>` + clientesGym.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
   }
 
   renderDashboardStats();
@@ -6259,9 +6259,9 @@ function renderDietas(filtro = '') {
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
             <div>
               <strong style="font-size:17px; color:#fff; font-family:var(--font-heading);">${d.cliente}</strong>
-              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${d.nombre}</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(d.nombre)}</div>
             </div>
-            <span class="badge ${badgeObjetivo}">${d.objetivo}</span>
+            <span class="badge ${badgeObjetivo}">${escapeHtml(d.objetivo)}</span>
           </div>
 
           <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:14px;">
@@ -6306,7 +6306,7 @@ function renderDietas(filtro = '') {
             📅 Mesociclo ${mes}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="btn-primary btn-ver-menu-completo" style="font-size:11px; padding:6px 12px; cursor:pointer;" data-cliente="${d.cliente}" data-dieta-id="${d.id}" onclick="abrirDetalleDieta('${d.cliente}')">👁️ Menú</button>
+            <button class="btn-primary btn-ver-menu-completo" style="font-size:11px; padding:6px 12px; cursor:pointer;" data-cliente="${d.cliente}" data-dieta-id="${d.id}" onclick="abrirDetalleDieta('${escapeJsAttr(d.cliente)}')">👁️ Menú</button>
             <button class="btn-primary" style="font-size:11px; padding:6px 10px; background:rgba(56,189,248,0.15); color:#38bdf8; border-color:#38bdf8;" onclick="enviarDietaPorEmail(${d.id})" title="Enviar por Correo">📧 Correo</button>
             <button class="btn-secondary" style="font-size:11px; padding:6px 10px; color:#22c55e; border-color:#22c55e;" onclick="enviarDietaPorWhatsApp(${d.id})" title="Enviar por WhatsApp">📲 WhatsApp</button>
             <button class="btn-secondary" style="font-size:11px; padding:6px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="generarPDFDieta(${d.id})" title="Descargar PDF">📄 PDF</button>
@@ -6335,7 +6335,7 @@ function renderAlimentosBase(filtro = 'todos') {
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:20px;">${a.icono}</span>
               <div>
-                <strong style="color:#fff; font-size:14px;">${a.nombre}</strong>
+                <strong style="color:#fff; font-size:14px;">${escapeHtml(a.nombre)}</strong>
                 <div style="font-size:11px; color:var(--text-muted);">${a.porcion}</div>
               </div>
             </div>
@@ -6392,7 +6392,7 @@ function filtrarDietasTexto(texto) {
 function abrirModalDietaManual(clienteNombre = '') {
   const select = document.getElementById('dieta-cliente-select');
   if (select) {
-    select.innerHTML = getClientesActivos().map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    select.innerHTML = getClientesActivos().map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
     if (clienteNombre) select.value = clienteNombre;
   }
   const m = document.getElementById('modal-dieta-manual');
@@ -6738,9 +6738,9 @@ function abrirDetalleDieta(idODueno) {
         <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:20px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
             <div>
-              <h3 style="font-size:18px; color:var(--accent-green); margin:0; font-family:var(--font-heading);">${dieta.nombre}</h3>
+              <h3 style="font-size:18px; color:var(--accent-green); margin:0; font-family:var(--font-heading);">${escapeHtml(dieta.nombre)}</h3>
               <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                Atleta: <strong style="color:#fff;">${dieta.cliente}</strong> • Objetivo: <span class="badge ${badgeObjetivo}">${dieta.objetivo}</span>
+                Atleta: <strong style="color:#fff;">${dieta.cliente}</strong> • Objetivo: <span class="badge ${badgeObjetivo}">${escapeHtml(dieta.objetivo)}</span>
               </div>
             </div>
             <span class="badge badge-green" style="font-size:12px; padding:4px 10px;">📅 Mesociclo ${mesActual} de 3</span>
@@ -6792,7 +6792,7 @@ function abrirDetalleDieta(idODueno) {
             <h4 style="color:var(--accent-green); font-family:var(--font-heading); margin:0; font-size:16px;">🔄 Progresión Cíclica & Historial Nutricional</h4>
             <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Compara calorías, distribución de macronutrientes y menús de cada mesociclo</div>
           </div>
-          <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="avanzarCicloNutricional('${dieta.cliente}')">🔄 Avanzar al Siguiente Ciclo (+1)</button>
+          <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="avanzarCicloNutricional('${escapeJsAttr(dieta.cliente)}')">🔄 Avanzar al Siguiente Ciclo (+1)</button>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
@@ -6892,10 +6892,10 @@ function abrirDetalleDieta(idODueno) {
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px; margin-top:20px; flex-wrap:wrap; gap:10px;">
         <button class="btn-secondary" onclick="cerrarDetalleDieta()">Cerrar</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleDieta(); alternarACreadorManual('${dieta.cliente}', ${dieta.tdee}, ${dieta.proteina}, ${dieta.carbo}, ${dieta.grasa}, '${dieta.objetivo}')">✏️ Editar Plan</button>
-          <button class="btn-primary" style="background:#38bdf8; border-color:#38bdf8; color:#000; font-weight:700;" onclick="enviarDietaPorEmail('${dieta.cliente}')">📧 Enviar por Correo</button>
-          <button class="btn-secondary" style="color:#22c55e; border-color:#22c55e;" onclick="enviarDietaPorWhatsApp('${dieta.cliente}')">📲 WhatsApp</button>
-          <button class="btn-secondary" style="color:#a78bfa; border-color:#a78bfa;" onclick="generarPDFDieta('${dieta.cliente}')">📄 PDF</button>
+          <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleDieta(); alternarACreadorManual('${escapeJsAttr(dieta.cliente)}', ${dieta.tdee}, ${dieta.proteina}, ${dieta.carbo}, ${dieta.grasa}, '${escapeJsAttr(dieta.objetivo)}')">✏️ Editar Plan</button>
+          <button class="btn-primary" style="background:#38bdf8; border-color:#38bdf8; color:#000; font-weight:700;" onclick="enviarDietaPorEmail('${escapeJsAttr(dieta.cliente)}')">📧 Enviar por Correo</button>
+          <button class="btn-secondary" style="color:#22c55e; border-color:#22c55e;" onclick="enviarDietaPorWhatsApp('${escapeJsAttr(dieta.cliente)}')">📲 WhatsApp</button>
+          <button class="btn-secondary" style="color:#a78bfa; border-color:#a78bfa;" onclick="generarPDFDieta('${escapeJsAttr(dieta.cliente)}')">📄 PDF</button>
         </div>
       </div>
     `;
@@ -7088,7 +7088,7 @@ function renderAlertasProactivas() {
         tipo: 'rutina',
         cliente: c.nombre,
         clienteId: c.id,
-        titulo: `Rutina: ${c.nombre}`,
+        titulo: `Rutina: ${escapeHtml(c.nombre)}`,
         desc: ciclo.estado === 'vencida' ? `Rutina vencida hace ${ciclo.dias - 30} días. Se requiere prescripción de nuevo mesociclo.` : ciclo.estado === 'por_vencer' ? `Ciclo por cumplir (${ciclo.dias}/30 días activos).` : `Atleta sin rutina prescrita.`,
         badge: isCritical ? 'badge-danger' : ciclo.badge,
         badgeText: isCritical ? '🔴 Rutina Vencida' : ciclo.texto,
@@ -7105,7 +7105,7 @@ function renderAlertasProactivas() {
         tipo: 'membresia',
         cliente: c.nombre,
         clienteId: c.id,
-        titulo: `Membresía: ${c.nombre}`,
+        titulo: `Membresía: ${escapeHtml(c.nombre)}`,
         desc: isCritical ? `Pago de membresía vencido. Regularizar cobro mensual.` : `Membresía por vencer en los próximos días.`,
         badge: isCritical ? 'badge-danger' : 'badge-risk-med',
         badgeText: isCritical ? '🔴 Pago Vencido' : '🟡 Por Vencer',
@@ -7145,18 +7145,18 @@ function renderAlertasProactivas() {
       <div style="flex:1; min-width:260px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
           <span class="badge ${a.badge}" style="font-size:11px;">${a.badgeText}</span>
-          <strong style="font-size:14px; color:#fff;">${a.titulo}</strong>
+          <strong style="font-size:14px; color:#fff;">${escapeHtml(a.titulo)}</strong>
         </div>
         <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">${a.desc}</div>
         ${a.sugerencia ? `<div style="font-size:11px; color:#38bdf8; margin-top:4px;">💡 <strong>Pauta Sugerida:</strong> ${a.sugerencia}</div>` : ''}
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         ${a.tipo === 'rutina' ? `
-          <button class="btn-primary" style="padding:6px 12px; font-size:11px;" onclick="solicitarConfirmacionRenovacionRutina('${a.cliente}')">⚡ Renovación Automática</button>
-          <button class="btn-secondary" style="padding:6px 12px; font-size:11px; color:#60a5fa; border-color:#60a5fa;" onclick="abrirModalPlanManual('${a.cliente}')">✏️ Plan Manual</button>
+          <button class="btn-primary" style="padding:6px 12px; font-size:11px;" onclick="solicitarConfirmacionRenovacionRutina('${escapeJsAttr(a.cliente)}')">⚡ Renovación Automática</button>
+          <button class="btn-secondary" style="padding:6px 12px; font-size:11px; color:#60a5fa; border-color:#60a5fa;" onclick="abrirModalPlanManual('${escapeJsAttr(a.cliente)}')">✏️ Plan Manual</button>
         ` : a.tipo === 'estancamiento' ? `
-          <button class="btn-primary" style="padding:6px 12px; font-size:11px; background:#fbbf24; border-color:#fbbf24; color:#000;" onclick="solicitarConfirmacionSemanaDescarga('${a.cliente}')">🛡️ Aplicar Semana Descarga (Deload)</button>
-          <button class="btn-secondary" style="padding:6px 12px; font-size:11px; color:#38bdf8; border-color:#38bdf8;" onclick="irAAnalyticsAtleta('${a.cliente}')">📈 Ver Analytics</button>
+          <button class="btn-primary" style="padding:6px 12px; font-size:11px; background:#fbbf24; border-color:#fbbf24; color:#000;" onclick="solicitarConfirmacionSemanaDescarga('${escapeJsAttr(a.cliente)}')">🛡️ Aplicar Semana Descarga (Deload)</button>
+          <button class="btn-secondary" style="padding:6px 12px; font-size:11px; color:#38bdf8; border-color:#38bdf8;" onclick="irAAnalyticsAtleta('${escapeJsAttr(a.cliente)}')">📈 Ver Analytics</button>
         ` : `
           <button class="btn-secondary" style="padding:6px 12px; font-size:11px; border-color:var(--accent-green); color:var(--accent-green);" onclick="abrirDetalleCliente(${a.clienteId})">💳 Regularizar Membresía</button>
         `}
@@ -7271,7 +7271,7 @@ function renderAnalyticsAtleta(clienteNombre = '') {
   const clientesGym = getClientesActivos();
 
   if (select) {
-    select.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    select.innerHTML = clientesGym.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
   }
 
   if (!clienteNombre) {
@@ -7352,7 +7352,7 @@ function renderAnalyticsAtleta(clienteNombre = '') {
         <div style="flex:1; min-width:280px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
             <span class="badge ${diag.badge}" style="font-size:12px;">${diag.badgeText}</span>
-            <strong style="font-size:16px; color:#fff;">${diag.titulo}</strong>
+            <strong style="font-size:16px; color:#fff;">${escapeHtml(diag.titulo)}</strong>
           </div>
           <p style="color:#e4e4e7; font-size:13px; margin:0 0 6px 0; line-height:1.4;">${diag.desc}</p>
           <div style="font-size:12px; color:#38bdf8;">💡 <strong>Pauta de Intervención Recomendada:</strong> ${diag.sugerencia}</div>
@@ -7626,7 +7626,7 @@ function abrirModalRegistrarMetrica(clienteNombre = '') {
   const grasaInput = document.getElementById('metrica-grasa');
 
   if (select) {
-    select.innerHTML = clientes.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    select.innerHTML = clientes.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
     if (clienteNombre) select.value = clienteNombre;
     else if (clienteAnalyticsSeleccionado) select.value = clienteAnalyticsSeleccionado;
   }
@@ -8006,7 +8006,7 @@ function poblarDatalistEjerciciosGlobal() {
   if (!datalist) return;
   
   if (typeof ejerciciosDB !== 'undefined' && Array.isArray(ejerciciosDB)) {
-    datalist.innerHTML = ejerciciosDB.map(e => `<option value="${e.nombre}">${e.categoria ? '[' + e.categoria.toUpperCase() + '] ' : ''}${e.musculoPrimario || ''}</option>`).join('');
+    datalist.innerHTML = ejerciciosDB.map(e => `<option value="${escapeHtml(e.nombre)}">${e.categoria ? '[' + e.categoria.toUpperCase() + '] ' : ''}${e.musculoPrimario || ''}</option>`).join('');
   }
 }
 
@@ -8017,7 +8017,7 @@ function abrirModalPlanManual(nombreCliente = '', preset = 'ppl3') {
   if (select) {
     const clientesGym = getClientesActivos();
     if (clientesGym.length > 0) {
-      select.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo || 'Atleta'})</option>`).join('');
+      select.innerHTML = clientesGym.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${c.objetivo || 'Atleta'})</option>`).join('');
     } else {
       select.innerHTML = `<option value="Atleta Pro">Atleta Pro (Sin Atletas Registrados)</option>`;
     }
@@ -8260,7 +8260,7 @@ function renderizarCatalogoEjerciciosModal(filtroTexto = '', filtroGrupo = 'todo
   container.innerHTML = filtrados.map(ej => `
     <div class="catalogo-modal-card" onclick="seleccionarEjercicioParaDia('${escapeHtml(ej.nombre)}', '${escapeHtml(ej.categoria || '')}')">
       <div>
-        <div class="catalogo-card-title">${ej.nombre}</div>
+        <div class="catalogo-card-title">${escapeHtml(ej.nombre)}</div>
         <div class="catalogo-card-badges" style="margin-top:6px;">
           <span class="catalogo-badge catalogo-badge-green">${ej.musculoPrimario || ej.categoria || 'General'}</span>
           <span class="catalogo-badge">${ej.equipamiento || 'Libre'}</span>
@@ -8357,7 +8357,7 @@ function guardarPlanManual() {
         })
       });
       ejsValidos.forEach(e => {
-        ejerciciosPlanos.push(`[${d.dia}] ${e.nombre} (${e.series || '4'}x${e.reps || '10'} @ ${e.carga || 'RPE 8'}) - Descanso: ${e.descanso || '90s'} ${e.notas ? '| ' + e.notas : ''}`);
+        ejerciciosPlanos.push(`[${d.dia}] ${escapeHtml(e.nombre)} (${e.series || '4'}x${e.reps || '10'} @ ${e.carga || 'RPE 8'}) - Descanso: ${e.descanso || '90s'} ${e.notas ? '| ' + e.notas : ''}`);
       });
     }
   });
@@ -8439,7 +8439,7 @@ function guardarPlanManual() {
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
                   <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
                     <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:40px; height:40px; border-radius:6px;">
-                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${escapeHtml(ej.nombre)}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
                     </div>
                     <div>
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -8495,7 +8495,7 @@ function abrirDetalleCliente(id) {
   const modalTitle = document.getElementById('modal-detalle-nombre');
   const modalBody = document.getElementById('modal-detalle-body');
 
-  if (modalTitle) modalTitle.innerText = `Expediente Deportivo: ${cliente.nombre}`;
+  if (modalTitle) modalTitle.innerText = `Expediente Deportivo: ${escapeHtml(cliente.nombre)}`;
 
   const historialPlanes = planesGuardados.filter(p => p.cliente === cliente.nombre);
   const planAsignado = historialPlanes.length > 0 ? historialPlanes[0] : null;
@@ -8516,8 +8516,8 @@ function abrirDetalleCliente(id) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); flex-wrap:wrap; gap:12px;">
         <div>
           <span style="font-size:12px; color:var(--text-muted);">Atleta Registrado</span>
-          <h3 style="font-size:22px; color:#fff; font-family:var(--font-heading); margin:2px 0;">${cliente.nombre}</h3>
-          <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">🎯 Objetivo: <strong style="color:#fff;">${cliente.objetivo}</strong> • Nivel: <strong style="color:var(--accent-green);">${cliente.nivel || 'Atleta'}</strong> ${cliente.email ? `• 📧 <strong style="color:#38bdf8;">${cliente.email}</strong>` : ''} ${cliente.telefono ? `• 📱 <strong style="color:#22c55e;">${cliente.telefono}</strong>` : ''}</div>
+          <h3 style="font-size:22px; color:#fff; font-family:var(--font-heading); margin:2px 0;">${escapeHtml(cliente.nombre)}</h3>
+          <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">🎯 Objetivo: <strong style="color:#fff;">${escapeHtml(cliente.objetivo)}</strong> • Nivel: <strong style="color:var(--accent-green);">${cliente.nivel || 'Atleta'}</strong> ${cliente.email ? `• 📧 <strong style="color:#38bdf8;">${escapeHtml(cliente.email)}</strong>` : ''} ${cliente.telefono ? `• 📱 <strong style="color:#22c55e;">${escapeHtml(cliente.telefono)}</strong>` : ''}</div>
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="badge ${badgeMembresiaClass}" style="font-size:13px; padding:6px 12px;">${badgeMembresiaText}</span>
@@ -8540,7 +8540,7 @@ function abrirDetalleCliente(id) {
               ${cliente._esOnboarding ? '<span style="background:rgba(251,191,36,0.15); color:#fbbf24; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; border:1px solid rgba(251,191,36,0.35);">🌱 Atleta de Ejemplo</span>' : ''}
             </div>
             <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-              Genera un enlace directo y seguro para que <strong style="color:#fff;">${cliente.nombre}</strong> acceda a su rutina, dieta y registre sus cargas desde el móvil sin necesidad de contraseña.
+              Genera un enlace directo y seguro para que <strong style="color:#fff;">${escapeHtml(cliente.nombre)}</strong> acceda a su rutina, dieta y registre sus cargas desde el móvil sin necesidad de contraseña.
             </div>
             <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">
               📧 ${cliente.email || '(sin correo registrado)'} &nbsp;|&nbsp; 🔑 Contraseña: <strong style="color:#fbbf24; font-family:monospace;">${cliente.password_provisional || '(por generar)'}</strong>
@@ -8629,11 +8629,11 @@ function abrirDetalleCliente(id) {
           <div style="display:flex; flex-direction:column; gap:6px;">
             ${cliente.lesiones && cliente.lesiones.length > 0 ? cliente.lesiones.map(l => `
               <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:6px 10px; border-radius:var(--radius-sm);">
-                <span style="color:#fff; font-size:13px;">• ${l.condicion}</span>
+                <span style="color:#fff; font-size:13px;">• ${escapeHtml(l.condicion)}</span>
                 <span class="badge ${l.severidad === 'severa' ? 'badge-danger' : l.severidad === 'moderada' ? 'badge-risk-med' : 'badge-green'}">${l.severidad ? l.severidad.toUpperCase() : 'MONITOREO'}</span>
               </div>
             `).join('') : `
-              <div style="color:#fff; font-size:13px;">• ${lesionActiva.condicion} (${lesionActiva.severidad.toUpperCase()})</div>
+              <div style="color:#fff; font-size:13px;">• ${escapeHtml(lesionActiva.condicion)} (${lesionActiva.severidad.toUpperCase()})</div>
             `}
           </div>
         </div>
@@ -8658,7 +8658,7 @@ function abrirDetalleCliente(id) {
         ${dietaActiva ? `
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-              <strong style="color:#fff; font-size:15px;">${dietaActiva.nombre}</strong>
+              <strong style="color:#fff; font-size:15px;">${escapeHtml(dietaActiva.nombre)}</strong>
               <div style="color:var(--text-muted); font-size:12px; margin-top:2px;">Calorías Diarias: <strong style="color:#38bdf8;">${dietaActiva.tdee} kcal</strong> • P: <strong style="color:#4ade80;">${dietaActiva.proteina}g</strong> | C: <strong style="color:#60a5fa;">${dietaActiva.carbo}g</strong> | G: <strong style="color:#fbbf24;">${dietaActiva.grasa}g</strong></div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="cerrarDetalleCliente(); abrirDetalleDieta(${dietaActiva.id})">👁️ Ver Menú</button>
@@ -8668,7 +8668,7 @@ function abrirDetalleCliente(id) {
         ` : `
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div style="color:var(--text-muted); font-size:13px;">Sin plan de alimentación activo asignado.</div>
-            <button class="btn-primary" style="font-size:11px; padding:6px 12px; background:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); abrirModalDietaManual('${cliente.nombre}')">✏️ Prescribir Dieta</button>
+            <button class="btn-primary" style="font-size:11px; padding:6px 12px; background:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); abrirModalDietaManual('${escapeJsAttr(cliente.nombre)}')">✏️ Prescribir Dieta</button>
           </div>
         `}
       </div>
@@ -8686,8 +8686,8 @@ function abrirDetalleCliente(id) {
             <div style="color:var(--text-muted); font-size:12px; margin-top:2px;">El ciclo mensual ha concluido. Prescribe la rutina del siguiente periodo.</div>
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="btn-primary" style="font-size:11px; padding:8px 12px;" onclick="cerrarDetalleCliente(); renovarRutinaMensual('${cliente.nombre}')">⚡ Renovación Automática</button>
-            <button class="btn-secondary" style="font-size:11px; padding:8px 12px; color:#60a5fa; border-color:#60a5fa;" onclick="cerrarDetalleCliente(); abrirModalPlanManual('${cliente.nombre}')">✏️ Crear Plan Manual</button>
+            <button class="btn-primary" style="font-size:11px; padding:8px 12px;" onclick="cerrarDetalleCliente(); renovarRutinaMensual('${escapeJsAttr(cliente.nombre)}')">⚡ Renovación Automática</button>
+            <button class="btn-secondary" style="font-size:11px; padding:8px 12px; color:#60a5fa; border-color:#60a5fa;" onclick="cerrarDetalleCliente(); abrirModalPlanManual('${escapeJsAttr(cliente.nombre)}')">✏️ Crear Plan Manual</button>
           </div>
         </div>
       ` : ''}
@@ -8703,7 +8703,7 @@ function abrirDetalleCliente(id) {
                 <div style="font-size:11px; color:var(--text-muted);">Protocolo especializado para la tercera edad y rehabilitación articular</div>
               </div>
             </div>
-            <button class="btn-primary" style="font-size:12px; padding:6px 14px; background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="cerrarDetalleCliente(); abrirBitacoraClinica('${cliente.nombre}')">🩺 Bitácora Clínica de Evolución</button>
+            <button class="btn-primary" style="font-size:12px; padding:6px 14px; background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="cerrarDetalleCliente(); abrirBitacoraClinica('${escapeJsAttr(cliente.nombre)}')">🩺 Bitácora Clínica de Evolución</button>
           </div>
 
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; font-size:12px;">
@@ -8740,7 +8740,7 @@ function abrirDetalleCliente(id) {
             <h4 style="color:#60a5fa; font-family:var(--font-heading); margin:0; font-size:16px;">📈 Analytics de Rendimiento & Evolución 1RM</h4>
             <div style="font-size:12px; color:var(--text-muted);">Seguimiento de sobrecarga progresiva, biometría y diagnóstico de estancamiento</div>
           </div>
-          <button class="btn-primary" style="font-size:11px; padding:6px 12px; background:#60a5fa; border-color:#60a5fa; color:#000;" onclick="cerrarDetalleCliente(); irAAnalyticsAtleta('${cliente.nombre}')">📈 Ver Curvas de Progresión ➔</button>
+          <button class="btn-primary" style="font-size:11px; padding:6px 12px; background:#60a5fa; border-color:#60a5fa; color:#000;" onclick="cerrarDetalleCliente(); irAAnalyticsAtleta('${escapeJsAttr(cliente.nombre)}')">📈 Ver Curvas de Progresión ➔</button>
         </div>
 
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; font-size:12px;">
@@ -8766,7 +8766,7 @@ function abrirDetalleCliente(id) {
       <!-- EXPEDIENTE DE ARCHIVOS & DICTÁMENES MÉDICOS -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
         <h4 style="color:#38bdf8; font-family:var(--font-heading); margin:0; font-size:16px;">📁 Archivos & Dictámenes Médicos Adjuntos</h4>
-        <button class="btn-secondary" style="font-size:11px; padding:5px 12px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${cliente.nombre}')">📁 + Adjuntar Diagnóstico</button>
+        <button class="btn-secondary" style="font-size:11px; padding:5px 12px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${escapeJsAttr(cliente.nombre)}')">📁 + Adjuntar Diagnóstico</button>
       </div>
 
       <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:24px;">
@@ -8776,7 +8776,7 @@ function abrirDetalleCliente(id) {
               <div style="background:var(--bg-surface); padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-left:3px solid #38bdf8;">
                 <div>
                   <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                    <strong style="color:#fff; font-size:13px;">${doc.titulo}</strong>
+                    <strong style="color:#fff; font-size:13px;">${escapeHtml(doc.titulo)}</strong>
                     <span class="badge badge-green" style="font-size:10px;">${doc.tipo}</span>
                   </div>
                   <div style="font-size:11px; color:var(--text-muted);">
@@ -8804,10 +8804,10 @@ function abrirDetalleCliente(id) {
           <p style="color:var(--text-muted); font-size:12px; margin:3px 0 0 0;">Genera rutinas biomecánicas personalizadas o planes nutricionales científicos para este atleta</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-primary" style="font-size:12px; padding:8px 16px;" onclick="cerrarDetalleCliente(); generarEntrenamientoParaCliente('${cliente.nombre}')">
+          <button class="btn-primary" style="font-size:12px; padding:8px 16px;" onclick="cerrarDetalleCliente(); generarEntrenamientoParaCliente('${escapeJsAttr(cliente.nombre)}')">
             ⚡ Generar Nuevo Plan de Entrenamiento
           </button>
-          <button class="btn-secondary" style="font-size:12px; padding:8px 16px; color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); generarNutricionParaCliente('${cliente.nombre}')">
+          <button class="btn-secondary" style="font-size:12px; padding:8px 16px; color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); generarNutricionParaCliente('${escapeJsAttr(cliente.nombre)}')">
             🥗 Generar Plan Nutricional
           </button>
         </div>
@@ -8822,7 +8822,7 @@ function abrirDetalleCliente(id) {
                   <strong style="color:#fff; font-size:14px;">Mes ${historialPlanes.length - idx}: ${plan.metodo}</strong>
                   <span style="font-size:12px; color:var(--accent-green); font-weight:600;">📅 ${plan.fecha}</span>
                 </div>
-                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">🎯 Objetivo: <span style="color:#fff;">${plan.objetivo}</span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">🎯 Objetivo: <span style="color:#fff;">${escapeHtml(plan.objetivo)}</span></div>
                 <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
                   ${plan.ejercicios.slice(0, 3).map(e => `• ${e}`).join('<br>')}
                 </div>
@@ -8839,8 +8839,8 @@ function abrirDetalleCliente(id) {
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px; margin-top:20px; flex-wrap:wrap; gap:10px;">
         <button class="btn-secondary" onclick="cerrarDetalleCliente()">Cerrar Expediente</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); generarNutricionParaCliente('${cliente.nombre}')">🥗 Generar Plan Nutricional</button>
-          <button class="btn-primary" onclick="cerrarDetalleCliente(); generarEntrenamientoParaCliente('${cliente.nombre}')">⚡ Generar Nuevo Plan de Entrenamiento</button>
+          <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="cerrarDetalleCliente(); generarNutricionParaCliente('${escapeJsAttr(cliente.nombre)}')">🥗 Generar Plan Nutricional</button>
+          <button class="btn-primary" onclick="cerrarDetalleCliente(); generarEntrenamientoParaCliente('${escapeJsAttr(cliente.nombre)}')">⚡ Generar Nuevo Plan de Entrenamiento</button>
         </div>
       </div>
     `;
@@ -8896,7 +8896,7 @@ function abrirBitacoraClinica(clienteNombre) {
 
   const modalTitulo = document.getElementById('modal-bitacora-titulo');
   const modalBody = document.getElementById('modal-bitacora-body');
-  if (modalTitulo) modalTitulo.innerText = `🩺 Bitácora Clínica & Evolución Funcional: ${cliente.nombre}`;
+  if (modalTitulo) modalTitulo.innerText = `🩺 Bitácora Clínica & Evolución Funcional: ${escapeHtml(cliente.nombre)}`;
 
   const registros = bitacoraClinicaDB.filter(b => b.cliente === cliente.nombre);
 
@@ -8906,7 +8906,7 @@ function abrirBitacoraClinica(clienteNombre) {
       <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); padding:16px; border-radius:var(--radius-md); margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
           <div style="font-size:12px; color:var(--text-muted);">Atleta / Paciente</div>
-          <strong style="font-size:18px; color:#fff;">${cliente.nombre} (${cliente.edad || 68} años)</strong>
+          <strong style="font-size:18px; color:#fff;">${escapeHtml(cliente.nombre)} (${cliente.edad || 68} años)</strong>
           <div style="font-size:12px; color:#38bdf8; margin-top:2px;">
             Patologías: ${cliente.geriatria?.patologiasOseas?.join(', ') || cliente.enfermedades?.join(', ') || 'En seguimiento preventivo'}
           </div>
@@ -8948,7 +8948,7 @@ function abrirBitacoraClinica(clienteNombre) {
         </div>
 
         <div style="display:flex; justify-content:flex-end;">
-          <button class="btn-primary" style="font-size:12px; padding:8px 16px; background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="guardarRegistroBitacora('${cliente.nombre}')">💾 Guardar Registro en Bitácora</button>
+          <button class="btn-primary" style="font-size:12px; padding:8px 16px; background:#38bdf8; border-color:#38bdf8; color:#000;" onclick="guardarRegistroBitacora('${escapeJsAttr(cliente.nombre)}')">💾 Guardar Registro en Bitácora</button>
         </div>
       </div>
 
@@ -8976,7 +8976,7 @@ function abrirBitacoraClinica(clienteNombre) {
               </div>
 
               <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
-                📝 <strong>Notas Clínicas:</strong> ${r.notas}
+                📝 <strong>Notas Clínicas:</strong> ${escapeHtml(r.notas)}
               </div>
             </div>
           `;
@@ -8990,7 +8990,7 @@ function abrirBitacoraClinica(clienteNombre) {
       <!-- REPOSITORIO DOCUMENTAL DE DICTÁMENES Y ESTUDIOS MÉDICOS -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin:24px 0 12px 0; flex-wrap:wrap; gap:8px;">
         <h4 style="color:#38bdf8; font-family:var(--font-heading); margin:0; font-size:15px;">📁 Dictámenes Médicos, Fisioterapias & Radiografías</h4>
-        <button class="btn-secondary" style="font-size:11px; padding:4px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${cliente.nombre}')">📁 + Adjuntar Estudio / Alta</button>
+        <button class="btn-secondary" style="font-size:11px; padding:4px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${escapeJsAttr(cliente.nombre)}')">📁 + Adjuntar Estudio / Alta</button>
       </div>
 
       <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px; max-height:220px; overflow-y:auto; padding-right:6px;">
@@ -8998,7 +8998,7 @@ function abrirBitacoraClinica(clienteNombre) {
           <div style="background:var(--bg-surface); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>
               <div style="display:flex; align-items:center; gap:6px;">
-                <strong style="color:#fff; font-size:12px;">${doc.titulo}</strong>
+                <strong style="color:#fff; font-size:12px;">${escapeHtml(doc.titulo)}</strong>
                 <span class="badge badge-green" style="font-size:9px;">${doc.tipo}</span>
               </div>
               <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
@@ -9129,14 +9129,14 @@ function renderSeniorsList() {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
           <div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <strong style="color:#fff; font-size:16px;">${s.nombre}</strong>
+              <strong style="color:#fff; font-size:16px;">${escapeHtml(s.nombre)}</strong>
               <span class="badge badge-green" style="font-size:11px;">${s.edad || 68} años</span>
             </div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">🎯 ${s.objetivo} • PA: <strong style="color:#4ade80;">${ger.presionArterial || '125/80 mmHg'}</strong></div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">🎯 ${escapeHtml(s.objetivo)} • PA: <strong style="color:#4ade80;">${ger.presionArterial || '125/80 mmHg'}</strong></div>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirBitacoraClinica('${s.nombre}')">🩺 Bitácora</button>
-            <button class="btn-primary" style="font-size:11px; padding:5px 10px;" onclick="generarEntrenamientoParaCliente('${s.nombre}')">⚡ Prescribir Rutina</button>
+            <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirBitacoraClinica('${escapeJsAttr(s.nombre)}')">🩺 Bitácora</button>
+            <button class="btn-primary" style="font-size:11px; padding:5px 10px;" onclick="generarEntrenamientoParaCliente('${escapeJsAttr(s.nombre)}')">⚡ Prescribir Rutina</button>
           </div>
         </div>
 
@@ -9160,7 +9160,7 @@ function confirmarEliminarCliente(id) {
   const cliente = clientes.find(c => String(c.id) === String(id));
   if (!cliente) return;
 
-  const proceed = typeof window.confirm === 'function' ? window.confirm(`¿Estás seguro de que deseas dar de baja y eliminar el expediente del atleta "${cliente.nombre}"?`) : true;
+  const proceed = typeof window.confirm === 'function' ? window.confirm(`¿Estás seguro de que deseas dar de baja y eliminar el expediente del atleta "${escapeHtml(cliente.nombre)}"?`) : true;
 
   if (proceed) {
     clientes = clientes.filter(c => String(c.id) !== String(id));
@@ -9981,7 +9981,7 @@ function imprimirPlan(cliente, metodo, rutinaStr, planObj = null) {
                   ${(d.ejercicios || []).map((ej, idx) => `
                     <tr>
                       <td>${idx + 1}</td>
-                      <td><strong>${ej.nombre}</strong></td>
+                      <td><strong>${escapeHtml(ej.nombre)}</strong></td>
                       <td>${ej.series} x ${ej.reps}</td>
                       <td>${ej.carga || 'RPE 8.0'}</td>
                       <td>${ej.descanso || '90s'}</td>
@@ -11067,7 +11067,7 @@ function verDetallePlanGenerado(planId) {
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
                   <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
                     <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:40px; height:40px; border-radius:6px;">
-                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${escapeHtml(ej.nombre)}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
                     </div>
                     <div>
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -11200,11 +11200,11 @@ function renderBiblioteca() {
 
           ${ej.github_id ? `
           <div class="${window.claseImagenEjercicio(ej.url_thumbnail)}" style="cursor:pointer; margin-bottom:12px; aspect-ratio:1/1;" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" title="Ver demostración">
-            <img src="${ej.url_thumbnail}" alt="${ej.nombre}" loading="lazy" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.classList.add('is-placeholder');this.src=window.SVG_PLACEHOLDER;}">
+            <img src="${ej.url_thumbnail}" alt="${escapeHtml(ej.nombre)}" loading="lazy" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.classList.add('is-placeholder');this.src=window.SVG_PLACEHOLDER;}">
           </div>` : ''}
 
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
-            <h3 style="color:#fff; margin:0; font-size:16px; font-family:var(--font-heading); line-height:1.3;">${ej.nombre}</h3>
+            <h3 style="color:#fff; margin:0; font-size:16px; font-family:var(--font-heading); line-height:1.3;">${escapeHtml(ej.nombre)}</h3>
             <button type="button" class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="flex-shrink:0; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
               📺 Demo
             </button>
@@ -11262,7 +11262,7 @@ function renderSuplementos() {
   grid.innerHTML = suplementosDB.map(s => `
     <div class="card" style="margin-bottom:0;">
       <span class="badge badge-green" style="margin-bottom:10px;">${s.evidencia}</span>
-      <h3 style="color:var(--accent-green); font-family:var(--font-heading); margin-bottom:8px; font-size:18px;">${s.nombre}</h3>
+      <h3 style="color:var(--accent-green); font-family:var(--font-heading); margin-bottom:8px; font-size:18px;">${escapeHtml(s.nombre)}</h3>
       <p style="color:#fff; font-size:13px; margin-bottom:8px;"><strong>Dosis recomendada:</strong> ${s.dosis}</p>
       <p style="color:var(--text-muted); font-size:13px; margin:0;">${s.beneficio}</p>
     </div>
@@ -11273,7 +11273,7 @@ function renderSuplementos() {
 function abrirModalLesion() {
   const selectCliente = document.getElementById('modal-lesion-cliente');
   if (selectCliente) {
-    selectCliente.innerHTML = getClientesActivos().map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+    selectCliente.innerHTML = getClientesActivos().map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('');
   }
   document.getElementById('modal-lesion').classList.remove('hidden');
 }
@@ -11418,7 +11418,7 @@ function renderLesiones() {
             </div>
           </div>
 
-          <div style="color:#f87171; font-weight:700; font-size:14px; margin-bottom:8px;">🚑 ${l.condicion}</div>
+          <div style="color:#f87171; font-weight:700; font-size:14px; margin-bottom:8px;">🚑 ${escapeHtml(l.condicion)}</div>
 
           <!-- ESCALA DE DOLOR VAS / EVA -->
           <div style="background:${bgEva}; border:1px solid ${colorEva}; padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
@@ -11444,7 +11444,7 @@ function renderLesiones() {
             <div style="font-size:12px; color:#fff;">
               📁 <strong style="color:#38bdf8;">${docsAdjuntos.length}</strong> ${docsAdjuntos.length === 1 ? 'Dictamen Adjunto' : 'Dictámenes Adjuntos'}
             </div>
-            <button class="btn-secondary" style="font-size:11px; padding:4px 8px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${l.cliente}', '${l.condicion}')">+ Adjuntar</button>
+            <button class="btn-secondary" style="font-size:11px; padding:4px 8px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirModalSubirDictamen('${escapeJsAttr(l.cliente)}', '${escapeJsAttr(l.condicion)}')">+ Adjuntar</button>
           </div>
 
           <p style="color:var(--text-muted); font-size:12px; margin:0 0 14px 0; line-height:1.4;">
@@ -11454,10 +11454,10 @@ function renderLesiones() {
 
         <div style="border-top:1px solid var(--border-color); padding-top:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
           <div style="display:flex; gap:6px;">
-            <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirBitacoraClinica('${l.cliente}')">🩺 Bitácora</button>
-            <button class="btn-secondary" style="font-size:11px; padding:5px 10px;" onclick="abrirModalSubirDictamen('${l.cliente}', '${l.condicion}')">📁 Subir Dictamen</button>
+            <button class="btn-secondary" style="font-size:11px; padding:5px 10px; color:#38bdf8; border-color:#38bdf8;" onclick="abrirBitacoraClinica('${escapeJsAttr(l.cliente)}')">🩺 Bitácora</button>
+            <button class="btn-secondary" style="font-size:11px; padding:5px 10px;" onclick="abrirModalSubirDictamen('${escapeJsAttr(l.cliente)}', '${escapeJsAttr(l.condicion)}')">📁 Subir Dictamen</button>
           </div>
-          <button class="btn-primary" style="font-size:11px; padding:5px 10px;" onclick="generarEntrenamientoParaCliente('${l.cliente}')">⚡ Prescribir Rutina</button>
+          <button class="btn-primary" style="font-size:11px; padding:5px 10px;" onclick="generarEntrenamientoParaCliente('${escapeJsAttr(l.cliente)}')">⚡ Prescribir Rutina</button>
         </div>
       </div>
     `;
@@ -11500,7 +11500,7 @@ function abrirModalSubirDictamen(clienteNombre = '', condicion = '') {
   const fileInput = document.getElementById('modal-doc-file');
 
   if (selectCliente) {
-    selectCliente.innerHTML = clientes.map(c => `<option value="${c.nombre}">${c.nombre} (${c.edad || 28} años - ${c.objetivo})</option>`).join('');
+    selectCliente.innerHTML = clientes.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${c.edad || 28} años - ${escapeHtml(c.objetivo)})</option>`).join('');
     if (clienteNombre) selectCliente.value = clienteNombre;
   }
 
@@ -11589,7 +11589,7 @@ function abrirVisorDocumento(id) {
   const modalTitulo = document.getElementById('modal-visor-doc-titulo');
   const modalBody = document.getElementById('modal-visor-doc-body');
 
-  if (modalTitulo) modalTitulo.innerText = `Visor de Documento: ${doc.titulo}`;
+  if (modalTitulo) modalTitulo.innerText = `Visor de Documento: ${escapeHtml(doc.titulo)}`;
 
   if (modalBody) {
     const isImage = doc.archivoTipo && doc.archivoTipo.startsWith('image');
@@ -11601,7 +11601,7 @@ function abrirVisorDocumento(id) {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
           <div>
             <span class="badge badge-green" style="font-size:12px; margin-bottom:6px;">${doc.tipo}</span>
-            <h3 style="color:#fff; font-size:20px; font-family:var(--font-heading); margin:4px 0;">${doc.titulo}</h3>
+            <h3 style="color:#fff; font-size:20px; font-family:var(--font-heading); margin:4px 0;">${escapeHtml(doc.titulo)}</h3>
             <div style="font-size:13px; color:var(--text-muted);">🏥 Especialista: <strong style="color:#38bdf8;">${doc.medicoEspecialista}</strong></div>
           </div>
           <div style="text-align:right;">
@@ -11622,12 +11622,12 @@ function abrirVisorDocumento(id) {
         <h4 style="color:#38bdf8; font-family:var(--font-heading); margin:0 0 12px 0; font-size:16px;">🔬 Diagnóstico y Conclusiones del Médico Especialista</h4>
         
         <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-sm); border-left:4px solid #38bdf8; color:#e4e4e7; font-size:13px; line-height:1.6; margin-bottom:16px;">
-          ${doc.notas}
+          ${escapeHtml(doc.notas)}
         </div>
 
         ${isImage && hasData ? `
           <div style="text-align:center; background:#000; padding:12px; border-radius:var(--radius-sm); margin-bottom:16px;">
-            <img src="${doc.archivoData}" alt="${doc.titulo}" style="max-width:100%; max-height:400px; border-radius:var(--radius-sm); object-fit:contain;">
+            <img src="${doc.archivoData}" alt="${escapeHtml(doc.titulo)}" style="max-width:100%; max-height:400px; border-radius:var(--radius-sm); object-fit:contain;">
           </div>
         ` : `
           <!-- DOCUMENTO DIGITALIZADO CON SELLO -->
@@ -11637,7 +11637,7 @@ function abrirVisorDocumento(id) {
               <span style="font-size:11px; color:#4ade80; font-weight:700;">DOCUMENTO DIGITAL AUDITADO</span>
             </div>
             <div style="font-size:13px; color:#fff; line-height:1.5;">
-              Por medio del presente documento, se hace constar que el paciente <strong>${doc.cliente}</strong> ha sido evaluado en consulta especializada con relación al diagnóstico de <strong>${doc.titulo}</strong>. Se aprueba la continuación de su plan de acondicionamiento físico y readaptación funcional bajo las consideraciones y vectores de descarga detallados en el expediente.
+              Por medio del presente documento, se hace constar que el paciente <strong>${doc.cliente}</strong> ha sido evaluado en consulta especializada con relación al diagnóstico de <strong>${escapeHtml(doc.titulo)}</strong>. Se aprueba la continuación de su plan de acondicionamiento físico y readaptación funcional bajo las consideraciones y vectores de descarga detallados en el expediente.
             </div>
             <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px; font-size:12px; color:var(--text-muted);">
               <div>
@@ -11657,7 +11657,7 @@ function abrirVisorDocumento(id) {
         <button class="btn-secondary" onclick="cerrarVisorDocumento()">Cerrar Visor</button>
         <div style="display:flex; gap:10px;">
           <button class="btn-secondary" style="color:#38bdf8; border-color:#38bdf8;" onclick="imprimirDocumentoMedico(${doc.id})">🖨️ Imprimir / Guardar Copia</button>
-          <button class="btn-primary" onclick="cerrarVisorDocumento(); generarEntrenamientoParaCliente('${doc.cliente}')">⚡ Prescribir Rutina con este Dictamen</button>
+          <button class="btn-primary" onclick="cerrarVisorDocumento(); generarEntrenamientoParaCliente('${escapeJsAttr(doc.cliente)}')">⚡ Prescribir Rutina con este Dictamen</button>
         </div>
       </div>
     `;
@@ -11719,12 +11719,12 @@ function imprimirDocumentoMedico(id) {
       <div class="doc-meta">
         <div><strong>Atleta / Paciente:</strong> ${doc.cliente}</div>
         <div><strong>Tipo de Documento:</strong> ${doc.tipo}</div>
-        <div><strong>Título del Estudio:</strong> ${doc.titulo}</div>
+        <div><strong>Título del Estudio:</strong> ${escapeHtml(doc.titulo)}</div>
         <div><strong>Médico Especialista:</strong> ${doc.medicoEspecialista}</div>
       </div>
 
       <div class="section-title">CONCLUSIONES CLÍNICAS & PAUTAS DE ENTRENAMIENTO:</div>
-      <p style="font-size:14px; margin-top:10px;">${doc.notas}</p>
+      <p style="font-size:14px; margin-top:10px;">${escapeHtml(doc.notas)}</p>
 
       <div class="section-title">RESTRICCIONES Y SEGURIDAD BIOMECÁNICA:</div>
       <p style="font-size:14px; margin-top:10px;">
@@ -11759,7 +11759,7 @@ function abrirModalNuevoPago(clienteNombre = '') {
   const fechaInput = document.getElementById('pago-fecha');
 
   if (select) {
-    select.innerHTML = getClientesActivos().map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+    select.innerHTML = getClientesActivos().map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)} (${escapeHtml(c.objetivo)})</option>`).join('');
     if (clienteNombre) select.value = clienteNombre;
   }
 
@@ -11961,7 +11961,7 @@ function renderListaSedesModal() {
       <div style="background: ${esActivo ? 'rgba(0, 214, 143, 0.08)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${esActivo ? 'rgba(0, 214, 143, 0.4)' : 'var(--border-color)'}; border-radius: var(--radius-md); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
         <div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <strong style="color: #fff; font-size: 14px;">${g.nombre}</strong>
+            <strong style="color: #fff; font-size: 14px;">${escapeHtml(g.nombre)}</strong>
             ${esActivo ? '<span class="badge badge-status-active" style="font-size:10px;">🟢 Sede Activa</span>' : ''}
           </div>
           <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
@@ -12100,8 +12100,8 @@ function abrirDetalleStat(tipo) {
         ${clientes.map(c => `
           <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <strong style="color:#fff; font-size:14px;">${c.nombre}</strong>
-              <div style="color:var(--text-muted); font-size:12px;">${c.objetivo} • ${c.nivel || 'Atleta'}</div>
+              <strong style="color:#fff; font-size:14px;">${escapeHtml(c.nombre)}</strong>
+              <div style="color:var(--text-muted); font-size:12px;">${escapeHtml(c.objetivo)} • ${c.nivel || 'Atleta'}</div>
             </div>
             <span class="badge badge-green">${c.adherencia || '90%'}</span>
           </div>
@@ -13016,7 +13016,7 @@ function renderPortalAtleta(userObj) {
                           <span>•</span>
                           <span>RPE Meta: <strong style="color:#10b981;">@${e.rpe || 8.5}</strong></span>
                         </div>
-                        ${e.notas ? `<div style="font-size:12px; color:#38bdf8; margin-top:6px; background:rgba(56,189,248,0.08); padding:6px 10px; border-radius:6px; border-left:3px solid #38bdf8;">💡 ${e.notas}</div>` : ''}
+                        ${e.notas ? `<div style="font-size:12px; color:#38bdf8; margin-top:6px; background:rgba(56,189,248,0.08); padding:6px 10px; border-radius:6px; border-left:3px solid #38bdf8;">💡 ${escapeHtml(e.notas)}</div>` : ''}
                       </div>
                       <span style="background:rgba(255,255,255,0.05); color:#e2e8f0; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
                         ⏱️ Descanso: ${e.descanso || '90s'}
@@ -13314,7 +13314,7 @@ function renderPortalAtleta(userObj) {
               ${zonas.map(z => `
                 <div style="display:grid; grid-template-columns:1fr 80px 90px; align-items:center; gap:10px;">
                   <div>
-                    <div style="font-size:12px; font-weight:700; color:#e2e8f0; margin-bottom:4px;">${z.nombre}</div>
+                    <div style="font-size:12px; font-weight:700; color:#e2e8f0; margin-bottom:4px;">${escapeHtml(z.nombre)}</div>
                     <div style="height:7px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
                       <div style="height:100%; width:${z.pct}%; background:${z.color}; border-radius:4px; opacity:0.85;"></div>
                     </div>
@@ -14417,11 +14417,11 @@ function renderizarDiaIA(dia, indice) {
               <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
               <td style="width:60px; min-width:60px; text-align:center;">
                 <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:50px; height:50px; display:inline-flex;">
-                  <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
+                  <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${escapeHtml(ej.nombre)}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
                 </div>
               </td>
               <td>
-                <textarea style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; font-weight:700; font-size:13px; width:95%; padding:4px 8px; border-radius:4px; resize:vertical; white-space:normal; word-break:break-word; font-family:inherit; min-height:36px; height:auto; overflow:hidden;" onchange="window.actualizarNombreEjercicioIA(${indice}, ${idx}, this.value)" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${ej.nombre}</textarea>
+                <textarea style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; font-weight:700; font-size:13px; width:95%; padding:4px 8px; border-radius:4px; resize:vertical; white-space:normal; word-break:break-word; font-family:inherit; min-height:36px; height:auto; overflow:hidden;" onchange="window.actualizarNombreEjercicioIA(${indice}, ${idx}, this.value)" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${escapeHtml(ej.nombre)}</textarea>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
                   <span class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8;">🎯 ${ej.musculoPrimario || ej.categoria}</span>
                   <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px; transition:all 0.2s;">
@@ -14500,7 +14500,7 @@ function imprimirPlanIA() {
     const filas = dia.ejercicios.map((ej, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td><strong>${ej.nombre}</strong><br><small>${ej.musculoPrimario}</small></td>
+        <td><strong>${escapeHtml(ej.nombre)}</strong><br><small>${ej.musculoPrimario}</small></td>
         <td>${dia.prescripcion.series} × ${dia.prescripcion.reps}</td>
         <td>${ej.equipamiento}</td>
         <td>${ej.riesgo}</td>
@@ -14510,7 +14510,7 @@ function imprimirPlanIA() {
 
     return `
       <div style="margin-bottom:24px; page-break-inside:avoid;">
-        <h3 style="color:#00d68f; font-size:15px; margin:0 0 8px 0; border-bottom:1px solid #eee; padding-bottom:6px;">${dia.nombre}</h3>
+        <h3 style="color:#00d68f; font-size:15px; margin:0 0 8px 0; border-bottom:1px solid #eee; padding-bottom:6px;">${escapeHtml(dia.nombre)}</h3>
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
           <thead><tr style="background:#f5f5f5;">
             <th style="padding:6px 8px; text-align:left;">#</th>
@@ -14565,7 +14565,7 @@ function guardarPlanIA() {
   const selectedAtletaName = plansAtletaSelect ? plansAtletaSelect.value : 'Atleta Pro';
 
   const ejerciciosResumen = dias.flatMap(dia =>
-    dia.ejercicios.map(e => `${e.nombre} (${e.customPrescripcion || (dia.prescripcion.series + '×' + dia.prescripcion.reps)} - ${e.musculoPrimario || e.categoria})`)
+    dia.ejercicios.map(e => `${escapeHtml(e.nombre)} (${e.customPrescripcion || (dia.prescripcion.series + '×' + dia.prescripcion.reps)} - ${e.musculoPrimario || e.categoria})`)
   );
 
   const diasEstructurados = dias.map(d => ({
