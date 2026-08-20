@@ -945,7 +945,13 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
       data: {
         full_name: nombre,
         role: rol,
-        gym_id: gymId
+        gym_id: gymId,
+        // Todo entrenador nuevo entra pendiente de aprobación manual del
+        // administrador de la plataforma; no obtiene acceso hasta que se
+        // apruebe desde el panel "🛡️ Aprobar Entrenadores" (ver
+        // establecerSesionActiva, que bloquea el acceso mientras esté en
+        // este estado).
+        approval_status: 'pending'
       }
     }
   });
@@ -962,12 +968,14 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
   }
 
   if (data && data.session) {
-    mostrarExitoAuth("¡Registro completado! Accediendo a la suite...");
+    // establecerSesionActiva detecta approval_status:'pending' y corta el
+    // acceso solo mostrando el aviso correspondiente; no hace falta avisar
+    // "accediendo" aquí porque nunca va a entrar todavía.
+    mostrarExitoAuth(`Registro recibido para ${nombre}. Tu cuenta quedó pendiente de aprobación del administrador.`);
     establecerSesionActiva(data.session, data.user);
-    showToast(`Cuenta de entrenador creada exitosamente para ${nombre}.`, "success", "✨ Registro Completado");
   } else if (data && data.user) {
     mostrarExitoAuth(`Usuario registrado con éxito. Se ha enviado un enlace de confirmación a ${email}.`);
-    showToast(`Usuario registrado. Por favor verifica tu correo en ${email}.`, "info", "📧 Verificación Enviada", 7000);
+    showToast(`Usuario registrado. Por favor verifica tu correo en ${email}. Tras confirmarlo, tu cuenta quedará pendiente de aprobación del administrador.`, "info", "📧 Verificación Enviada", 8000);
     setTimeout(() => cambiarModoAuth('login'), 2500);
   }
 }
@@ -1794,8 +1802,25 @@ function persistirDatosUsuarioActual() {
 }
 
 function establecerSesionActiva(session, user = null) {
-  sesionUsuarioActual = session;
   const u = user || session?.user;
+
+  // Puerta de aprobación manual: solo la trae un entrenador recién
+  // registrado (registrarUsuarioSupabase le pone approval_status:'pending'
+  // al crear la cuenta). Las cuentas de atleta y las cuentas de entrenador
+  // creadas antes de este control nunca tienen este campo, así que pasan
+  // de largo sin verse afectadas.
+  const approvalStatus = u?.user_metadata?.approval_status;
+  if (approvalStatus === 'pending' || approvalStatus === 'rejected') {
+    if (supabaseClient) supabaseClient.auth.signOut().catch(() => {});
+    const msg = approvalStatus === 'pending'
+      ? 'Tu cuenta de entrenador está pendiente de aprobación del administrador. Te avisaremos por correo cuando esté activa.'
+      : 'Tu solicitud de cuenta de entrenador no fue aprobada. Contacta al administrador de la plataforma.';
+    mostrarErrorAuth(msg);
+    showToast(msg, approvalStatus === 'pending' ? 'info' : 'error', approvalStatus === 'pending' ? '⏳ Cuenta Pendiente de Aprobación' : '🚫 Registro No Aprobado', 9000);
+    return;
+  }
+
+  sesionUsuarioActual = session;
   const uEmail = (u?.email || '').toLowerCase().trim();
   const urlParams = new URLSearchParams(window.location.search);
   const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
@@ -1909,6 +1934,16 @@ function establecerSesionActiva(session, user = null) {
   window.esSesionModoAtleta = false;
   document.body.classList.remove('is-athlete-mode');
   document.body.classList.remove('auth-pending');
+
+  // Mostrar el botón "🛡️ Aprobar Entrenadores" solo para el admin de la
+  // plataforma (window.ENV.ADMIN_EMAIL, configurado en Vercel). El botón
+  // no es la seguridad real: las funciones /api/admin-* exigen además la
+  // clave ADMIN_SECRET server-side, esto solo controla si se ve.
+  const navAdmin = document.getElementById('nav-admin-aprobaciones');
+  if (navAdmin) {
+    const adminEmail = (window.ENV?.ADMIN_EMAIL || '').toLowerCase().trim();
+    navAdmin.style.display = (adminEmail && uEmail === adminEmail) ? '' : 'none';
+  }
 
   const userId = u?.id || 'demo_coach';
   const esDemo = session?.esModoDemo || false;
@@ -4886,6 +4921,111 @@ function alternarVisibilidadPasswordAtleta() {
     pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
   }
 }
+
+// ==========================================
+// 🛡️ PANEL DE APROBACIÓN DE ENTRENADORES (SOLO ADMIN)
+// Solo visible/usable por window.ENV.ADMIN_EMAIL (ver establecerSesionActiva).
+// La seguridad real está en /api/admin-pending y /api/admin-approve, que
+// exigen ADMIN_SECRET del lado del servidor (nunca viaja embebido en el JS).
+// ==========================================
+async function abrirPanelAprobacionEntrenadores() {
+  let secret = sessionStorage.getItem('fitpro_admin_secret');
+  if (!secret) {
+    secret = prompt('Clave de administrador (ADMIN_SECRET configurada en Vercel):');
+    if (!secret) return;
+    sessionStorage.setItem('fitpro_admin_secret', secret);
+  }
+
+  let modal = document.getElementById('modal-admin-aprobaciones');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-admin-aprobaciones';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'z-index:120000; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,8,15,0.85); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; padding:16px;';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:600px; width:100%; max-height:80vh; overflow-y:auto; background:linear-gradient(145deg, #111827 0%, #0b1120 100%); border:1px solid var(--border-color); box-shadow:0 25px 60px rgba(0,0,0,0.8); border-radius:var(--radius-xl); padding:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+        <h3 style="font-family:var(--font-heading); font-size:16px; font-weight:800; color:#fff; margin:0;">🛡️ Entrenadores Pendientes de Aprobación</h3>
+        <button type="button" onclick="cerrarPanelAprobacionEntrenadores()" style="padding:4px 10px; font-size:18px; cursor:pointer; background:transparent; border:none; color:var(--text-muted); font-weight:bold;">✕</button>
+      </div>
+      <div id="admin-aprobaciones-lista" style="color:var(--text-muted); font-size:13px; text-align:center; padding:24px;">Cargando...</div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+
+  await cargarListaAprobacionesPendientes();
+}
+
+async function cargarListaAprobacionesPendientes() {
+  const cont = document.getElementById('admin-aprobaciones-lista');
+  const secret = sessionStorage.getItem('fitpro_admin_secret');
+  if (!cont || !secret) return;
+
+  cont.innerHTML = 'Cargando...';
+  try {
+    const res = await fetch('/api/admin-pending', { headers: { 'x-admin-secret': secret } });
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 401) sessionStorage.removeItem('fitpro_admin_secret');
+      cont.innerHTML = `<p style="color:#f87171; text-align:center;">Error: ${escapeHtml(data.error || 'No autorizado')}</p>`;
+      return;
+    }
+
+    const pending = data.pending || [];
+    if (pending.length === 0) {
+      cont.innerHTML = `<p style="text-align:center; padding:12px;">✨ No hay entrenadores pendientes de aprobación.</p>`;
+      return;
+    }
+
+    cont.innerHTML = pending.map(p => `
+      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px; margin-bottom:10px; text-align:left;">
+        <div style="font-weight:700; color:#fff; font-size:14px;">${escapeHtml(p.full_name || '(sin nombre)')}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin:4px 0;">📧 ${escapeHtml(p.email)} · ${escapeHtml(p.role || 'sin especialidad')} · Sede: ${escapeHtml(p.gym_id || '—')}</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Registrado: ${new Date(p.created_at).toLocaleString('es-MX')}</div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-primary" style="padding:6px 14px; font-size:12px;" onclick="resolverAprobacionEntrenador('${p.id}','approve')">✅ Aprobar</button>
+          <button type="button" class="btn-secondary" style="padding:6px 14px; font-size:12px; color:#f87171; border-color:rgba(248,113,113,0.4);" onclick="resolverAprobacionEntrenador('${p.id}','reject')">🚫 Rechazar</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    cont.innerHTML = `<p style="color:#f87171; text-align:center;">Error de red: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function resolverAprobacionEntrenador(userId, action) {
+  const secret = sessionStorage.getItem('fitpro_admin_secret');
+  if (!secret) return;
+  try {
+    const res = await fetch('/api/admin-approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+      body: JSON.stringify({ userId, action })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'No se pudo procesar la solicitud.', 'error', 'Error');
+      return;
+    }
+    showToast(action === 'approve' ? 'Entrenador aprobado. Ya puede iniciar sesión.' : 'Registro rechazado.', 'success', '🛡️ Aprobaciones');
+    cargarListaAprobacionesPendientes();
+  } catch (err) {
+    showToast('Error de red: ' + err.message, 'error', 'Error');
+  }
+}
+
+function cerrarPanelAprobacionEntrenadores() {
+  const modal = document.getElementById('modal-admin-aprobaciones');
+  if (modal) modal.style.display = 'none';
+}
+
+window.abrirPanelAprobacionEntrenadores = abrirPanelAprobacionEntrenadores;
+window.cerrarPanelAprobacionEntrenadores = cerrarPanelAprobacionEntrenadores;
+window.resolverAprobacionEntrenador = resolverAprobacionEntrenador;
 
 async function registrarCredencialesAtletaSupabase(cliente, password, mustChangePassword = true) {
   if (!supabaseClient || sesionUsuarioActual?.esModoDemo) return null;
