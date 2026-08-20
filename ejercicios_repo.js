@@ -122,9 +122,15 @@
         primaryMuscles: raw.muscles || [],
         secondaryMuscles: raw.muscles_secondary || [],
         equipment: raw.equipment || [], // array, puede tener 0-N items
-        // URLs YA absolutas (https://wger.de/media/exercise-images/...),
-        // no hace falta resolver contra ningún CDN base.
-        images: raw.images || []
+        // Nombres de archivo relativos (ej. "12_0.png"); se resuelven a
+        // ./wger_images/<archivo> en gifUrls(). Las imágenes se
+        // autohospedan en vez de enlazar en vivo a wger.de: su servidor
+        // (proyecto comunitario, no un CDN) resultó no ser confiable para
+        // hotlinking en tiempo real desde el navegador de los usuarios.
+        images: raw.images || [],
+        // Atribución requerida por la licencia CC-BY-SA de wger.
+        licenseAuthor: raw.license_author || '',
+        licenseShort: raw.license_short || 'CC-BY-SA'
       };
     },
 
@@ -133,11 +139,9 @@
     },
 
     // Se mantiene el nombre `gifUrls` por compatibilidad con el resto del
-    // archivo y con app.js. Las imágenes de wger ya son URLs absolutas de
-    // un único origen (no hay CDN de respaldo como con jsDelivr/raw
-    // anteriormente), así que solo se devuelven tal cual.
+    // archivo y con app.js.
     gifUrls(record) {
-      return (record.images || []).slice();
+      return (record.images || []).map(nombreArchivo => 'wger_images/' + nombreArchivo);
     },
     imageUrls(record) { return this.gifUrls(record); },
 
@@ -205,7 +209,11 @@
         url_gif_frame2: imageUrls[1] || '',
         url_gif_frame2_fallback: imageUrls[1] || '',
         url_thumbnail: imageUrls[0] || '',
-        url_thumbnail_fallback: imageUrls[0] || ''
+        url_thumbnail_fallback: imageUrls[0] || '',
+        // Atribución CC-BY-SA (obligatoria por la licencia de wger.de)
+        atribucion: record.licenseAuthor
+          ? `Imagen: ${record.licenseAuthor} · wger.de (${record.licenseShort})`
+          : `Imagen: wger.de (${record.licenseShort})`
       };
     }
   };
@@ -384,19 +392,20 @@
   const MAPEO_MANUAL_ESTATICO_POR_ID = {};
 
   // Imágenes por categoría como último recurso visual (si no hay match en el
-  // dataset ni éste está cargado aún). Ilustraciones de línea de wger,
-  // representativas de cada categoría local (elegidas del catálogo real).
+  // dataset ni éste está cargado aún). Autohospedadas (ver wger_images/),
+  // igual que el resto de las imágenes — enlazar en vivo a wger.de no era
+  // confiable.
   const FALLBACK_GIFS_POR_CATEGORIA = {
-    cuadriceps: 'https://wger.de/media/exercise-images/203/1c052351-2af0-4227-aeb0-244008e4b0a8.jpeg',
-    isquiotibiales: 'https://wger.de/media/exercise-images/285/4141e8b2-d9f2-4597-8ef0-7768127fd0ec.png',
-    gluteos: 'https://wger.de/media/exercise-images/12/4a42cc6f-648d-40cc-a72a-c49dd47e1667.webp',
-    pecho: 'https://wger.de/media/exercise-images/192/Bench-press-1.png',
-    espalda: 'https://wger.de/media/exercise-images/81/a751a438-ae2d-4751-8d61-cef0e9292174.png',
-    hombros: 'https://wger.de/media/exercise-images/79/da58dfbf-748a-461b-891e-3d6bc9cc4be2.png',
-    biceps: 'https://wger.de/media/exercise-images/31/92f6451b-f89d-49d6-9531-8970ea420d97.png',
-    triceps: 'https://wger.de/media/exercise-images/50/695ced5c-9961-4076-add2-cb250d01089e.png',
-    core: 'https://wger.de/media/exercise-images/41/34b37423-269f-43d4-9d29-d2a90eeaa6b4.png',
-    pantorrillas: 'https://wger.de/media/exercise-images/146/8b284904-d072-4381-a256-4c81d8fd9c1f.png'
+    cuadriceps: 'wger_images/203_0.jpg',
+    isquiotibiales: 'wger_images/285_0.png',
+    gluteos: 'wger_images/12_0.png',
+    pecho: 'wger_images/73_0.png',
+    espalda: 'wger_images/81_0.jpg',
+    hombros: 'wger_images/79_0.png',
+    biceps: 'wger_images/31_0.png',
+    triceps: 'wger_images/50_0.jpg',
+    core: 'wger_images/41_0.png',
+    pantorrillas: 'wger_images/146_0.jpg'
   };
   // Fallback absoluto (sin categoría conocida / dataset no cargado aún). Se
   // reutiliza la imagen de "core" para no duplicar otra URL más.
@@ -509,6 +518,7 @@
         real_gif_url: fallbackObj.real_gif_url,
         url_gif_frame2: fallbackObj.url_gif_frame2,
         url_gif_frame2_fallback: fallbackObj.url_gif_frame2_fallback,
+        atribucion: fallbackObj.atribucion || '',
         github_id: fallbackObj.github_id,
         github_name: fallbackObj.github_name
       };
@@ -529,6 +539,9 @@
         real_gif_url: gifUrls[0] || '',
         url_gif_frame2: gifUrls[1] || '',
         url_gif_frame2_fallback: gifUrls[1] || '',
+        atribucion: matchingGithubEx.licenseAuthor
+          ? `Imagen: ${matchingGithubEx.licenseAuthor} · wger.de (${matchingGithubEx.licenseShort})`
+          : `Imagen: wger.de (${matchingGithubEx.licenseShort})`,
         github_id: matchingGithubEx.id,
         github_name: matchingGithubEx.name
       };
@@ -658,18 +671,19 @@
 
         <div style="text-align:center; margin-bottom:16px;">
           <div id="modal-demo-id-text" style="font-size:11.5px; color:#38bdf8; margin-bottom:12px; font-family:monospace;">
-            ${ej.github_name ? `ID Repo: ${ej.github_id} (${ej.github_name})` : ``}
+            ${ej.github_name ? `ID: ${ej.github_id} (${ej.github_name})` : ``}
           </div>
           <div style="border-radius:var(--radius-lg); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); min-height: 200px; display: flex; align-items: center; justify-content: center;">
             <img id="modal-demo-img" alt="${ej.nombre}" style="max-width:100%; max-height:280px; object-fit:contain;">
           </div>
+          ${ej.atribucion ? `<div style="font-size:10px; color:var(--text-dim,#64748b); margin-top:6px;">${ej.atribucion} · CC-BY-SA</div>` : ''}
         </div>
 
         <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; max-height: 180px; overflow-y: auto;">
           <h5 style="color:#38bdf8; font-size:12px; font-weight:700; margin:0 0 6px 0; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px;">
-            <span>💡 Guía de Ejecución Técnica (GitHub Repo)</span>
+            <span>💡 Guía de Ejecución Técnica</span>
           </h5>
-          <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin:0; text-align:left;">${ej.explicacion_tecnica}</p>
+          <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin:0; text-align:left; white-space:pre-line;">${ej.explicacion_tecnica}</p>
         </div>
 
         <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--border-color); padding-top:12px;">
