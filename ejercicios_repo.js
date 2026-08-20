@@ -232,10 +232,24 @@
             db.createObjectStore(CONFIG.dbStore);
           }
         };
+        // Si el usuario tiene otra pestaña vieja abierta con una versión
+        // anterior de la app, esa pestaña puede tener la base de datos
+        // abierta y bloquear indefinidamente esta apertura hasta que suba
+        // de versión. Sin esto, cargarDatasetDeEjercicios() se quedaba
+        // colgado para siempre esperando el caché, sin llegar nunca a
+        // intentar la descarga por red.
+        req.onblocked = () => {
+          console.warn('⚠️ IndexedDB bloqueado por otra pestaña con una versión anterior abierta; se continúa sin caché.');
+          reject(new Error('IndexedDB bloqueado por otra pestaña'));
+        };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       });
-      return this._dbPromise;
+      // Salvavidas adicional: si por cualquier motivo ninguno de los
+      // eventos de arriba dispara en 3s, no dejar la carga del dataset
+      // colgada esperando el caché para siempre.
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout abriendo IndexedDB')), 3000));
+      return Promise.race([this._dbPromise, timeout]);
     },
 
     async get(key) {
