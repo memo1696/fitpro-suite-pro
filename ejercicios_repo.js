@@ -205,6 +205,11 @@
 
       const gifUrls = this.gifUrls(record);
       const imageUrls = this.imageUrls(record);
+      // Segunda foto (posición final del movimiento) para el efecto
+      // "flip-book": alternarla con la foto 0 en el <img> simula animación
+      // sin necesitar un GIF real. Con su propio respaldo de CDN (raw
+      // GitHub si jsDelivr falla), igual que url_gif/real_gif_url.
+      const frame2Urls = this.resolveUrls((record.images || [])[1]);
 
       return {
         nombre: capitalizeWords(record.name),
@@ -219,6 +224,8 @@
         github_name: record.name,
         url_gif: gifUrls[0] || '',
         real_gif_url: gifUrls[1] || gifUrls[0] || '', // se mantiene el nombre por compatibilidad con app.js
+        url_gif_frame2: frame2Urls[0] || '',
+        url_gif_frame2_fallback: frame2Urls[1] || frame2Urls[0] || '',
         url_thumbnail: imageUrls[0] || '',
         url_thumbnail_fallback: imageUrls[1] || imageUrls[0] || ''
       };
@@ -566,6 +573,8 @@
         explicacion_tecnica: fallbackObj.ejecucion,
         url_gif: fallbackObj.url_gif,
         real_gif_url: fallbackObj.real_gif_url,
+        url_gif_frame2: fallbackObj.url_gif_frame2,
+        url_gif_frame2_fallback: fallbackObj.url_gif_frame2_fallback,
         github_id: fallbackObj.github_id,
         github_name: fallbackObj.github_name
       };
@@ -582,12 +591,15 @@
         'Sin instrucciones disponibles.';
 
       const gifUrls = ExercisesAdapter.gifUrls(matchingGithubEx);
+      const frame2Urls = ExercisesAdapter.resolveUrls((matchingGithubEx.images || [])[1]);
 
       return {
         nombre: nombre,
         explicacion_tecnica: explicacion,
         url_gif: gifUrls[0] || '',
         real_gif_url: gifUrls[1] || gifUrls[0] || '',
+        url_gif_frame2: frame2Urls[0] || '',
+        url_gif_frame2_fallback: frame2Urls[1] || frame2Urls[0] || '',
         github_id: matchingGithubEx.id,
         github_name: matchingGithubEx.name
       };
@@ -668,6 +680,14 @@
 
   // Controlador de Modal para la Interfaz de Usuario
   window.mostrarDemostracionEjercicio = function (nombre) {
+    // Corta cualquier animación flip-book previa si el modal se reutiliza
+    // para otro ejercicio (si no, se acumulan intervalos alternando la
+    // imagen de un ejercicio distinto sobre el nuevo modal).
+    if (window._demoFlipbookInterval) {
+      clearInterval(window._demoFlipbookInterval);
+      window._demoFlipbookInterval = null;
+    }
+
     let fallbackObj = null;
     if (window.ejerciciosDB && Array.isArray(window.ejerciciosDB)) {
       fallbackObj = window.ejerciciosDB.find(e => e.nombre === nombre);
@@ -753,6 +773,38 @@
       } else {
         imgEl.src = fallbackGifCategoria;
       }
+
+      // Efecto "flip-book": free-exercise-db no trae GIF animado, pero sí
+      // hasta 2 fotos por ejercicio (posición inicial y final). Si la foto
+      // principal carga bien (sin caer a un respaldo) y existe la segunda,
+      // se alternan cada 700ms para simular el movimiento — sin depender de
+      // ningún GIF/API externo. Si la principal tuvo que caer a un
+      // respaldo (CDN2 / categoría / SVG), se deja estática: es preferible
+      // una imagen correcta y quieta a "animar" frames que no correspondan
+      // al mismo ejercicio.
+      const frame0Url = urls[0];
+      const frame2Url = ej.url_gif_frame2;
+      if (frame0Url && frame2Url) {
+        imgEl.addEventListener('load', function onFrame0Loaded() {
+          imgEl.removeEventListener('load', onFrame0Loaded);
+          if (imgEl.src !== frame0Url) return; // ya cayó a un respaldo, no animar
+          const preload = new Image();
+          preload.onload = function () {
+            if (imgEl.src !== frame0Url) return; // pudo cambiar mientras precargaba
+            let mostrandoFrame0 = true;
+            window._demoFlipbookInterval = setInterval(() => {
+              if (!document.body.contains(imgEl)) {
+                clearInterval(window._demoFlipbookInterval);
+                window._demoFlipbookInterval = null;
+                return;
+              }
+              mostrandoFrame0 = !mostrandoFrame0;
+              imgEl.src = mostrandoFrame0 ? frame0Url : frame2Url;
+            }, 700);
+          };
+          preload.src = frame2Url;
+        }, { once: true });
+      }
     }
 
     modal.style.display = 'flex';
@@ -761,6 +813,10 @@
   window.cerrarModalDemoEjercicio = function () {
     const modal = document.getElementById('modal-demo-ejercicio');
     if (modal) modal.style.display = 'none';
+    if (window._demoFlipbookInterval) {
+      clearInterval(window._demoFlipbookInterval);
+      window._demoFlipbookInterval = null;
+    }
   };
 
   // ── FLUJO CENTRALIZADO DE ENTRENAMIENTO DESDE LA FICHA DEL ATLETA ──

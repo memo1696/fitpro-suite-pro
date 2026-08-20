@@ -12983,7 +12983,12 @@ function renderPortalAtleta(userObj) {
                   <div style="background:rgba(10,15,26,0.7); padding:18px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.06); transition:all 0.2s ease;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
                       <div>
-                        <div style="font-weight:800; font-size:15.5px; color:#ffffff; font-family:var(--font-heading);">${eIdx + 1}. ${e.nombre || e.ejercicio}</div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                          <span style="font-weight:800; font-size:15.5px; color:#ffffff; font-family:var(--font-heading);">${eIdx + 1}. ${e.nombre || e.ejercicio}</span>
+                          <button type="button" class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${(e.nombre || e.ejercicio || '').replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">
+                            📺 Ver Demo
+                          </button>
+                        </div>
                         <div style="font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                           <span>🎯 Objetivo: <strong style="color:#fff;">${e.series || 4} series × ${e.repeticiones || '8-12'} reps</strong></span>
                           <span>•</span>
