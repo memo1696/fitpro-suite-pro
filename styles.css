@@ -4170,11 +4170,35 @@ body.auth-pending #app-layout {
   }
 }
 
+/* Optimization of contrast and focus states on modal forms */
+.modal-content input[type="number"]:focus,
+.modal-content input[type="text"]:focus,
+.modal-content input[type="date"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.35) !important;
+  background-color: #0b1329 !important;
+  color: #ffffff !important;
+}
 
+/* Better hierarchy between save and cancel buttons in modals */
+.modal-content .btn-secondary {
+  background: transparent !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
 
+.modal-content .btn-secondary:hover {
+  border-color: rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+}
 
-
-
-
-
-
+.modal-content .btn-primary {
+  background: var(--accent-green) !important;
+  border-color: var(--accent-green) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+}

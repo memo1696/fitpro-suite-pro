@@ -35,7 +35,7 @@ jobs:
       - name: 🛠️ Initialize & Build TWA Project
         run: |
           # Generate Android Project from twa-manifest.json (points to Vercel)
-          npx @bubblewrap/cli init --manifest=https://rshpzqppvciujwtuzniv.supabase.co/manifest.json --directory=./android-twa || true
+          npx @bubblewrap/cli init --manifest=https://fitpro-suite-pro.vercel.app/manifest.json --directory=./android-twa || true
           
           # If keystore does not exist, generate key for release
           if [ ! -f ./android.keystore ]; then

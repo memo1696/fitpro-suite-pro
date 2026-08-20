@@ -4313,8 +4313,9 @@ function navegarA(viewName, registrarHistorial = true) {
       }, 280);
     }
 
-    if (viewName === 'plans' && typeof renderPlanes === 'function') {
-      renderPlanes();
+    if (viewName === 'plans') {
+      if (typeof renderPlanes === 'function') renderPlanes();
+      if (window.inicializarSelectorAtletasPlanes) window.inicializarSelectorAtletasPlanes();
     }
 
     const mainContent = document.querySelector('.main-content');
@@ -5075,9 +5076,65 @@ function calcularEstadoCicloRutina(clienteNombre) {
 }
 
 function renovarRutinaMensual(clienteNombre) {
+  // 1. Aplicar sobrecarga progresiva del 4% (entre 2.5% y 5%) sobre los 1RMs del atleta
+  const clienteObj = clientes.find(c => c.nombre === clienteNombre);
+  if (clienteObj) {
+    const factorSobrecarga = 1.04; // 4% de sobrecarga progresiva
+    if (clienteObj.sentadilla1RM) clienteObj.sentadilla1RM = Math.round(clienteObj.sentadilla1RM * factorSobrecarga);
+    if (clienteObj.banca1RM) clienteObj.banca1RM = Math.round(clienteObj.banca1RM * factorSobrecarga);
+    if (clienteObj.muerto1RM) clienteObj.muerto1RM = Math.round(clienteObj.muerto1RM * factorSobrecarga);
+    
+    persistirDatosUsuarioActual();
+    sincronizarClienteConSupabase(clienteObj);
+  }
+
+  // 2. Preparar los inputs del plan
   prepararPlanPara(clienteNombre);
+
+  // 3. Generar la rutina
   setTimeout(() => {
     analizarYGenerarPlan();
+    
+    // 4. Guardar automáticamente el plan generado en el historial y cartera del atleta
+    setTimeout(() => {
+      if (window.planActivoGenerado) {
+        const p = window.planActivoGenerado;
+        const listaEjerciciosMapeados = p.ejercicios.map(e => {
+          const cleanName = e.split('(')[0].trim();
+          const repoEj = window.obtenerEjercicioDeRepositorio(cleanName);
+          return {
+            nombre: repoEj.nombre,
+            notas: e.split(')')[1]?.replace(/^[-\s|]+/, '')?.trim() || 'Control excéntrico',
+            url_gif: repoEj.url_gif,
+            explicacion_tecnica: repoEj.explicacion_tecnica
+          };
+        });
+
+        const nuevoPlan = {
+          id: p.id,
+          user_id: getUsuarioActualId() || 'demo_coach',
+          gym_id: gimnasioActivoId,
+          cliente: p.cliente,
+          metodo: p.metodo,
+          objetivo: p.objetivo,
+          fecha: p.fecha,
+          ejercicios: listaEjerciciosMapeados
+        };
+
+        planesGuardados.unshift(nuevoPlan);
+        persistirDatosUsuarioActual();
+        sincronizarPlanConSupabase(nuevoPlan);
+
+        // Cerrar el modal del plan de IA generado
+        cerrarModalPlan();
+
+        // Refrescar vistas del dashboard y lista de clientes
+        renderClientes();
+        renderDashboardStats();
+
+        showToast(`Rutina renovada exitosamente para ${clienteNombre}. Estatus: Vigente (0/30d). 1RMs actualizados con sobrecarga del 4%.`, 'success', '⚡ Renovación Exitosa');
+      }
+    }, 750); // Dar tiempo a que analizarYGenerarPlan termine su ejecución
   }, 150);
 }
 
@@ -5387,6 +5444,11 @@ function renderClientes(filtro = '') {
 
   if (selectGen) {
     selectGen.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre} (${c.objetivo})</option>`).join('');
+  }
+
+  const plansAtletaSelect = document.getElementById('plans-atleta-select');
+  if (plansAtletaSelect) {
+    plansAtletaSelect.innerHTML = clientesGym.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
   }
 
   const selectCalc = document.getElementById('calc-cliente-select');
@@ -7435,11 +7497,14 @@ function guardarNuevaMetrica() {
   metricasEvolucionDB.push(nuevaEntrada);
   persistirDatosUsuarioActual();
 
-  // Sync client bodyweight & body fat
+  // Sync client bodyweight, body fat & 1RMs
   const cliObj = clientes.find(c => c.nombre === cliente);
   if (cliObj) {
     cliObj.peso = peso;
     cliObj.porcentajeGrasa = grasa;
+    cliObj.sentadilla1RM = sentadilla1RM;
+    cliObj.banca1RM = banca1RM;
+    cliObj.muerto1RM = muerto1RM;
     persistirDatosUsuarioActual();
     sincronizarClienteConSupabase(cliObj);
   }
@@ -8085,7 +8150,16 @@ function guardarPlanManual() {
       diasValidados.push({
         dia: d.dia || "Día de Entrenamiento",
         musculos: d.musculos || "General",
-        ejercicios: ejsValidos
+        ejercicios: ejsValidos.map(e => {
+          // Mapear con el repositorio oficial
+          const repoEj = window.obtenerEjercicioDeRepositorio(e.nombre, e);
+          return {
+            ...e,
+            nombre: repoEj.nombre,
+            explicacion_tecnica: repoEj.explicacion_tecnica,
+            url_gif: repoEj.url_gif
+          };
+        })
       });
       ejsValidos.forEach(e => {
         ejerciciosPlanos.push(`[${d.dia}] ${e.nombre} (${e.series || '4'}x${e.reps || '10'} @ ${e.carga || 'RPE 8'}) - Descanso: ${e.descanso || '90s'} ${e.notas ? '| ' + e.notas : ''}`);
@@ -8167,10 +8241,20 @@ function guardarPlanManual() {
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
               ${d.ejercicios.map((ej, eIdx) => `
-                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
-                  <div>
-                    <strong style="color:#fff;">${eIdx + 1}. ${ej.nombre}</strong>
-                    <div style="font-size:11px; color:var(--text-muted);">${ej.notas || 'Control excéntrico'}</div>
+                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
+                  <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
+                    <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
+                        <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+                          📺 Demo
+                        </button>
+                      </div>
+                      <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(ej.notas || 'Control excéntrico')}</div>
+                    </div>
                   </div>
                   <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
                     <span><strong>${ej.series}</strong> series x <strong>${ej.reps}</strong> reps</span>
@@ -8242,7 +8326,10 @@ function abrirDetalleCliente(id) {
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="badge ${badgeMembresiaClass}" style="font-size:13px; padding:6px 12px;">${badgeMembresiaText}</span>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn-primary" style="font-size:12px; padding:8px 14px; background:#fbbf24; border-color:#fbbf24; color:#000; font-weight:800; display:flex; align-items:center; gap:6px; margin-top:4px;" onclick="window.abrirSelectorProgramacionEntrenamiento('${cliente.nombre.replace(/'/g, "\\'")}')">
+            🏋️ + Programar Entrenamiento
+          </button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
             ${planAsignado ? `<button class="btn-primary" style="font-size:11px; padding:4px 8px; background:rgba(56,189,248,0.15); color:#38bdf8; border-color:#38bdf8;" onclick="enviarPlanPorEmail(${planAsignado.id})">📧 Correo Plan</button><button class="btn-secondary" style="font-size:11px; padding:4px 8px; color:#22c55e; border-color:#22c55e;" onclick="enviarPlanPorWhatsApp(${planAsignado.id})">📲 WhatsApp</button>` : ''}
             ${dietaActiva ? `<button class="btn-primary" style="font-size:11px; padding:4px 8px; background:rgba(56,189,248,0.15); color:#38bdf8; border-color:#38bdf8;" onclick="enviarDietaPorEmail(${dietaActiva.id})">📧 Correo Dieta</button><button class="btn-secondary" style="font-size:11px; padding:4px 8px; color:#22c55e; border-color:#22c55e;" onclick="enviarDietaPorWhatsApp(${dietaActiva.id})">📲 WhatsApp</button>` : ''}
           </div>
@@ -9251,6 +9338,132 @@ function analizarYGenerarPlan() {
       justificacionMetodologia = "Asignación automatizada por condiciones clínicas/médicas. Foco en control hemodinámico y estabilidad isométrica.";
     }
 
+    // Mapear los ejercicios de todos los bloques con el repositorio oficial de ejercicios
+    const mapBloque = (bloque) => {
+      return (bloque || []).map(r => {
+        const repoEj = window.obtenerEjercicioDeRepositorio(r.ej || r.nombre, r);
+        let notaCarga = r.nota || "";
+        const ejLower = (repoEj.nombre || "").toLowerCase();
+        
+        if (clienteObj) {
+          if (ejLower.includes("bench") || ejLower.includes("banca")) {
+            if (clienteObj.banca1RM && clienteObj.banca1RM > 0) {
+              const sugerido = Math.round(clienteObj.banca1RM * 0.75);
+              notaCarga += ` | Carga sugerida: ${sugerido}kg (75% 1RM)`;
+            }
+          } else if (ejLower.includes("squat") || ejLower.includes("sentadilla")) {
+            if (clienteObj.sentadilla1RM && clienteObj.sentadilla1RM > 0) {
+              const sugerido = Math.round(clienteObj.sentadilla1RM * 0.75);
+              notaCarga += ` | Carga sugerida: ${sugerido}kg (75% 1RM)`;
+            }
+          } else if (ejLower.includes("deadlift") || ejLower.includes("muerto")) {
+            if (clienteObj.muerto1RM && clienteObj.muerto1RM > 0) {
+              const sugerido = Math.round(clienteObj.muerto1RM * 0.75);
+              notaCarga += ` | Carga sugerida: ${sugerido}kg (75% 1RM)`;
+            }
+          }
+        }
+
+        return {
+          ...r,
+          ej: repoEj.nombre, // Asegurar que use el nombre oficial del repo
+          explicacion_tecnica: repoEj.explicacion_tecnica,
+          url_gif: repoEj.url_gif,
+          real_gif_url: repoEj.real_gif_url,
+          nota: notaCarga
+        };
+      });
+    };
+
+    bloqueActivacion = mapBloque(bloqueActivacion);
+    bloqueFuerza = mapBloque(bloqueFuerza);
+    bloqueAsistencia = mapBloque(bloqueAsistencia);
+    bloqueIsometria = mapBloque(bloqueIsometria);
+
+    // Generar de forma interactiva la rutina estructurada para cada uno de los días del atleta
+    const numDias = parseInt(diasDisponibles) || 4;
+    window.bloquesPorDia = [];
+    for (let d = 1; d <= numDias; d++) {
+      let activacion = [];
+      let fuerza = [];
+      let asistencia = [];
+      let isometria = [];
+      
+      if (d === 1) { // Día 1: Pecho, Hombros y Tríceps (Empuje)
+        activacion = [
+          { ej: "Band Pull-Aparts en Plano Escapular", series: "2x15", nota: "Retracción escapular activa para estabilidad." },
+          { ej: "Rotación Externa de Hombro con Banda", series: "2x12", nota: "Calentamiento del manguito rotador." }
+        ];
+        fuerza = [
+          { ej: "Press de Banca Plano con Barra (Barbell Bench Press)", series: "4x8", nota: "Fase excéntrica de 3s. Trabajo pesado." },
+          { ej: "Press de Banca Inclinado con Mancuernas (30° - 45°)", series: "4x10", nota: "Enfoque en porción clavicular." }
+        ];
+        asistencia = [
+          { ej: "Press Militar de Pie con Barra Z (EZ-Bar Curl)", series: "3x10", nota: "Core bloqueado en retroversión pélvica." },
+          { ej: "Extensión de Tríceps en Polea Alta con Cuerda (Cable Pushdown)", series: "3x12", nota: "Pausa en contracción." }
+        ];
+        isometria = [
+          { ej: "Plancha Abdominal Isométrica (Front Plank)", series: "3x45s", nota: "Activación profunda del transverso." }
+        ];
+      } else if (d === 2) { // Día 2: Espalda, Bíceps y Core (Tracción)
+        activacion = [
+          { ej: "Cat-Camel & Descompresión Lumbar", series: "2x12", nota: "Movilización de columna." },
+          { ej: "Escapular Pull-Ups", series: "2x10", nota: "Activación de trapecio inferior." }
+        ];
+        fuerza = [
+          { ej: "Remo Pendlay con Barra al Ombligo", series: "4x8", nota: "Tracción explosiva con espalda paralela al suelo." },
+          { ej: "Jalón al Pecho Agarre Neutro Abierto", series: "4x10", nota: "Contracción máxima de dorsales." }
+        ];
+        asistencia = [
+          { ej: "Curl de Bíceps con Barra Z de Pie (EZ-Bar Curl)", series: "3x10", nota: "Supinación completa sin balanceo." },
+          { ej: "Face Pulls con Polea para Deltoides Posterior", series: "3x15", nota: "Higiene postural del hombro." }
+        ];
+        isometria = [
+          { ej: "Deadbug con Fitball", series: "3x12", nota: "Mantener zona lumbar contra el suelo." }
+        ];
+      } else if (d === 3) { // Día 3: Pierna Completa (Cuádriceps/Glúteos)
+        activacion = [
+          { ej: "Movilidad de Cadera y Tobillo", series: "2x10/lado", nota: "Preparación del rango articular profundo." },
+          { ej: "Sentadilla Goblet de Calentamiento", series: "2x12", nota: "Activación de rodillas y cadera." }
+        ];
+        fuerza = [
+          { ej: "Sentadilla Trasera con Barra (Back Squat)", series: "4x8", nota: "Descenso controlado rompiendo el paralelo." },
+          { ej: "Prensa de Piernas 45° Heavy", series: "4x10", nota: "Tensión mecánica profunda sin bloquear rodillas." }
+        ];
+        asistencia = [
+          { ej: "Sentadilla Búlgara con Mancuernas", series: "3x10/pierna", nota: "Enfoque unipodal en cuádriceps." },
+          { ej: "Elevación de Talones de Pie para Pantorrillas", series: "4x15", nota: "Rango de movimiento completo." }
+        ];
+        isometria = [
+          { ej: "Silla Isométrica contra Pared", series: "3x45s", nota: "Tensión isométrica constante en cuádriceps." }
+        ];
+      } else { // Día 4: Cadena Posterior e Isquiotibiales
+        activacion = [
+          { ej: "Puente de Glúteo Isométrico con Banda", series: "2x15", nota: "Activación glútea pre-ejercicio." },
+          { ej: "Movilidad de Isquiotibiales dinámico", series: "2x12", nota: "Estiramiento dinámico." }
+        ];
+        fuerza = [
+          { ej: "Hip Thrust con Barra en Banco (Barbell Hip Thrust)", series: "4x8", nota: "Bloqueo pélvico arriba durante 1s." },
+          { ej: "Peso Muerto Rumano con Barra (RDL)", series: "4x10", nota: "Bisagra de cadera sintiendo estiramiento." }
+        ];
+        asistencia = [
+          { ej: "Curl de Piernas Acostado en Máquina", series: "3x12", nota: "Fase excéntrica de 3s." },
+          { ej: "Abducción de Cadera con Polea Baja", series: "3x15", nota: "Aislamiento de glúteo medio." }
+        ];
+        isometria = [
+          { ej: "Plancha Lateral Isométrica", series: "3x30s/lado", nota: "Fortalecimiento de oblicuos y estabilidad de cadera." }
+        ];
+      }
+
+      window.bloquesPorDia.push({
+        dia: d,
+        bloqueActivacion: mapBloque(activacion),
+        bloqueFuerza: mapBloque(fuerza),
+        bloqueAsistencia: mapBloque(asistencia),
+        bloqueIsometria: mapBloque(isometria)
+      });
+    }
+
     // Capturar todos los ejercicios y datos generados por el motor biomecánico
     const listaEjerciciosGenerados = [
       ...bloqueActivacion.map(b => `${b.ej} (${b.series})`),
@@ -9315,71 +9528,31 @@ function analizarYGenerarPlan() {
             <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">💡 <em>${justificacionMetodologia}</em></div>
           </div>
 
-          <!-- BLOQUE 1 -->
-          <div style="margin-bottom:14px;">
-            <h4 style="color:#60a5fa; font-size:14px; margin-bottom:8px; font-family:var(--font-heading);">🔹 Bloque 1: Activación & Movilidad Miofascial</h4>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${bloqueActivacion.map(r => `
-                <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <strong style="color:#fff; font-size:13px;">${r.ej}</strong>
-                    <div style="color:var(--text-muted); font-size:11px;">💡 ${r.nota}</div>
-                  </div>
-                  <span style="color:var(--accent-green); font-weight:700; font-size:13px;">${r.series}</span>
-                </div>
-              `).join('')}
-            </div>
+          <!-- Selector de Días Interactivo -->
+          <div class="day-selector-bar" style="display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px; overflow-x:auto;">
+            ${Array.from({ length: numDias }).map((_, i) => `
+              <button type="button" class="day-tab-btn ${i === 0 ? 'active' : ''}" onclick="window.cambiarSesionDiaModal(${i + 1})" style="padding:6px 14px; font-size:12px; font-weight:700; border-radius:4px; border:1px solid var(--border-color); background:transparent; color:var(--text-muted); cursor:pointer; transition:all 0.2s;">
+                📆 Día ${i + 1}
+              </button>
+            `).join('')}
           </div>
 
-          <!-- BLOQUE 2 -->
-          <div style="margin-bottom:14px;">
-            <h4 style="color:var(--accent-green); font-size:14px; margin-bottom:8px; font-family:var(--font-heading);">🔹 Bloque 2: Fuerza Base Adaptada</h4>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${bloqueFuerza.map(r => `
-                <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <strong style="color:#fff; font-size:13px;">${r.ej}</strong>
-                    <div style="color:var(--text-muted); font-size:11px;">💡 ${r.nota}</div>
-                  </div>
-                  <span style="color:var(--accent-green); font-weight:700; font-size:13px;">${r.series}</span>
-                </div>
-              `).join('')}
-            </div>
+          <!-- Contenedor dinámico de bloques por día -->
+          <div id="modal-dias-bloques-container" style="min-height:200px;">
+             <!-- Se inyecta dinámicamente con cambiarSesionDiaModal(1) -->
           </div>
 
-          <!-- BLOQUE 3 -->
-          <div style="margin-bottom:14px;">
-            <h4 style="color:#fbbf24; font-size:14px; margin-bottom:8px; font-family:var(--font-heading);">🔹 Bloque 3: Asistencia Vectorial & Aislamiento</h4>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${bloqueAsistencia.map(r => `
-                <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <strong style="color:#fff; font-size:13px;">${r.ej}</strong>
-                    <div style="color:var(--text-muted); font-size:11px;">💡 ${r.nota}</div>
-                  </div>
-                  <span style="color:var(--accent-green); font-weight:700; font-size:13px;">${r.series}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
+          <p style="color:#fbbf24; font-size:12px; line-height:1.4; margin-top:20px; margin-bottom:20px; background:rgba(245, 158, 11, 0.1); padding:10px; border-radius:var(--radius-sm); border:1px solid rgba(245, 158, 11, 0.2);">${advertencia}</p>
 
-          <!-- BLOQUE 4 -->
-          <div style="margin-bottom:16px;">
-            <h4 style="color:#c084fc; font-size:14px; margin-bottom:8px; font-family:var(--font-heading);">🔹 Bloque 4: Isometría & Estabilización de Core</h4>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${bloqueIsometria.map(r => `
-                <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <strong style="color:#fff; font-size:13px;">${r.ej}</strong>
-                    <div style="color:var(--text-muted); font-size:11px;">💡 ${r.nota}</div>
-                  </div>
-                  <span style="color:var(--accent-green); font-weight:700; font-size:13px;">${r.series}</span>
-                </div>
-              `).join('')}
-            </div>
+          <!-- SECCIÓN DE RESUMEN ANALÍTICO AL PIE -->
+          <div style="margin-top:20px; padding:16px; background:linear-gradient(135deg, rgba(56,189,248,0.08), rgba(34,197,94,0.05)); border:1px solid rgba(56,189,248,0.2); border-radius:var(--radius-md);">
+            <h4 style="color:#38bdf8; font-family:var(--font-heading); font-size:13.5px; font-weight:800; margin-top:0; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              🧬 ¿Por qué este método se adapta a ${clienteNombre}?
+            </h4>
+            <p style="color:var(--text-muted); font-size:12.5px; line-height:1.55; margin:0; text-align:left;">
+              La metodología asignada (<strong>${metodo}</strong>) y su distribución en bloques de volumen dinámico se prescribe debido a la <strong>ausencia de lesiones activas</strong> registradas en el perfil de ${clienteNombre}. Esto permite operar bajo un <strong>índice de estrés articular bajo (15%)</strong> y con una <strong>tolerancia axial óptima (95%)</strong> sobre la columna. Al evitar restricciones biomecánicas, el motor maximiza la tensión mecánica y el estrés metabólico, optimizando la hipertrofia miofibrilar y sarcoplásmica sin comprometer la integridad estructural del atleta.
+            </p>
           </div>
-
-          <p style="color:#fbbf24; font-size:12px; line-height:1.4; margin-bottom:20px; background:rgba(245, 158, 11, 0.1); padding:10px; border-radius:var(--radius-sm); border:1px solid rgba(245, 158, 11, 0.2);">${advertencia}</p>
         </div>
 
         <!-- PESTAÑA 2: PROGRESION Y MESOCICLOS -->
@@ -9441,6 +9614,9 @@ function analizarYGenerarPlan() {
 
     const mPlan = document.getElementById('modal-plan-resultado');
     if (mPlan) mPlan.classList.remove('hidden');
+    setTimeout(() => {
+      if (window.cambiarSesionDiaModal) window.cambiarSesionDiaModal(1);
+    }, 100);
   }, 600);
 }
 
@@ -10693,10 +10869,20 @@ function verDetallePlanGenerado(planId) {
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
               ${(d.ejercicios || []).map((ej, eIdx) => `
-                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:6px;">
-                  <div>
-                    <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
-                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(ej.notas || '')}</div>
+                <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
+                  <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
+                    <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <strong style="color:#fff;">${eIdx + 1}. ${escapeHtml(ej.nombre)}</strong>
+                        <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+                          📺 Demo
+                        </button>
+                      </div>
+                      <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(ej.notas || '')}</div>
+                    </div>
                   </div>
                   <div style="display:flex; gap:10px; font-size:12px; color:#4ade80;">
                     <span><strong>${ej.series}</strong> series x <strong>${ej.reps}</strong> reps</span>
@@ -10812,6 +10998,11 @@ function renderBiblioteca() {
             </div>
             <span class="badge ${badgeRiskClass}" style="font-size:10px;">Riesgo ${ej.riesgo}</span>
           </div>
+
+          ${ej.github_id ? `
+          <div style="border-radius:var(--radius-md); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); margin-bottom:12px; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;">
+            <img src="${ej.url_thumbnail}" alt="${ej.nombre}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.src=window.SVG_PLACEHOLDER;}">
+          </div>` : ''}
 
           <h3 style="color:#fff; margin:0 0 8px 0; font-size:16px; font-family:var(--font-heading); line-height:1.3;">${ej.nombre}</h3>
           
@@ -13735,11 +13926,20 @@ function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
   const seleccionados = [];
   const seen = new Set();
 
+  const plansAtletaSelect = document.getElementById('plans-atleta-select');
+  const selectedAtletaName = plansAtletaSelect ? plansAtletaSelect.value : 'Atleta Pro';
+  const historial = typeof planesGuardados !== 'undefined' ? planesGuardados.filter(p => p.cliente === selectedAtletaName) : [];
+  const mesocicloNumero = historial.length + 1;
+
   // 1. Tomar al menos 1 o 2 ejercicios representativos de CADA grupo muscular del día
   const porGrupoBase = Math.max(1, Math.floor(cantidad / grupos.length));
   for (const grupo of grupos) {
     const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
-    const mezcla = delGrupo.sort(() => Math.random() - 0.5);
+    const mezcla = delGrupo.sort((a, b) => {
+      const hashA = (a.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+      const hashB = (b.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+      return ((hashA * mesocicloNumero) % 11) - ((hashB * mesocicloNumero) % 11);
+    });
     let agregadosGrupo = 0;
     for (const ej of mezcla) {
       if (!seen.has(ej.nombre) && agregadosGrupo < porGrupoBase && seleccionados.length < cantidad) {
@@ -13755,7 +13955,12 @@ function seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, grupos, cantidad) {
     const pool = [];
     for (const grupo of grupos) {
       const delGrupo = ejerciciosFiltrados.filter(e => e.categoria === grupo || (e.musculos && e.musculos.toLowerCase().includes(grupo)));
-      pool.push(...delGrupo.sort(() => Math.random() - 0.5));
+      const mezcla = delGrupo.sort((a, b) => {
+        const hashA = (a.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+        const hashB = (b.nombre || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+        return ((hashA * (mesocicloNumero + 1)) % 11) - ((hashB * (mesocicloNumero + 1)) % 11);
+      });
+      pool.push(...mezcla);
     }
     for (const ej of pool) {
       if (!seen.has(ej.nombre) && seleccionados.length < cantidad) {
@@ -13797,7 +14002,16 @@ function generarRutinaIA() {
 
       // Construir los días del plan
       const diasPlan = splitObjetivo.map((dia, idx) => {
-        const ejercicios = seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, dia.grupos, nEjPorDia);
+        const ejercicios = seleccionarEjerciciosPorGrupos(ejerciciosFiltrados, dia.grupos, nEjPorDia).map(ej => {
+          // Mapear con el repositorio oficial centralizado
+          const repoEj = window.obtenerEjercicioDeRepositorio(ej.nombre, ej);
+          return {
+            ...ej,
+            nombre: repoEj.nombre,
+            explicacion_tecnica: repoEj.explicacion_tecnica,
+            url_gif: repoEj.url_gif
+          };
+        });
         return {
           numero: idx + 1,
           nombre: dia.nombre,
@@ -13953,6 +14167,7 @@ function renderizarDiaIA(dia, indice) {
         <thead>
           <tr>
             <th>#</th>
+            <th>Miniatura</th>
             <th>Ejercicio & Músculo</th>
             <th>Series × Reps</th>
             <th>Equipamiento</th>
@@ -13964,12 +14179,20 @@ function renderizarDiaIA(dia, indice) {
           ${ejercicios.map((ej, idx) => `
             <tr>
               <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
-              <td>
-                <div class="ai-ex-name" style="font-weight:700; color:#fff; font-size:13.5px;">${ej.nombre}</div>
-                <div class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8; margin-top:2px;">🎯 ${ej.musculoPrimario || ej.categoria}</div>
+              <td style="width:60px; min-width:60px; text-align:center;">
+                <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
               </td>
               <td>
-                <span class="ai-prescripcion" style="font-weight:700; color:var(--accent-green);">${prescripcion.series} × ${prescripcion.reps}</span>
+                <textarea style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; font-weight:700; font-size:13px; width:95%; padding:4px 8px; border-radius:4px; resize:vertical; white-space:normal; word-break:break-word; font-family:inherit; min-height:36px; height:auto; overflow:hidden;" onchange="window.actualizarNombreEjercicioIA(${indice}, ${idx}, this.value)" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${ej.nombre}</textarea>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+                  <span class="ai-ex-muscle" style="font-size:11.5px; color:#38bdf8;">🎯 ${ej.musculoPrimario || ej.categoria}</span>
+                  <button class="btn-demo-ejercicio" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px; transition:all 0.2s;">
+                    📺 Demostración
+                  </button>
+                </div>
+              </td>
+              <td>
+                <input type="text" value="${ej.customPrescripcion || (prescripcion.series + ' × ' + prescripcion.reps)}" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:var(--accent-green); font-weight:700; font-size:13px; width:80px; padding:4px 8px; border-radius:4px; text-align:center;" onchange="window.actualizarPrescripcionDiaIA(${indice}, ${idx}, this.value)">
                 <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${prescripcion.rir}</div>
               </td>
               <td><span class="ai-equip-chip">${ej.equipamiento || 'Material Libre'}</span></td>
@@ -14100,29 +14323,45 @@ function guardarPlanIA() {
   const { config, dias, fechaGeneracion } = _aiPlanActual;
   const gymId = obtenerGymIdActivo ? obtenerGymIdActivo() : 'gym_default';
 
+  const plansAtletaSelect = document.getElementById('plans-atleta-select');
+  const selectedAtletaName = plansAtletaSelect ? plansAtletaSelect.value : 'Atleta Pro';
+
   const ejerciciosResumen = dias.flatMap(dia =>
-    dia.ejercicios.map(e => `${e.nombre} (${dia.prescripcion.series}×${dia.prescripcion.reps} - ${e.musculoPrimario || e.categoria})`)
+    dia.ejercicios.map(e => `${e.nombre} (${e.customPrescripcion || (dia.prescripcion.series + '×' + dia.prescripcion.reps)} - ${e.musculoPrimario || e.categoria})`)
   );
 
   const diasEstructurados = dias.map(d => ({
     nombre: d.nombre,
     enfoque: d.grupos.map(capitalize).join(', '),
     musculos: d.grupos,
-    ejercicios: d.ejercicios.map(e => ({
-      nombre: e.nombre,
-      series: parseInt(d.prescripcion.series) || 4,
-      repeticiones: d.prescripcion.reps,
-      descanso: d.prescripcion.descanso,
-      rir: d.prescripcion.rir,
-      rpe: d.prescripcion.rir.includes('0') ? 9.5 : d.prescripcion.rir.includes('1') ? 9 : 8.5,
-      notas: `${e.musculoPrimario || e.categoria} • ${e.equipamiento} • Riesgo ${e.riesgo}`
-    }))
+    ejercicios: d.ejercicios.map(e => {
+      let seriesVal = parseInt(d.prescripcion.series) || 4;
+      let repsVal = d.prescripcion.reps;
+      if (e.customPrescripcion) {
+        const parts = e.customPrescripcion.split(/x|×/i);
+        if (parts.length === 2) {
+          seriesVal = parseInt(parts[0].trim()) || seriesVal;
+          repsVal = parts[1].trim();
+        } else {
+          repsVal = e.customPrescripcion;
+        }
+      }
+      return {
+        nombre: e.nombre,
+        series: seriesVal,
+        repeticiones: repsVal,
+        descanso: d.prescripcion.descanso,
+        rir: d.prescripcion.rir,
+        rpe: d.prescripcion.rir.includes('0') ? 9.5 : d.prescripcion.rir.includes('1') ? 9 : 8.5,
+        notas: `${e.musculoPrimario || e.categoria} • ${e.equipamiento} • Riesgo ${e.riesgo}`
+      };
+    })
   }));
 
   const nuevoPlan = {
     id: Date.now(),
     gym_id: gymId,
-    cliente: `Plan IA — ${AI_OBJETIVO_LABELS[config.objetivo]}`,
+    cliente: selectedAtletaName,
     objetivo: AI_OBJETIVO_LABELS[config.objetivo],
     metodo: `${AI_NIVEL_LABELS[config.nivel]} · ${config.diasSemana} días/semana`,
     fecha: fechaGeneracion,

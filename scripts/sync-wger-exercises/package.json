@@ -1,0 +1,17 @@
+{
+  "name": "sync-wger-exercises",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Descarga el catálogo de ejercicios (imágenes + videos) de wger.de y lo sube a Supabase Storage para usarlo en Nuevo APP, respetando la licencia CC-BY-SA de wger.",
+  "scripts": {
+    "inspect": "node sync.mjs --inspect",
+    "sync": "node sync.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
