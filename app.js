@@ -890,30 +890,23 @@ async function iniciarSesionSupabase(email, password) {
   if (error) {
     console.warn("Error Supabase signInWithPassword:", error.message);
 
-    // Fallback universal e inteligente para Atletas registrados
-    if (clienteLocal || esEmailAtleta) {
-      const nombreFinal = clienteLocal?.nombre || (cleanEmail.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
-      console.log(`🔓 Acceso concedido a atleta: ${nombreFinal}`);
-      
-      const sesionAtleta = {
-        user: {
-          id: clienteLocal?.auth_user_id || `athlete_${clienteLocal?.id || Date.now()}`,
-          email: cleanEmail,
-          user_metadata: {
-            full_name: nombreFinal,
-            role: 'athlete',
-            must_change_password: clienteLocal ? (clienteLocal.must_change_password !== false) : true
-          }
-        },
-        esModoAtleta: true,
-        access_token: 'local_athlete_token'
-      };
-      
-      mostrarExitoAuth(`¡Bienvenido ${nombreFinal}! Cargando tu portal deportivo...`);
-      establecerSesionActiva(sesionAtleta, sesionAtleta.user);
-      return;
-    }
-
+    // NO agregar aca ningun camino que conceda sesion cuando Supabase rechazo
+    // las credenciales.
+    //
+    // Hasta 2026-08-20 existia un "fallback para atletas" que, si el login
+    // fallaba, igual creaba una sesion local cuando `clienteLocal ||
+    // esEmailAtleta`. Como `esEmailAtleta` es verdadero con solo elegir el
+    // perfil "Atleta / Alumno" en la pantalla de acceso, cualquiera podia
+    // entrar escribiendo el email de un atleta y CUALQUIER contrasena, y ver
+    // sus lesiones, biometria e historial. `password_provisional` se generaba,
+    // se mostraba y se enviaba por WhatsApp, pero no se comparaba nunca.
+    //
+    // Ese parche tapaba un problema real: los atletas se daban de alta con
+    // auth.signUp() desde el navegador y quedaban pendientes de confirmar un
+    // email que, al ser del dominio inexistente @atleta.fitpro.app, no podia
+    // llegar. La causa ya esta resuelta en generarCredencialesAtleta(), que
+    // ahora crea la cuenta via /api/create-athlete con email_confirm:true.
+    // Por eso el atleta puede autenticarse de verdad y el atajo sobra.
     let msgAmigable = error.message;
     if (error.message.toLowerCase().includes('invalid login credentials')) {
       msgAmigable = "Credenciales incorrectas. Verifica tu correo y contraseña.";
@@ -5141,30 +5134,50 @@ async function generarUsuarioYPasswordAtleta(clienteId) {
 
   persistirDatosUsuarioActual();
 
-  // 3. Registrar o actualizar en Supabase Auth
+  // 3. Registrar o actualizar en Supabase Auth (vía /api/create-athlete)
+  //
+  // Antes se usaba supabaseClient.auth.signUp() desde el navegador, pero eso
+  // deja la cuenta pendiente de confirmar por email. Como a los atletas sin
+  // correo la app les genera uno en @atleta.fitpro.app (dominio inexistente,
+  // ver mas arriba en esta misma funcion), esa confirmacion no llegaba nunca
+  // y el atleta no podia entrar jamas. Ese era el motivo del fallback que
+  // permitia iniciar sesion sin validar la contrasena.
+  //
+  // La funcion serverless usa la Admin API con email_confirm:true, asi la
+  // cuenta nace confirmada y signInWithPassword funciona de entrada.
   if (supabaseClient && !sesionUsuarioActual?.esModoDemo) {
+    showToast(`Creando cuenta de acceso para ${cliente.nombre}...`, "info", "🔐 Autenticación", 3000);
     try {
-      showToast(`Generando credenciales en Supabase Auth para ${cliente.nombre}...`, "info", "🔐 Autenticación", 3000);
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: cliente.email,
-        password: randPass,
-        options: {
-          data: {
-            full_name: cliente.nombre,
-            role: 'athlete',
-            gym_id: cliente.gym_id || gimnasioActivoId,
-            coach_id: getUsuarioActualId(),
-            phone: cliente.telefono || '',
-            must_change_password: true
-          }
-        }
-      });
+      const { data: sesion } = await supabaseClient.auth.getSession();
+      const token = sesion?.session?.access_token;
+      if (!token) throw new Error('No hay sesión de entrenador activa');
 
-      if (data && data.user) {
-        cliente.auth_user_id = data.user.id;
+      const resp = await fetch('/api/create-athlete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          email: cliente.email,
+          password: randPass,
+          full_name: cliente.nombre,
+          gym_id: cliente.gym_id || gimnasioActivoId,
+          phone: cliente.telefono || ''
+        })
+      });
+      const resultado = await resp.json();
+
+      if (!resp.ok) {
+        // A diferencia de antes, el error NO se traga en silencio: si la
+        // cuenta no se creo, el atleta no va a poder entrar y el coach tiene
+        // que enterarse ahora, no cuando el atleta se queje.
+        showToast(`No se pudo crear el acceso: ${resultado.error || resp.status}`, "error", "❌ Error de Autenticación", 9000);
+        return null;
       }
+
+      cliente.auth_user_id = resultado.auth_user_id;
     } catch (err) {
       console.warn("Excepción creando credenciales en Supabase Auth:", err);
+      showToast(`No se pudo crear el acceso: ${err.message}`, "error", "❌ Error de Autenticación", 9000);
+      return null;
     }
   }
 
