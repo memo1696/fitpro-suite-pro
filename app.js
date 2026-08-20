@@ -11113,7 +11113,11 @@ function renderBiblioteca() {
   const grid = document.getElementById('library-grid');
   if (!grid) return;
 
-  let filtrados = ejerciciosDB;
+  // Solo se muestran ejercicios con imagen real confirmada (github_id):
+  // así la cantidad de ejercicios visibles siempre coincide con la
+  // cantidad que realmente tiene una ilustración, sin caer nunca a un
+  // ícono genérico de categoría dentro de la Biblioteca.
+  let filtrados = ejerciciosDB.filter(e => e.github_id);
 
   if (currentCategoria !== 'todos') {
     filtrados = filtrados.filter(e => e.categoria === currentCategoria || (currentCategoria === 'piernas' && (e.categoria === 'cuadriceps' || e.categoria === 'isquiotibiales' || e.categoria === 'gluteos' || e.categoria === 'pantorrillas')) || (currentCategoria === 'brazos' && (e.categoria === 'biceps' || e.categoria === 'triceps')));

@@ -1,35 +1,45 @@
 /**
- * FitPro Suite Pro - Repositorio Oficial y Conector de Free Exercise DB
- * Conecta dinámicamente y consume los datos oficiales y recursos del repositorio:
- * https://github.com/yuhonas/free-exercise-db
- * Integra la totalidad de los ejercicios en la base de datos central de la app.
+ * FitPro Suite Pro - Repositorio Oficial y Conector de wger.de
+ * Consume un catálogo curado de wger.de (proyecto FLOSS, licencia
+ * CC-BY-SA) servido como archivo propio `wger_ejercicios.json`.
  *
- * ── MIGRACIÓN DE DATASET (hasaneyldrm/exercises-dataset → yuhonas/free-exercise-db) ──
- * El dataset anterior fue reemplazado por free-exercise-db. Cambios de forma
- * relevantes entre ambos JSON, todos absorbidos en ExercisesAdapter:
- *  1. `id`: antes numérico ("1461"), ahora un slug de texto ("Barbell_Squat").
- *     El mapeo manual estático por ID quedó obsoleto (ver nota en esa sección).
- *  2. Músculo principal: antes `target` (string), ahora `primaryMuscles`
- *     (array). La categoría local (pecho/espalda/piernas/...) ya no puede
- *     derivarse de `category` (que ahora es el TIPO de ejercicio: "strength",
- *     "cardio", "stretching"...) sino de `primaryMuscles[0]`.
- *  3. Instrucciones: antes bilingües (`instructions.es` / `instructions.en`,
- *     más `instruction_steps` en pasos). free-exercise-db solo trae
- *     `instructions` como array de strings EN INGLÉS, sin español. Para no
- *     perder el español se agregó `traducciones_ejercicios_es.json` (mapa
- *     id -> texto en español), pre-traducido una sola vez y servido como
- *     archivo estático del mismo origen (sin depender de ningún servicio de
- *     traducción en producción). Se carga en `cargarTraducciones()` y
- *     `toEjercicioLocal` la usa como primera opción, con el inglés del
- *     dataset como respaldo si un ID no tiene traducción.
- *  4. Medios: antes había GIF animado (`gif_url`) + imagen estática (`image`)
- *     por separado. free-exercise-db solo trae `images` (array de 0-2 fotos
- *     estáticas, ej. "Barbell_Squat/0.jpg"), sin animación. Se conservan los
- *     nombres de campo `url_gif` / `real_gif_url` por compatibilidad con el
- *     resto del archivo y con app.js, pero ahora apuntan a fotos, no a GIFs.
- *  5. Equipamiento: vocabulario distinto (p. ej. "bands" en vez de "band",
- *     "body only" en vez de "body weight", "e-z curl bar" en vez de
- *     "ez-barbell"). Ver `mapEquipoLocal` y `EQUIPO_HINTS`.
+ * ── MIGRACIÓN DE DATASET (yuhonas/free-exercise-db → wger.de) ──
+ * Se reemplazó free-exercise-db por decisión explícita: fotos reales pero
+ * inconsistentes entre sí (persona/gimnasio distinto en cada una) y con
+ * huecos de cobertura en los ejercicios escritos a mano (74 de 149 caían a
+ * un ícono genérico). wger.de trae ilustraciones de línea con el MISMO
+ * estilo en todos los ejercicios — consistente — pero de un catálogo total
+ * mucho más chico (873 ejercicios, solo 268 con al menos una imagen). Por
+ * eso `wger_ejercicios.json` NO es el catálogo completo de wger: es un
+ * PRE-FILTRADO que ya descarta los 605 ejercicios sin imagen, para que
+ * "cantidad de ejercicios visibles" siempre sea igual a "cantidad con
+ * imagen real" — nunca se muestra un ícono genérico en la Biblioteca.
+ *
+ * Cómo se construyó `wger_ejercicios.json` (proceso único, no en runtime):
+ *  1. Se descargó el catálogo completo vía la API pública de wger
+ *     (`/api/v2/exerciseinfo/`) y se filtró a los 268 con >=1 imagen.
+ *  2. Nombre y descripción en español: wger ya trae traducciones nativas
+ *     de su comunidad para 229 de esos 268 (`translations[].language===4`).
+ *     Los 39 restantes se tradujeron una sola vez (mismo método que las
+ *     instrucciones de free-exercise-db en su momento) y quedaron
+ *     embebidos en el JSON — no hay traducción en runtime.
+ *  3. Las URLs de imagen (`images[]`) ya vienen absolutas
+ *     (`https://wger.de/media/exercise-images/...`), no relativas como en
+ *     el dataset anterior — no hace falta CDN base ni `resolveUrls`.
+ *
+ * Diferencias de forma relevantes respecto a la versión anterior del
+ * archivo (free-exercise-db), todas absorbidas en ExercisesAdapter:
+ *  - `id` vuelve a ser numérico (el id real de wger), no un slug de texto.
+ *  - Sin campo `instructions`/traducción en runtime: `descripcionEs` ya
+ *    viene resuelta en español desde el JSON.
+ *  - `equipment` es un array de strings (puede haber más de uno); antes
+ *    era un string único. Vocabulario también distinto: "Barbell",
+ *    "Dumbbell", "Cable machine", "SZ-Bar", etc. Ver `mapEquipoLocal` y
+ *    `EQUIPO_HINTS`.
+ *  - `primaryMuscles` usa nombres en inglés de wger (Glutes, Quads,
+ *    Hamstrings, Lats, Chest, Shoulders, Biceps, Triceps, Abs, Calves) con
+ *    fallback a `category` (Legs/Arms/Chest/Back/Shoulders/Abs/Calves/
+ *    Cardio) cuando el ejercicio no tiene músculo principal listado.
  *
  * La interfaz pública (funciones colgadas de `window`) se mantiene 100%
  * igual que antes para no romper nada de lo que ya la consume en app.js /
@@ -48,33 +58,21 @@
   // 1. CONFIGURACIÓN
   // ==========================================================================
   const CONFIG = {
-    datasetUrl: 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json',
-    // Traducción al español de las instrucciones (free-exercise-db solo trae
-    // inglés). Archivo propio, pre-traducido y servido desde el mismo origen
-    // que la app (no depende de ningún servicio de traducción en producción).
-    // Mapa { [id del ejercicio]: "texto en español" }.
-    translationsUrl: 'traducciones_ejercicios_es.json',
-    // Orden de CDNs a probar para imágenes. jsDelivr primero (cachea y sirve
-    // más rápido); GitHub raw como respaldo si jsDelivr falla. Las rutas del
-    // dataset son relativas a la carpeta `exercises/` del repo (ej.
-    // "Barbell_Squat/0.jpg" -> ".../exercises/Barbell_Squat/0.jpg").
-    cdnBases: [
-      'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/',
-      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/'
-    ],
+    // Archivo propio (mismo origen), no una API externa en runtime: ya viene
+    // pre-filtrado (solo ejercicios con imagen) y pre-traducido al español.
+    datasetUrl: 'wger_ejercicios.json',
     dbName: 'fitpro_exercises_cache',
     dbStore: 'dataset',
-    dbVersion: 3,          // subido: la forma del objeto normalizado cambió con la migración de dataset
+    dbVersion: 4,          // subido: la forma del objeto normalizado cambió con la migración a wger
     // Clave de caché ligada al dataset de origen: evita servir datos con la
     // forma vieja (del dataset anterior) desde IndexedDB tras la migración.
-    cacheKey: 'exercises_normalized_free_exercise_db',
+    cacheKey: 'exercises_normalized_wger',
     cacheTtlMs: 1000 * 60 * 60 * 24 * 7, // 7 días
     maxEsperaEjerciciosDB: 50 // reintentos de 100ms (~5s) antes de rendirse
   };
 
-  let githubExercisesList = []; // ya normalizado (ver ExercisesAdapter.normalize)
+  let githubExercisesList = []; // ya normalizado (ver ExercisesAdapter.normalize). Nombre historico de la variable, ahora contiene ejercicios de wger.
   let isDatasetLoaded = false;
-  let TRADUCCIONES_ES = {}; // { [id]: "instrucciones en español" }, ver cargarTraducciones()
 
   const SVG_PLACEHOLDER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%2338bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:%230f172a;"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><rect x="5" y="8" width="2" height="8" rx="1"/><rect x="17" y="8" width="2" height="8" rx="1"/><line x1="7" y1="12" x2="17" y2="12"/></svg>`;
   window.SVG_PLACEHOLDER = SVG_PLACEHOLDER;
@@ -116,81 +114,71 @@
     // Registro crudo del JSON -> objeto interno "delgado" (solo lo que se usa)
     normalize(raw) {
       return {
-        id: raw.id,
-        name: raw.name,
-        // Tipo de ejercicio ("strength", "cardio", "stretching"...), NO es
-        // grupo muscular en este dataset. Se conserva por si se agrega un
-        // filtro por tipo más adelante; la categoría local sale de
-        // `primaryMuscles` (ver mapCategoriaLocal).
-        category: raw.category || '',
-        level: raw.level || '',
-        primaryMuscles: raw.primaryMuscles || [],
-        secondaryMuscles: raw.secondaryMuscles || [],
-        equipment: raw.equipment || '',
-        // Array de strings en inglés (sin traducción al español en este dataset).
-        instructions: raw.instructions || [],
-        // Rutas RELATIVAS tal cual las entrega el dataset, p. ej.
-        // ["Barbell_Squat/0.jpg", "Barbell_Squat/1.jpg"]. Son fotos estáticas,
-        // no hay GIF animado en este dataset.
+        id: String(raw.id),
+        name: raw.name_en || '',
+        nombreEs: raw.name_es_native || capitalizeWords(raw.name_en || ''),
+        descripcionEs: raw.description_es_native || '',
+        category: raw.category || '', // Legs/Arms/Chest/Back/Shoulders/Abs/Calves/Cardio (agrupación amplia de wger)
+        primaryMuscles: raw.muscles || [],
+        secondaryMuscles: raw.muscles_secondary || [],
+        equipment: raw.equipment || [], // array, puede tener 0-N items
+        // URLs YA absolutas (https://wger.de/media/exercise-images/...),
+        // no hace falta resolver contra ningún CDN base.
         images: raw.images || []
       };
     },
 
-    // Reduce el array crudo al subconjunto que la app realmente consume,
-    // antes de guardarlo en caché local.
     normalizeAll(rawArray) {
       return (rawArray || []).map(r => this.normalize(r));
     },
 
-    // Construye la lista de URLs absolutas (una por CDN configurado) para una
-    // ruta relativa del dataset.
-    resolveUrls(relativePath) {
-      if (!relativePath) return [];
-      return CONFIG.cdnBases.map(base => base + relativePath);
-    },
     // Se mantiene el nombre `gifUrls` por compatibilidad con el resto del
-    // archivo y con app.js, aunque ahora resuelve fotos estáticas: primero
-    // las URLs (jsDelivr + raw) de la imagen 0, luego las de la imagen 1 si
-    // existe, como respaldo adicional del mismo ejercicio.
+    // archivo y con app.js. Las imágenes de wger ya son URLs absolutas de
+    // un único origen (no hay CDN de respaldo como con jsDelivr/raw
+    // anteriormente), así que solo se devuelven tal cual.
     gifUrls(record) {
-      const imgs = record.images || [];
-      return [...this.resolveUrls(imgs[0]), ...this.resolveUrls(imgs[1])];
+      return (record.images || []).slice();
     },
     imageUrls(record) { return this.gifUrls(record); },
 
-    // Músculo principal del dataset externo -> categoría fija del catálogo
-    // local (cuadriceps, isquiotibiales, gluteos, pecho, espalda, hombros,
-    // biceps, triceps, core, pantorrillas) usada por los filtros de la
-    // biblioteca. free-exercise-db no agrupa por "parte del cuerpo" como el
-    // dataset anterior, así que esto se deriva de `primaryMuscles[0]`.
-    // Músculos sin categoría local dedicada (antebrazos, trapecios, cuello,
-    // abductores/aductores) se agrupan en la categoría más cercana.
+    // Músculo principal (nombres en inglés de wger) -> categoría fija del
+    // catálogo local. Si el ejercicio no tiene músculo principal listado
+    // (pasa en varios de wger), se cae a la categoría amplia de wger.
     mapCategoriaLocal(record) {
       const primary = ((record.primaryMuscles && record.primaryMuscles[0]) || '').toLowerCase();
       if (primary.includes('chest')) return 'pecho';
-      if (primary.includes('lats') || primary.includes('middle back') || primary.includes('lower back') || primary.includes('traps')) return 'espalda';
+      if (primary.includes('lat')) return 'espalda';
       if (primary.includes('shoulder')) return 'hombros';
-      if (primary.includes('abdominal') || primary.includes('neck')) return 'core';
-      if (primary.includes('quadriceps') || primary.includes('adductor') || primary.includes('abductor')) return 'cuadriceps';
+      if (primary.includes('abs')) return 'core';
+      if (primary.includes('quad')) return 'cuadriceps';
       if (primary.includes('hamstring')) return 'isquiotibiales';
       if (primary.includes('glute')) return 'gluteos';
-      if (primary.includes('calves')) return 'pantorrillas';
-      if (primary.includes('bicep') || primary.includes('forearm')) return 'biceps';
+      if (primary.includes('calf') || primary.includes('calve')) return 'pantorrillas';
+      if (primary.includes('bicep')) return 'biceps';
       if (primary.includes('tricep')) return 'triceps';
-      return 'core';
+      const cat = (record.category || '').toLowerCase();
+      if (cat === 'legs') return 'cuadriceps';
+      if (cat === 'arms') return 'biceps';
+      if (cat === 'chest') return 'pecho';
+      if (cat === 'back') return 'espalda';
+      if (cat === 'shoulders') return 'hombros';
+      if (cat === 'abs') return 'core';
+      if (cat === 'calves') return 'pantorrillas';
+      return 'core'; // cardio y cualquier otro caso
     },
 
     mapEquipoLocal(record) {
-      const rawEquip = (record.equipment || '').toLowerCase();
-      if (rawEquip.includes('e-z curl bar') || rawEquip.includes('ez curl')) return 'Barra';
-      if (rawEquip.includes('barbell')) return 'Barra';
-      if (rawEquip.includes('dumbbell')) return 'Mancuerna';
-      if (rawEquip.includes('kettlebell')) return 'Mancuerna';
-      if (rawEquip.includes('cable')) return 'Polea';
-      if (rawEquip.includes('bands')) return 'Banda';
-      if (rawEquip.includes('machine')) return 'Máquina';
-      // "body only", "other", "foam roll", "medicine ball", "exercise ball",
-      // equipamiento vacío/null -> sin equivalente local claro.
+      const lista = (record.equipment || []).map(e => e.toLowerCase());
+      const eq = lista.join(' | ');
+      if (eq.includes('sz-bar') || eq.includes('barbell')) return 'Barra';
+      if (eq.includes('dumbbell')) return 'Mancuerna';
+      if (eq.includes('kettlebell')) return 'Mancuerna';
+      if (eq.includes('cable')) return 'Polea';
+      if (eq.includes('resistance band')) return 'Banda';
+      if (eq.includes('machine')) return 'Máquina';
+      // "none (bodyweight exercise)", "bench", "incline bench", "gym mat",
+      // "pull-up bar", "swiss ball", sin equipamiento -> sin equivalente
+      // local claro, se agrupan como peso corporal.
       return 'Peso Corporal';
     },
 
@@ -198,21 +186,11 @@
     // `ejerciciosDB` en app.js. Este es el único punto de contacto entre el
     // dataset externo y el esquema interno de la app.
     toEjercicioLocal(record) {
-      const ejecucion =
-        TRADUCCIONES_ES[record.id] ||
-        (record.instructions && record.instructions.length && record.instructions.join(' ')) ||
-        'Realiza el ejercicio controlando el tempo de ejecución. Asegura mantener la postura correcta.';
-
-      const gifUrls = this.gifUrls(record);
+      const ejecucion = record.descripcionEs || 'Realiza el ejercicio controlando el tempo de ejecución. Asegura mantener la postura correcta.';
       const imageUrls = this.imageUrls(record);
-      // Segunda foto (posición final del movimiento) para el efecto
-      // "flip-book": alternarla con la foto 0 en el <img> simula animación
-      // sin necesitar un GIF real. Con su propio respaldo de CDN (raw
-      // GitHub si jsDelivr falla), igual que url_gif/real_gif_url.
-      const frame2Urls = this.resolveUrls((record.images || [])[1]);
 
       return {
-        nombre: capitalizeWords(record.name),
+        nombre: record.nombreEs,
         categoria: this.mapCategoriaLocal(record),
         musculoPrimario: capitalizeFirst((record.primaryMuscles && record.primaryMuscles[0]) || this.mapCategoriaLocal(record)),
         equipamiento: this.mapEquipoLocal(record),
@@ -220,14 +198,14 @@
         musculos: (record.primaryMuscles || []).concat(record.secondaryMuscles || []).join(', '),
         ejecucion,
         // Propiedades extendidas para carga en modal / biblioteca visual
-        github_id: record.id,
+        github_id: record.id, // nombre historico del campo (era el id de GitHub); ahora es el id de wger
         github_name: record.name,
-        url_gif: gifUrls[0] || '',
-        real_gif_url: gifUrls[1] || gifUrls[0] || '', // se mantiene el nombre por compatibilidad con app.js
-        url_gif_frame2: frame2Urls[0] || '',
-        url_gif_frame2_fallback: frame2Urls[1] || frame2Urls[0] || '',
+        url_gif: imageUrls[0] || '',
+        real_gif_url: imageUrls[0] || '', // un solo origen real, sin CDN de respaldo distinto
+        url_gif_frame2: imageUrls[1] || '',
+        url_gif_frame2_fallback: imageUrls[1] || '',
         url_thumbnail: imageUrls[0] || '',
-        url_thumbnail_fallback: imageUrls[1] || imageUrls[0] || ''
+        url_thumbnail_fallback: imageUrls[0] || ''
       };
     }
   };
@@ -292,26 +270,8 @@
   // ==========================================================================
   // 4. DESCARGA + NORMALIZACIÓN DEL DATASET
   // ==========================================================================
-
-  // Traducciones: archivo propio (mismo origen), no un servicio externo, así
-  // que si falla o no existe no es fatal para el resto de la integración.
-  async function cargarTraducciones() {
-    try {
-      const res = await fetch(CONFIG.translationsUrl);
-      if (!res.ok) throw new Error(`HTTP status ${res.status}`);
-      TRADUCCIONES_ES = await res.json();
-    } catch (err) {
-      console.warn('⚠️ No se pudieron cargar las traducciones al español; se usarán las instrucciones en inglés como respaldo.', err);
-    }
-  }
-
   async function cargarDatasetDeEjercicios() {
     try {
-      // 0. Traducciones al español (en paralelo no aporta mucho: es un
-      // archivo local pequeño; se resuelve antes de normalizar para que
-      // tanto la ruta de caché como la de red usen la traducción).
-      await cargarTraducciones();
-
       // 1. Intentar caché local primero (rápido, sin red)
       const cached = await Cache.get(CONFIG.cacheKey);
       if (cached && cached.data && (Date.now() - cached.timestamp) < CONFIG.cacheTtlMs) {
@@ -322,24 +282,22 @@
         return;
       }
 
-      // 2. Descargar del CDN
-      console.log('⚡ Conectando al repositorio GitHub Exercises-Dataset...');
+      // 2. Descargar el catálogo curado de wger (archivo propio, mismo origen)
+      console.log('⚡ Cargando catálogo de ejercicios (wger.de)...');
       const res = await fetch(CONFIG.datasetUrl);
       if (!res.ok) throw new Error(`HTTP status ${res.status}`);
       const rawList = await res.json();
 
-      // 3. Normalizar y RECORTAR antes de guardar (menos campos = menos peso
-      //    en IndexedDB; el fetch de red ya pagó el costo de los 17MB, pero
-      //    al menos las próximas visitas no lo vuelven a pagar).
+      // 3. Normalizar antes de guardar en caché.
       githubExercisesList = ExercisesAdapter.normalizeAll(rawList);
       isDatasetLoaded = true;
-      console.log(`✅ Conexión exitosa: ${githubExercisesList.length} ejercicios cargados desde GitHub.`);
+      console.log(`✅ Conexión exitosa: ${githubExercisesList.length} ejercicios cargados desde wger.de.`);
 
       Cache.set(CONFIG.cacheKey, { data: githubExercisesList, timestamp: Date.now() });
 
       integrarEjerciciosEnBaseDeDatosGlobal();
     } catch (err) {
-      console.error('❌ Error al conectar con el dataset de GitHub, usando fallbacks locales:', err);
+      console.error('❌ Error al conectar con el catálogo de ejercicios, usando fallbacks locales:', err);
     }
   }
 
@@ -375,7 +333,7 @@
     });
 
     yaIntegrado = true;
-    console.log(`💪 Catálogo ampliado exitosamente: ${agregados} ejercicios de GitHub inyectados en la base de datos (Total: ${window.ejerciciosDB.length}).`);
+    console.log(`💪 Catálogo ampliado exitosamente: ${agregados} ejercicios de wger.de inyectados en la base de datos (Total: ${window.ejerciciosDB.length}).`);
 
     // Refrescar vistas del sistema si están cargadas
     if (typeof window.renderBiblioteca === 'function') {
@@ -399,72 +357,32 @@
   // automático por nombre podría fallar o ser ambiguo. Se mapea por ID del
   // dataset (no por texto) para no depender de acentos/mayúsculas exactas.
   //
-  // RECONSTRUIDO tras la migración a free-exercise-db: los IDs numéricos del
-  // dataset anterior ("1461", "0042"...) no existen en este dataset (usa
-  // slugs de texto, ej. "Barbell_Squat") y por lo tanto ya no emparejaban con
-  // nada. Cada entrada de abajo fue vuelta a verificar a mano contra el
-  // catálogo real de free-exercise-db (nombre + equipo). Los ejercicios del
-  // mapeo anterior sin equivalente real aquí (abductor de cadera en máquina,
-  // remo Pendlay, remo con apoyo en pecho, elevación lateral en máquina,
-  // peso muerto rumano unilateral con mancuerna, press declinado agarre
-  // estrecho puro, sentadilla búlgara con barra, pull-over en polea) se
-  // dejaron FUERA a propósito, igual que antes: caen al emparejamiento
-  // automático / GIF genérico de categoría en vez de mostrar un ejercicio
-  // con el equipo o movimiento equivocado.
-  const MAPEO_MANUAL_ESTATICO_POR_ID = {
-    'Sentadilla Trasera con Barra (Back Squat)': 'Barbell_Squat',
-    'Sentadilla Frontal con Barra (Front Squat)': 'Front_Barbell_Squat',
-    'Press de Banca Plano con Barra (Barbell Bench Press)': 'Barbell_Bench_Press_-_Medium_Grip',
-    'Press Inclinado con Mancuernas (30° - 45°)': 'Incline_Dumbbell_Press',
-    'Peso Muerto Rumano con Barra (RDL)': 'Romanian_Deadlift',
-    'Curl de Bíceps con Barra Z de Pie (EZ-Bar Curl)': 'EZ-Bar_Curl',
-    'Extensión de Tríceps en Polea Alta con Cuerda (Cable Pushdown)': 'Triceps_Pushdown',
-    'Plancha Abdominal Isométrica (Front Plank)': 'Plank',
-    'Aperturas en Máquina Contractora': 'Butterfly', // pec deck / chest fly machine
-    'Pec Deck en Máquina': 'Butterfly',
-    'Prensa de Piernas 45° Inclinada': 'Leg_Press',
-    'Peso Muerto con Mancuernas a Piernas Semirrígidas': 'Stiff-Legged_Dumbbell_Deadlift',
-    'Buenos Días con Barra (Good Mornings)': 'Good_Morning',
-    'Sissy Squat Libre / Asistido': 'Weighted_Sissy_Squat', // única variante disponible en el dataset
-    'Peck Deck Inverso en Máquina (Reverse Flyes)': 'Reverse_Flyes', // versión con mancuerna, no hay variante de máquina
-    'Curl Inclinado con Mancuernas (Incline Dumbbell Curl 45°)': 'Incline_Dumbbell_Curl',
-    'Extensión Katana Unilateral por Encima de la Cabeza en Polea': 'Cable_Rope_Overhead_Triceps_Extension',
-    'Sentadilla Goblet con Kettlebell': 'Goblet_Squat',
-    'Peso Muerto Convencional con Barra (Conventional Deadlift)': 'Barbell_Deadlift',
-    'Peso Muerto Sumo con Barra': 'Sumo_Deadlift',
-    'Curl de Bíceps con Barra Recta (Straight Bar Curl)': 'Barbell_Curl',
-    'Dead-Bug con Control Lumbar': 'Dead_Bug',
-    'Mountain Climbers con Control (Escaladores)': 'Mountain_Climbers',
-    'Elevación de Talones Sentado con Mancuerna sobre Rodillas': 'Dumbbell_Seated_One-Leg_Calf_Raise',
-    'Fondos en Paralelas para Pecho (Chest Dips)': 'Dips_-_Chest_Version',
-    'Press Francés con Barra Z en Banco Plano (Skull Crushers)': 'EZ-Bar_Skullcrusher',
-    'Press Militar de Pie con Barra (Overhead Press OHP)': 'Standing_Military_Press',
-    'Sentadilla Búlgara con Mancuernas (Rear Foot Elevated)': 'Split_Squat_with_Dumbbells',
-    'Jalón al Pecho en Polea con Agarre Neutro Estrecho': 'Close-Grip_Front_Lat_Pulldown',
-    'Curl Alternado de Pie con Mancuernas': 'Dumbbell_Alternate_Bicep_Curl',
-    'Aperturas en Máquina Contractora (Peck Deck Flyes)': 'Butterfly',
-    'Cruce de Poleas Altas (High-to-Low Cable Flyes)': 'Cable_Crossover',
-    'Cruce de Poleas Bajas (Low-to-High Cable Flyes)': 'Low_Cable_Crossover',
-    'Aperturas con Poleas al Nivel del Pecho (Mid-Cable Flyes)': 'Flat_Bench_Cable_Flyes',
-    'Dominadas Pronas / Neutras (Pull-ups / Chin-ups)': 'Chin-Up',
-    'Press de Banca Inclinado con Barra (30°)': 'Barbell_Incline_Bench_Press_-_Medium_Grip'
-  };
+  // VACÍO tras la migración a wger: los IDs de free-exercise-db no existen
+  // en este catálogo, y wger solo cubre 268 ejercicios (vs. 873 antes), así
+  // que muchas de las coincidencias curadas anteriormente no tienen
+  // equivalente aquí. En vez de adivinar 149 mapeos nuevos sin poder ver
+  // cada imagen, se deja que el emparejamiento automático (por nombre +
+  // pista de equipo, ver buscarCoincidenciaEnDataset más abajo) haga el
+  // trabajo — que es exactamente el mecanismo que este mapa manual estaba
+  // pensado para reforzar en casos ambiguos, no para reemplazar. Si algún
+  // ejercicio puntual queda con el emparejamiento incorrecto, se puede
+  // agregar aquí una entrada `'Nombre en español tal cual en app.js': idWger`.
+  const MAPEO_MANUAL_ESTATICO_POR_ID = {};
 
   // Imágenes por categoría como último recurso visual (si no hay match en el
-  // dataset ni éste está cargado aún). free-exercise-db no tiene GIFs
-  // animados, así que estas son fotos estáticas de un ejercicio
-  // representativo de cada categoría (rutas verificadas contra el dataset).
+  // dataset ni éste está cargado aún). Ilustraciones de línea de wger,
+  // representativas de cada categoría local (elegidas del catálogo real).
   const FALLBACK_GIFS_POR_CATEGORIA = {
-    cuadriceps: CONFIG.cdnBases[0] + 'Barbell_Squat/0.jpg',
-    isquiotibiales: CONFIG.cdnBases[0] + 'Romanian_Deadlift/0.jpg',
-    gluteos: CONFIG.cdnBases[0] + 'Barbell_Hip_Thrust/0.jpg',
-    pecho: CONFIG.cdnBases[0] + 'Barbell_Bench_Press_-_Medium_Grip/0.jpg',
-    espalda: CONFIG.cdnBases[0] + 'Bent_Over_Barbell_Row/0.jpg',
-    hombros: CONFIG.cdnBases[0] + 'Dumbbell_Shoulder_Press/0.jpg',
-    biceps: CONFIG.cdnBases[0] + 'Barbell_Curl/0.jpg',
-    triceps: CONFIG.cdnBases[0] + 'Triceps_Pushdown/0.jpg',
-    core: CONFIG.cdnBases[0] + '3_4_Sit-Up/0.jpg',
-    pantorrillas: CONFIG.cdnBases[0] + 'Standing_Calf_Raises/0.jpg'
+    cuadriceps: 'https://wger.de/media/exercise-images/203/1c052351-2af0-4227-aeb0-244008e4b0a8.jpeg',
+    isquiotibiales: 'https://wger.de/media/exercise-images/285/4141e8b2-d9f2-4597-8ef0-7768127fd0ec.png',
+    gluteos: 'https://wger.de/media/exercise-images/12/4a42cc6f-648d-40cc-a72a-c49dd47e1667.webp',
+    pecho: 'https://wger.de/media/exercise-images/192/Bench-press-1.png',
+    espalda: 'https://wger.de/media/exercise-images/81/a751a438-ae2d-4751-8d61-cef0e9292174.png',
+    hombros: 'https://wger.de/media/exercise-images/79/da58dfbf-748a-461b-891e-3d6bc9cc4be2.png',
+    biceps: 'https://wger.de/media/exercise-images/31/92f6451b-f89d-49d6-9531-8970ea420d97.png',
+    triceps: 'https://wger.de/media/exercise-images/50/695ced5c-9961-4076-add2-cb250d01089e.png',
+    core: 'https://wger.de/media/exercise-images/41/34b37423-269f-43d4-9d29-d2a90eeaa6b4.png',
+    pantorrillas: 'https://wger.de/media/exercise-images/146/8b284904-d072-4381-a256-4c81d8fd9c1f.png'
   };
   // Fallback absoluto (sin categoría conocida / dataset no cargado aún). Se
   // reutiliza la imagen de "core" para no duplicar otra URL más.
@@ -476,18 +394,18 @@
   // movimiento genérico. Sin esto, "Curl Martillo con Mancuernas" podía
   // terminar emparejado con "cable hammer curl" solo porque aparecía primero
   // en el array, mostrando un ejercicio de polea para uno que es de mancuerna.
-  // Vocabulario de `equipment` actualizado al de free-exercise-db (ya no
-  // existen "lever"/"sled"/"smith"/"t-bar"; "band" ahora es "bands", "body
-  // weight" ahora es "body only", "ez-barbell" ahora es "e-z curl bar").
+  // Vocabulario de `equipment` actualizado al de wger ("SZ-Bar" en vez de
+  // "e-z curl bar", "Cable machine" en vez de "cable", "Resistance band" en
+  // vez de "bands", "none (bodyweight exercise)" en vez de "body only").
   const EQUIPO_HINTS = [
     { es: ['mancuernas', 'mancuerna'], en: ['dumbbell'] },
-    { es: ['barra z', 'barra ez', 'ez-bar', 'ez bar'], en: ['e-z curl bar'] },
+    { es: ['barra z', 'barra ez', 'ez-bar', 'ez bar'], en: ['sz-bar'] },
     { es: ['barra'], en: ['barbell'] },
     { es: ['polea', 'cable'], en: ['cable'] },
     { es: ['máquina', 'maquina'], en: ['machine'] },
-    { es: ['banda'], en: ['bands'] },
+    { es: ['banda'], en: ['resistance band'] },
     { es: ['kettlebell', 'pesa rusa'], en: ['kettlebell'] },
-    { es: ['peso corporal'], en: ['body only'] }
+    { es: ['peso corporal'], en: ['none (bodyweight exercise)'] }
   ];
 
   function detectarEquipoEsperado(textoEspanolSinParentesis) {
@@ -500,7 +418,9 @@
 
   function candidatoCumpleEquipo(candidato, equipoEsperado) {
     if (!equipoEsperado) return true;
-    const eq = (candidato.equipment || '').toLowerCase();
+    // `equipment` es un array en wger (puede tener 0-N items), a diferencia
+    // del string único del dataset anterior.
+    const eq = (candidato.equipment || []).join(' | ').toLowerCase();
     const nm = candidato.name.toLowerCase();
     return equipoEsperado.some(tok => eq.includes(tok) || nm.includes(tok));
   }
@@ -585,21 +505,16 @@
     const matchingGithubEx = buscarCoincidenciaEnDataset(nombre);
 
     if (matchingGithubEx) {
-      const explicacion =
-        TRADUCCIONES_ES[matchingGithubEx.id] ||
-        (matchingGithubEx.instructions && matchingGithubEx.instructions.length && matchingGithubEx.instructions.join(' ')) ||
-        'Sin instrucciones disponibles.';
-
+      const explicacion = matchingGithubEx.descripcionEs || 'Sin instrucciones disponibles.';
       const gifUrls = ExercisesAdapter.gifUrls(matchingGithubEx);
-      const frame2Urls = ExercisesAdapter.resolveUrls((matchingGithubEx.images || [])[1]);
 
       return {
         nombre: nombre,
         explicacion_tecnica: explicacion,
         url_gif: gifUrls[0] || '',
-        real_gif_url: gifUrls[1] || gifUrls[0] || '',
-        url_gif_frame2: frame2Urls[0] || '',
-        url_gif_frame2_fallback: frame2Urls[1] || frame2Urls[0] || '',
+        real_gif_url: gifUrls[0] || '',
+        url_gif_frame2: gifUrls[1] || '',
+        url_gif_frame2_fallback: gifUrls[1] || '',
         github_id: matchingGithubEx.id,
         github_name: matchingGithubEx.name
       };
