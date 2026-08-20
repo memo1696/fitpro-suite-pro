@@ -124,6 +124,9 @@ export default function WorkoutScreen({ user }) {
 
     cargarRutinaAtleta();
   }, [user]);
+
+  // Cuenta regresiva del descanso entre series.
+  useEffect(() => {
     let interval = null;
     if (timerActive && timerSeconds > 0) {
       interval = setInterval(() => {
@@ -146,6 +149,22 @@ export default function WorkoutScreen({ user }) {
   };
 
   const totalCompletados = ejercicios.filter(e => e.completado).length;
+
+  // Hasta que llega la rutina real de Supabase, el estado inicial es
+  // DEMO_EXERCISES: sin esto el atleta ve durante un instante una rutina
+  // inventada (y el título "Sobrecarga Progresiva Adaptada") como si fuera
+  // la suya. Todos los hooks corren arriba, así que este return temprano no
+  // altera su orden.
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color="#38bdf8" />
+          <Text style={styles.loadingText}>Cargando tu rutina…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -232,6 +251,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
+  },
+  loadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
