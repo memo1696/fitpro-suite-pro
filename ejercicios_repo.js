@@ -70,7 +70,16 @@
     dbVersion: 4,          // subido: la forma del objeto normalizado cambió con la migración a wger
     // Clave de caché ligada al dataset de origen: evita servir datos con la
     // forma vieja (del dataset anterior) desde IndexedDB tras la migración.
-    cacheKey: 'exercises_normalized_wger',
+    //
+    // IMPORTANTE: subir esta clave CADA VEZ que cambie la forma o el
+    // contenido de lo que se guarda. Al autohospedar las imágenes las URLs
+    // pasaron de absolutas (https://wger.de/media/...) a nombres de archivo
+    // relativos (12_0.png), pero la clave quedó igual: los usuarios que ya
+    // habían entrado siguieron sirviendo las URLs viejas desde IndexedDB
+    // durante los 7 días de TTL, y como `gifUrls()` les antepone
+    // 'wger_images/', el src quedaba en
+    // 'wger_images/https://wger.de/...' -> todas las imágenes rotas.
+    cacheKey: 'exercises_normalized_wger_selfhosted',
     cacheTtlMs: 1000 * 60 * 60 * 24 * 7, // 7 días
     maxEsperaEjerciciosDB: 50 // reintentos de 100ms (~5s) antes de rendirse
   };
