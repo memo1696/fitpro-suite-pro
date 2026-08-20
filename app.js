@@ -8425,8 +8425,8 @@ function guardarPlanManual() {
               ${d.ejercicios.map((ej, eIdx) => `
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
                   <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
-                    <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
+                    <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:40px; height:40px; border-radius:6px;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
                     </div>
                     <div>
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -11053,8 +11053,8 @@ function verDetallePlanGenerado(planId) {
               ${(d.ejercicios || []).map((ej, eIdx) => `
                 <div style="background:var(--bg-surface); padding:8px 12px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; font-size:13px; flex-wrap:wrap; gap:12px;">
                   <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
-                    <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
+                    <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:40px; height:40px; border-radius:6px;">
+                      <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
                     </div>
                     <div>
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -11186,8 +11186,8 @@ function renderBiblioteca() {
           </div>
 
           ${ej.github_id ? `
-          <div style="cursor:pointer; border-radius:var(--radius-md); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); margin-bottom:12px; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" title="Ver demostración">
-            <img src="${ej.url_thumbnail}" alt="${ej.nombre}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.src=window.SVG_PLACEHOLDER;}">
+          <div class="${window.claseImagenEjercicio(ej.url_thumbnail)}" style="cursor:pointer; margin-bottom:12px; aspect-ratio:1/1;" onclick="window.mostrarDemostracionEjercicio('${ej.nombre.replace(/'/g, "\\'")}')" title="Ver demostración">
+            <img src="${ej.url_thumbnail}" alt="${ej.nombre}" loading="lazy" onerror="if(this.src!=='${ej.url_thumbnail_fallback}'){this.src='${ej.url_thumbnail_fallback}';}else if(this.src!=='${ej.url_gif}'){this.src='${ej.url_gif}';}else{this.onerror=null;this.classList.add('is-placeholder');this.src=window.SVG_PLACEHOLDER;}">
           </div>` : ''}
 
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
@@ -14403,7 +14403,9 @@ function renderizarDiaIA(dia, indice) {
             <tr>
               <td style="color:var(--text-dim); font-weight:700; font-family:var(--font-mono); font-size:12px;">${String(idx + 1).padStart(2, '0')}</td>
               <td style="width:60px; min-width:60px; text-align:center;">
-                <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;" onerror="this.onerror=null; this.src=window.SVG_PLACEHOLDER;">
+                <div class="${window.claseImagenEjercicio(window.resolverImagenEjercicio(ej.nombre, ej.github_name))}" style="width:50px; height:50px; display:inline-flex;">
+                  <img class="exercise-thumb" src="${window.resolverImagenEjercicio(ej.nombre, ej.github_name)}" alt="${ej.nombre}" onerror="this.onerror=null; this.classList.add('is-placeholder'); this.src=window.SVG_PLACEHOLDER;">
+                </div>
               </td>
               <td>
                 <textarea style="background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; font-weight:700; font-size:13px; width:95%; padding:4px 8px; border-radius:4px; resize:vertical; white-space:normal; word-break:break-word; font-family:inherit; min-height:36px; height:auto; overflow:hidden;" onchange="window.actualizarNombreEjercicioIA(${indice}, ${idx}, this.value)" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${ej.nombre}</textarea>

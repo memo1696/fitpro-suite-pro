@@ -4202,3 +4202,76 @@ body.auth-pending #app-layout {
   color: #000000 !important;
   font-weight: 800 !important;
 }
+
+/* ==========================================================================
+   ESTÁNDAR VISUAL DE IMÁGENES DE EJERCICIO
+   --------------------------------------------------------------------------
+   El catálogo de wger mezcla 4 estilos (line art B/N, render 3D con músculo
+   en rojo, ilustración con texto quemado, y fotos reales de gimnasio) en 21
+   tamaños distintos. Sin un contenedor común la grilla se ve desprolija.
+
+   Dos problemas concretos que esto resuelve:
+
+   1. `object-fit: cover` recortaba al centro. La mayoría de las
+      ilustraciones son panorámicas porque traen las 2 fases del movimiento
+      dibujadas lado a lado -> el recorte cuadrado se comía las dos figuras
+      y dejaba el espacio vacío del medio. Ahora `contain` por defecto.
+
+   2. 62 imágenes son PNG con fondo TRANSPARENTE y line art negro. Sobre el
+      fondo oscuro que tenían las tarjetas (rgba(0,0,0,0.25)) quedaban casi
+      invisibles. Por eso el fondo del contenedor ahora es claro y fijo.
+
+   `--ej-img-bg` es claro a propósito y NO sigue el tema oscuro: las
+   ilustraciones traen su propio fondo blanco horneado, así que cualquier
+   otro color deja un recuadro blanco flotando dentro de la tarjeta.
+   ========================================================================== */
+:root {
+  --ej-img-bg: #f4f6fb;
+}
+
+.ej-img-box {
+  background: var(--ej-img-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ej-img-box > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Sólo para fotos reales verificadas (ver LISTA_IMAGENES_COVER en
+   ejercicios_repo.js). En una foto el recorte cuadrado queda bien y evita
+   las barras laterales; en una ilustración de 2 fases, no. */
+.ej-img-box--foto > img {
+  object-fit: cover;
+}
+
+/* El placeholder SVG es un ícono vectorial de línea celeste pensado para
+   fondo oscuro: sobre el fondo claro del contenedor necesita el suyo. */
+.ej-img-box > img.is-placeholder {
+  object-fit: contain;
+  padding: 18%;
+  background: var(--bg-card);
+}
+
+/* Modal de demostración: la imagen se muestra a tamaño natural acotado
+   (no estira al contenedor como en las miniaturas), pero necesita el mismo
+   fondo claro para que el line art transparente sea visible. */
+.ej-img-box--modal {
+  min-height: 200px;
+}
+
+.ej-img-box--modal > img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 280px;
+}

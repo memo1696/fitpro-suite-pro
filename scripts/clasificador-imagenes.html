@@ -1,0 +1,120 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>clasificador</title></head>
+<body style="background:#0b1120;color:#e2e8f0;font:14px system-ui;padding:20px">
+<h3>Clasificando imágenes por fondo…</h3>
+<pre id="out">iniciando…</pre>
+<script>
+window.RESULTADO = null;
+
+async function analizar(nombre) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  await new Promise((res, rej) => {
+    img.onload = res;
+    img.onerror = () => rej(new Error('load fail ' + nombre));
+    img.src = '../wger_images/' + nombre;
+  });
+
+  const W = 80, H = 80;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  // Detecta alfa: dibuja sobre blanco y sobre negro; si difieren, hay
+  // transparencia. Importante porque muchas ilustraciones son PNG con fondo
+  // transparente -> hoy se ven casi invisibles sobre el fondo oscuro.
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(img, 0, 0, W, H);
+  const sobreNegro = ctx.getImageData(0, 0, W, H).data;
+  let alfa = false;
+  for (let i = 3; i < sobreNegro.length; i += 4) {
+    if (sobreNegro[i] < 250) { alfa = true; break; }
+  }
+  // Analiza SIEMPRE compuesto sobre blanco (así el transparente cuenta como
+  // fondo claro, que es como se va a mostrar en la tarjeta).
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(img, 0, 0, W, H);
+  const d = ctx.getImageData(0, 0, W, H).data;
+
+  const px = (x, y) => { const i = (y * W + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+  const esClaro = ([r, g, b]) => r > 235 && g > 235 && b > 235;
+  const esNeutro = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b) < 18;
+
+  // 4 esquinas (promedio de parche 5x5)
+  const esquinas = [[3, 3], [W - 4, 3], [3, H - 4], [W - 4, H - 4]].map(([cx, cy]) => {
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let y = cy - 2; y <= cy + 2; y++) for (let x = cx - 2; x <= cx + 2; x++) {
+      const p = px(Math.max(0, Math.min(W - 1, x)), Math.max(0, Math.min(H - 1, y)));
+      r += p[0]; g += p[1]; b += p[2]; n++;
+    }
+    return [r / n, g / n, b / n];
+  });
+  const esquinasClaras = esquinas.filter(esClaro).length;
+  const esquinasNeutras = esquinas.filter(esNeutro).length;
+
+  // fracción global de píxeles casi blancos y de píxeles con color saturado
+  let blancos = 0, saturados = 0, total = W * H;
+  for (let i = 0; i < d.length; i += 4) {
+    const p = [d[i], d[i + 1], d[i + 2]];
+    if (esClaro(p)) blancos++;
+    const mx = Math.max(...p), mn = Math.min(...p);
+    if (mx > 40 && (mx - mn) / mx > 0.30) saturados++;
+  }
+  const fracBlanco = blancos / total;
+  const fracSat = saturados / total;
+
+  // Ilustración = fondo blanco dominante en las esquinas + buena proporción
+  // de blanco global. Las fotos de gimnasio/parque casi nunca cumplen ambas.
+  const esIlustracion = esquinasClaras >= 3 && fracBlanco > 0.30;
+  const dudoso = !esIlustracion && esquinasClaras >= 2 && fracBlanco > 0.20;
+
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const ar = w / h;
+  const tipo = esIlustracion ? 'ilustracion' : (dudoso ? 'dudoso' : 'foto');
+
+  // Decisión de encuadre. Sesgada a `contain` a propósito: recortar una
+  // ilustración de 2 fases parte las figuras al medio (el bug actual),
+  // mientras que dejar barras en una foto es sólo cosmético. Por eso
+  // `cover` sólo cuando hay alta confianza de que es foto Y no es
+  // panorámica (las panorámicas casi siempre son 2 fases lado a lado).
+  const encuadre = (tipo === 'foto' && ar <= 1.25 && !alfa) ? 'cover' : 'contain';
+
+  return { nombre, esquinasClaras, esquinasNeutras, alfa, w, h, ar: +ar.toFixed(2),
+           fracBlanco: +fracBlanco.toFixed(3), fracSat: +fracSat.toFixed(3),
+           tipo, encuadre };
+}
+
+(async () => {
+  const out = document.getElementById('out');
+  // La lista sale del propio dataset (no hay listado de directorio en el
+  // navegador), así que siempre queda en sinc con lo que la app usa.
+  const dataset = await (await fetch('../wger_ejercicios.json')).json();
+  const lista = [...new Set(dataset.flatMap(e => e.images || []))];
+  const res = [];
+  for (let i = 0; i < lista.length; i++) {
+    try { res.push(await analizar(lista[i])); }
+    catch (e) { res.push({ nombre: lista[i], tipo: 'error', err: String(e.message) }); }
+    if (i % 25 === 0) out.textContent = `${i}/${lista.length}…`;
+  }
+  window.RESULTADO = res;
+  const cuenta = {};
+  res.forEach(r => cuenta[r.tipo] = (cuenta[r.tipo] || 0) + 1);
+  const cover = res.filter(r => r.encuadre === 'cover').map(r => r.nombre);
+
+  // Salida lista para pegar en IMAGENES_FOTO (ejercicios_repo.js)
+  const bloque = cover.map(n => `'${n}'`).reduce((acc, s, i) => {
+    if (i % 5 === 0) acc.push([]);
+    acc[acc.length - 1].push(s);
+    return acc;
+  }, []).map(l => '    ' + l.join(', ')).join(',\n');
+
+  out.textContent =
+    'LISTO\n\n' + JSON.stringify(cuenta, null, 2) +
+    `\n\ncon transparencia (alfa): ${res.filter(r => r.alfa).length}` +
+    `\nencuadre contain: ${res.length - cover.length}   cover: ${cover.length}` +
+    '\n\n--- pegar en IMAGENES_FOTO de ejercicios_repo.js ---\n\n' +
+    'const IMAGENES_FOTO = new Set([\n' + bloque + '\n  ]);\n';
+  document.title = 'clasificador-listo';
+})();
+</script>
+</body></html>

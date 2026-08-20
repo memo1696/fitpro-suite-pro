@@ -60,7 +60,11 @@
   const CONFIG = {
     // Archivo propio (mismo origen), no una API externa en runtime: ya viene
     // pre-filtrado (solo ejercicios con imagen) y pre-traducido al español.
-    datasetUrl: 'wger_ejercicios.json',
+    // Query de versión: Cache-Control de este archivo es max-age=3600
+    // (vercel.json), que dentro de esa hora se sirve directo desde caché
+    // del navegador sin revalidar. Subir esta versión fuerza a tratarlo
+    // como una URL nueva cada vez que cambia el contenido del archivo.
+    datasetUrl: 'wger_ejercicios.json?v=2',
     dbName: 'fitpro_exercises_cache',
     dbStore: 'dataset',
     dbVersion: 4,          // subido: la forma del objeto normalizado cambió con la migración a wger
@@ -76,6 +80,39 @@
 
   const SVG_PLACEHOLDER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%2338bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:%230f172a;"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><rect x="5" y="8" width="2" height="8" rx="1"/><rect x="17" y="8" width="2" height="8" rx="1"/><line x1="7" y1="12" x2="17" y2="12"/></svg>`;
   window.SVG_PLACEHOLDER = SVG_PLACEHOLDER;
+
+  // ==========================================================================
+  // ENCUADRE DE IMÁGENES — ver el bloque "ESTÁNDAR VISUAL DE IMÁGENES DE
+  // EJERCICIO" en styles.css para el porqué.
+  //
+  // El default de TODO el catálogo es `contain` sobre fondo claro. Esta lista
+  // son las únicas imágenes que son fotografías reales de alta confianza
+  // (persona real en gimnasio/exterior, sin fondo blanco, no panorámicas):
+  // en una foto el recorte cuadrado se ve mejor que las barras laterales.
+  //
+  // Se generó con `scripts/clasificador-imagenes.html`, que compone cada
+  // imagen sobre blanco en un <canvas> y mide fondo de esquinas, fracción de
+  // blanco, saturación, canal alfa y relación de aspecto. El criterio está
+  // sesgado a `contain` a propósito: recortar una ilustración de 2 fases
+  // parte las dos figuras al medio (el bug que esto arregla), mientras que
+  // una barra lateral en una foto es sólo cosmético.
+  //
+  // Si se re-sincroniza el catálogo desde wger, volver a correr esa página
+  // y reemplazar esta lista.
+  const IMAGENES_FOTO = new Set([
+    '1022_0.jpg', '1022_1.jpg', '1185_0.jpg', '1186_0.jpg', '1227_0.jpg',
+    '1239_0.jpg', '1387_0.jpg', '1521_0.jpg', '1551_0.jpg', '1554_0.jpg',
+    '1556_0.jpg', '1604_0.jpg', '1733_0.jpg', '1734_0.jpg', '1735_0.jpg',
+    '1835_0.jpg', '1861_0.png', '1862_0.png', '1873_0.png', '1875_0.png',
+    '1876_0.png', '1971_0.jpg', '691_0.jpg', '691_1.jpg', '959_0.png'
+  ]);
+
+  // Clases del contenedor de una imagen de ejercicio. Se usa en los 5 puntos
+  // de render (biblioteca, miniaturas de plan, tabla de rutina y modal).
+  window.claseImagenEjercicio = function (url) {
+    const archivo = String(url || '').split('/').pop().split('?')[0];
+    return IMAGENES_FOTO.has(archivo) ? 'ej-img-box ej-img-box--foto' : 'ej-img-box';
+  };
 
   // `escapeHtml` es usado en varios puntos de app.js (catálogo de ejercicios,
   // sección de Planes) pero nunca estaba definido en ningún archivo del
@@ -673,8 +710,8 @@
           <div id="modal-demo-id-text" style="font-size:11.5px; color:#38bdf8; margin-bottom:12px; font-family:monospace;">
             ${ej.github_name ? `ID: ${ej.github_id} (${ej.github_name})` : ``}
           </div>
-          <div style="border-radius:var(--radius-lg); overflow:hidden; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); min-height: 200px; display: flex; align-items: center; justify-content: center;">
-            <img id="modal-demo-img" alt="${ej.nombre}" style="max-width:100%; max-height:280px; object-fit:contain;">
+          <div class="ej-img-box ej-img-box--modal" style="border-radius:var(--radius-lg);">
+            <img id="modal-demo-img" alt="${ej.nombre}">
           </div>
           ${ej.atribucion ? `<div style="font-size:10px; color:var(--text-dim,#64748b); margin-top:6px;">${ej.atribucion} · CC-BY-SA</div>` : ''}
         </div>
@@ -901,8 +938,8 @@
             ${bloque.map(r => `
               <div style="background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); display:flex; gap:12px; align-items:center; justify-content:space-between;">
                 <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                  <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <img src="${r.url_gif}" alt="${r.ej}" style="width:100%; height:100%; object-fit:cover;" onerror="if(this.src!=='${r.real_gif_url}'){this.src='${r.real_gif_url}';}else{this.onerror=null;this.src=window.SVG_PLACEHOLDER;}">
+                  <div class="${window.claseImagenEjercicio(r.url_gif)}" style="width:40px; height:40px; border-radius:6px;">
+                    <img src="${r.url_gif}" alt="${r.ej}" onerror="if(this.src!=='${r.real_gif_url}'){this.src='${r.real_gif_url}';}else{this.onerror=null;this.classList.add('is-placeholder');this.src=window.SVG_PLACEHOLDER;}">
                   </div>
                   <div style="flex:1;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
