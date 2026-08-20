@@ -13,8 +13,15 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // Mismo criterio que admin-pending.js: separar "falta la variable en el
+  // servidor" de "la clave no coincide", para que el fallo sea diagnosticable.
+  if (!process.env.ADMIN_SECRET) {
+    res.status(500).json({ error: 'Falta configurar ADMIN_SECRET en Vercel (Settings > Environment Variables, habilitada para Production)' });
+    return;
+  }
+
   const secret = req.headers['x-admin-secret'];
-  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+  if (secret !== process.env.ADMIN_SECRET) {
     res.status(401).json({ error: 'No autorizado' });
     return;
   }

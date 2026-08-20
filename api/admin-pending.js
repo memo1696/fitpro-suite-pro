@@ -9,8 +9,18 @@ module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
 
+  // Se distingue "el servidor no tiene la variable" de "la clave no coincide".
+  // Antes ambos casos devolvian el mismo 401, y eso hacia imposible saber si
+  // el problema estaba en Vercel o en lo que se tecleaba. Decir que falta la
+  // variable no filtra ningun secreto: es el mismo criterio que ya se usa
+  // abajo para SUPABASE_URL y la service key.
+  if (!process.env.ADMIN_SECRET) {
+    res.status(500).json({ error: 'Falta configurar ADMIN_SECRET en Vercel (Settings > Environment Variables, habilitada para Production)' });
+    return;
+  }
+
   const secret = req.headers['x-admin-secret'];
-  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+  if (secret !== process.env.ADMIN_SECRET) {
     res.status(401).json({ error: 'No autorizado' });
     return;
   }
