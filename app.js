@@ -530,6 +530,25 @@ function mostrarPantallaAuth() {
   }
 }
 
+// Contraparte de mostrarPantallaAuth(): nunca estuvo definida pese a ya
+// usarse en 2 lugares (verificarYEscucharSupabaseAuth y el flujo de sesión
+// persistida de atleta), causando un ReferenceError silencioso ahí que
+// interrumpía la restauración automática de sesión antes de terminar de
+// mostrar el Portal del Atleta.
+function ocultarPantallaAuth() {
+  document.body.classList.remove('auth-pending');
+  const authOverlay = document.getElementById('auth-overlay-view');
+  if (authOverlay) {
+    authOverlay.classList.add('hidden');
+    authOverlay.style.display = 'none';
+  }
+  const layout = document.getElementById('app-layout');
+  if (layout) {
+    layout.style.display = 'flex';
+  }
+}
+window.ocultarPantallaAuth = ocultarPantallaAuth;
+
 async function verificarYEscucharSupabaseAuth() {
   if (!supabaseClient) {
     initSupabaseClient();
@@ -920,6 +939,14 @@ async function iniciarSesionSupabase(email, password) {
           full_name: clienteLocal?.nombre || data.session.user.user_metadata?.full_name || email.split('@')[0]
         };
       }
+    } else {
+      // Login real de coach: si este navegador tenía guardada una sesión de
+      // atleta de una prueba anterior (propia o de otra persona en el mismo
+      // dispositivo), se limpia aquí. Sin esto, verificarYEscucharSupabaseAuth
+      // seguiría restaurando ese Portal del Atleta en cada recarga de página,
+      // sin importar con qué cuenta de coach se acabe de iniciar sesión.
+      localStorage.removeItem('fitpro_persisted_athlete_session');
+      window.esSesionModoAtleta = false;
     }
 
     mostrarExitoAuth("Autenticación exitosa. Abriendo FitPro Suite Pro...");
@@ -974,6 +1001,11 @@ async function registrarUsuarioSupabase(email, password, nombre, rol, gymId) {
   }
 
   if (data && data.session) {
+    // Registro de coach: limpia cualquier sesión de atleta vieja pegada en
+    // este navegador (ver mismo fix en iniciarSesionSupabase).
+    localStorage.removeItem('fitpro_persisted_athlete_session');
+    window.esSesionModoAtleta = false;
+
     // Si NO es el admin, establecerSesionActiva detecta approval_status:
     // 'pending' y corta el acceso mostrando su propio aviso; por eso aquí
     // solo se anuncia "accediendo" cuando sí se sabe que va a entrar.
