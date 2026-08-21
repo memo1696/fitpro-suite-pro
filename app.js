@@ -593,38 +593,32 @@ async function verificarYEscucharSupabaseAuth() {
     return;
   }
 
-  // 1. Verificar si la URL contiene un deep-link de atleta
-  const urlParams = new URLSearchParams(window.location.search);
-  const emailParam = urlParams.get('email') || urlParams.get('atletaEmail');
-  const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
-  const isAthleteDeepLink = Boolean(emailParam || atletaParam || urlParams.get('view') === 'athlete');
+  // Antes de 2026-08-21 aquí había dos atajos que entregaban el Portal del
+  // Atleta sin verificar credenciales, y los dos se quitaron:
+  //
+  //   1. Si la URL traía un deep-link (bastaba `/?view=athlete`, sin email ni
+  //      token), se llamaba a procesarDeepLinkAtletaUrl() y se entraba directo.
+  //   2. Si no, se restauraba `fitpro_persisted_athlete_session` desde
+  //      localStorage sin comprobar que hubiera sesión de Supabase.
+  //
+  // El segundo mantenía vivo al primero: la sesión que el deep-link dejaba
+  // guardada seguía abriendo el portal en cada recarga. Y como
+  // cargarDatosContextoAtleta() rastrea TODAS las claves fitpro_clientes_* del
+  // navegador, en un equipo compartido con el entrenador eso alcanzaba los
+  // datos de salud de su cartera entera.
+  //
+  // Ahora el único camino al portal es una sesión real de Supabase Auth, que se
+  // comprueba más abajo con getSession() y la resuelve establecerSesionActiva().
+  // El deep-link solo prepara la pantalla de acceso (ver
+  // procesarDeepLinkAtletaUrl).
 
-  // Si hay un enlace de atleta en la URL, procesarlo directamente sin pedir credenciales
-  if (isAthleteDeepLink) {
-    procesarDeepLinkAtletaUrl();
-    return;
-  }
-
-  // Si no hay enlace nuevo, verificar si este dispositivo ya tiene una sesión permanente de atleta guardada
-  const persistedAthlete = leerStorageCifrado('fitpro_persisted_athlete_session');
-  if (persistedAthlete && persistedAthlete.user) {
-    console.log("📲 Sesión de atleta restaurada automáticamente desde pantalla de inicio:", persistedAthlete.user.email);
-    window.esSesionModoAtleta = true;
-    document.body.classList.add('is-athlete-mode');
-    
-    // Cargar dinámicamente los datos actualizados del coach (rutinas, dietas, medidas)
-    if (typeof cargarDatosContextoAtleta === 'function') {
-      cargarDatosContextoAtleta({
-        id: persistedAthlete.user?.id || persistedAthlete.cliente?.id,
-        email: persistedAthlete.user?.email || persistedAthlete.cliente?.email,
-        nombre: persistedAthlete.user?.user_metadata?.full_name || persistedAthlete.cliente?.nombre
-      });
-    }
-
-    ocultarPantallaAuth();
-    renderPortalAtleta(persistedAthlete.user);
-    navegarA('athlete-portal');
-    return;
+  // Borra la sesión que el flujo viejo pudo haber dejado guardada: en los
+  // equipos donde ya se abrió un enlace de invitación sigue ahí, con datos del
+  // atleta, y ya no la lee nadie.
+  try {
+    localStorage.removeItem('fitpro_persisted_athlete_session');
+  } catch (e) {
+    console.warn('Notice limpiando la sesión de atleta heredada:', e);
   }
 
   // 2. Verificar si hay sesión activa en Supabase Auth
@@ -641,7 +635,7 @@ async function verificarYEscucharSupabaseAuth() {
           establecerSesionActiva(demoStored, demoStored.user);
           return;
         }
-        mostrarPantallaAuth();
+        mostrarPantallaAccesoInicial();
       }
 
       // 2. Suscribirse a cambios en el estado de autenticación (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
@@ -668,7 +662,7 @@ async function verificarYEscucharSupabaseAuth() {
       });
     } catch (err) {
       console.warn("Excepción al verificar sesión de Supabase:", err);
-      mostrarPantallaAuth();
+      mostrarPantallaAccesoInicial();
     }
   } else {
     const demoStored = localStorage.getItem('fitpro_local_auth_session');
@@ -681,6 +675,15 @@ async function verificarYEscucharSupabaseAuth() {
         localStorage.removeItem('fitpro_local_auth_session');
       }
     }
+    mostrarPantallaAccesoInicial();
+  }
+}
+
+// Punto único de entrada a la pantalla de acceso durante el arranque. Un
+// enlace de invitación preselecciona el perfil Atleta y precarga el correo,
+// pero nunca sustituye a la contraseña.
+function mostrarPantallaAccesoInicial() {
+  if (!procesarDeepLinkAtletaUrl()) {
     mostrarPantallaAuth();
   }
 }
@@ -788,6 +791,8 @@ async function solicitarRecuperacionPassword() {
 
     // Respuesta deliberadamente genérica: confirmar si el correo existe o no
     // permitiría enumerar las cuentas de entrenador dadas de alta.
+    registrarEventoSeguridad('password_reset_solicitado', { email });
+
     mostrarExitoAuth('Si ese correo tiene una cuenta, te enviamos un enlace para restablecer la contraseña. Revisa la bandeja de entrada y la carpeta de spam: el enlace vence en 1 hora.');
     showToast('Correo de recuperación enviado.', 'success', '📧 Revisa tu bandeja');
   } catch (err) {
@@ -978,6 +983,8 @@ async function confirmarNuevaPassword(event) {
     const emailInput = document.getElementById('auth-input-email');
     if (emailInput && emailUsuario) emailInput.value = emailUsuario;
 
+    registrarEventoSeguridad('password_cambiado', { email: emailUsuario });
+
     mostrarExitoAuth('Contraseña actualizada. Inicia sesión con la nueva.');
     showToast('Contraseña actualizada correctamente.', 'success', '🔑 Listo');
     document.getElementById('auth-input-password')?.focus();
@@ -997,6 +1004,38 @@ window.confirmarNuevaPassword = confirmarNuevaPassword;
 window.mostrarPanelNuevaPassword = mostrarPanelNuevaPassword;
 window.ocultarPanelNuevaPassword = ocultarPanelNuevaPassword;
 window.actualizarVisibilidadRecuperacion = actualizarVisibilidadRecuperacion;
+
+// ==========================================
+// 🛡️ REGISTRO DE EVENTOS DE ACCESO (OWASP A09)
+// ==========================================
+// Manda el evento a /api/log-security-event, que lo guarda en la tabla
+// security_events junto con la IP y el user-agent que ve el servidor
+// (ver supabase_security_events.sql). Sin esto no queda rastro de los intentos
+// fallidos y un ataque de fuerza bruta pasa inadvertido.
+//
+// Es deliberadamente "dispara y olvida": registrar no puede demorar ni romper
+// el acceso. Si el endpoint todavía no está desplegado, o falta correr el SQL
+// que crea la tabla, el fallo se traga y el login funciona igual.
+function registrarEventoSeguridad(evento, datos = {}) {
+  try {
+    fetch('/api/log-security-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // keepalive: el registro tiene que salir aunque la página navegue justo
+      // después, que es exactamente lo que pasa cuando el acceso prospera.
+      keepalive: true,
+      body: JSON.stringify({
+        evento,
+        email: datos.email || '',
+        motivo: datos.motivo || '',
+        gym_id: (typeof gimnasioActivoId !== 'undefined' ? gimnasioActivoId : '') || ''
+      })
+    }).catch(() => {});
+  } catch (e) {
+    // Nunca propagar: el registro es secundario al acceso.
+  }
+}
+window.registrarEventoSeguridad = registrarEventoSeguridad;
 
 function mostrarErrorAuth(mensaje) {
   const errBox = document.getElementById('auth-error-box');
@@ -1284,7 +1323,12 @@ async function iniciarSesionSupabase(email, password) {
       msgAmigable = "Credenciales incorrectas. Verifica tu correo y contraseña.";
     } else if (error.message.toLowerCase().includes('email not confirmed')) {
       msgAmigable = "Tu correo electrónico no ha sido confirmado aún en Supabase.";
+    } else if (/failed to fetch|network|load failed/i.test(error.message)) {
+      msgAmigable = "No se pudo contactar con el servidor de autenticación. Revisa tu conexión e intenta de nuevo.";
     }
+    // Se registra el motivo que devuelve Supabase, nunca la contraseña.
+    registrarEventoSeguridad('login_fallido', { email: cleanEmail, motivo: error.message });
+
     mostrarErrorAuth(msgAmigable);
     showToast(msgAmigable, "error", "Error de Acceso");
     return;
@@ -1313,6 +1357,8 @@ async function iniciarSesionSupabase(email, password) {
       localStorage.removeItem('fitpro_persisted_athlete_session');
       window.esSesionModoAtleta = false;
     }
+
+    registrarEventoSeguridad('login_exitoso', { email: cleanEmail });
 
     mostrarExitoAuth("Autenticación exitosa. Abriendo FitPro Suite Pro...");
     establecerSesionActiva(data.session, data.user || data.session.user);
@@ -2076,17 +2122,12 @@ function getAppBaseUrl() {
 function generarEnlaceAtleta(clienteId) {
   const cliente = clientes.find(c => c.id == clienteId);
   if (!cliente) return null;
-  const gymId = cliente.gym_id || gimnasioActivoId || 'gym_central_01';
-  // Token = base64(gymId:clienteId) — identificador no sensible
-  const payload = `${gymId}:${clienteId}`;
-  let token;
-  try {
-    token = btoa(payload);
-  } catch(e) {
-    token = btoa(encodeURIComponent(payload));
-  }
   const base = getAppBaseUrl();
-  return `${base}/?t=${encodeURIComponent(token)}`;
+  // Antes se devolvía `?t=` + base64("gymId:clienteId"). Ese "token" no era una
+  // credencial: se falsifica escribiendo el id en base64, y aun así el enlace
+  // concedía la sesión. Ahora el enlace no identifica ni autoriza a nadie — el
+  // atleta entra con el correo y la contraseña que le pasó su entrenador.
+  return `${base}/?view=athlete`;
 }
 
 function resolverTokenAtleta(token) {
@@ -2315,11 +2356,10 @@ function establecerSesionActiva(session, user = null) {
       esModoAtleta: true
     };
 
-    guardarStorageCifrado('fitpro_persisted_athlete_session', {
-      user: athleteUser,
-      cliente: clienteRegistrado,
-      timestamp: Date.now()
-    });
+    // Ya no se guarda 'fitpro_persisted_athlete_session'. Su único lector era
+    // el atajo de arranque que restauraba el portal sin sesión de Supabase, y
+    // ese atajo se quitó. La sesión de verdad la persiste el propio SDK
+    // (persistSession:true), que sí valida el token en cada arranque.
 
     // Cargar dinámicamente el plan, dieta y medidas asignadas al alumno
     if (typeof cargarDatosContextoAtleta === 'function') {
@@ -5635,7 +5675,9 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
   const atletaEmail = encodeURIComponent(cliente.email || '');
   const atletaId = encodeURIComponent(cliente.id);
   const appBaseUrl = getAppBaseUrl();
-  const directAthleteUrl = `${appBaseUrl}/?atleta=${atletaSlug}&email=${atletaEmail}&id=${atletaId}&view=athlete`;
+  // Sin email, nombre ni id: ver nota en generarEnlaceAtleta(). `view=athlete`
+  // solo preselecciona la pestaña de acceso del atleta, no identifica a nadie.
+  const directAthleteUrl = `${appBaseUrl}/?view=athlete`;
 
   const mensaje = 
     `¡Hola *${escapeHtml(cliente.nombre)}*! 👋\n\n` +
@@ -12998,8 +13040,15 @@ function arrancarAplicacionFitPro() {
         .catch(err => console.info('PWA notice:', err.message));
     }
 
-    // 9. Procesamiento inteligente de Deep-Links (URL Parameters para Atletas)
-    procesarDeepLinkAtletaUrl();
+    // 9. El enlace de invitación del atleta ya no se procesa aquí.
+    //
+    // Esta llamada era incondicional y corría después de
+    // verificarYEscucharSupabaseAuth(). Mientras el enlace concedía la sesión
+    // sola daba igual, pero ahora que solo prepara la pantalla de acceso,
+    // dispararla aquí le taparía el portal con el login a un atleta que ya
+    // tiene sesión válida y vuelve a abrir su enlace. El único punto de
+    // entrada es mostrarPantallaAccesoInicial(), que solo actúa cuando no hay
+    // sesión.
 
     console.log("✅ FitPro Suite Pro listo e interactivo.");
   } catch (err) {
@@ -13107,90 +13156,69 @@ function cargarDatosContextoAtleta(criterio = {}) {
 }
 window.cargarDatosContextoAtleta = cargarDatosContextoAtleta;
 
+// Un enlace de invitación no es una credencial.
+//
+// Hasta 2026-08-21 esta función entregaba el Portal del Atleta con solo abrir
+// la URL: bastaba `/?view=athlete` —sin correo, sin id y sin token— para
+// saltarse el login, y encima guardaba una sesión permanente en
+// `fitpro_persisted_athlete_session` que la mantenía viva en cada recarga.
+// Como cargarDatosContextoAtleta() rastrea TODAS las claves fitpro_clientes_*
+// del navegador, en un equipo compartido con el entrenador cualquiera que
+// editara la barra de direcciones llegaba a los datos de salud de su cartera
+// completa. El `?t=` que lo acompañaba tampoco autenticaba nada: era
+// base64("gymId:clienteId"), falsificable a mano.
+//
+// Es el mismo bypass que se cerró en 513d25d, por otra puerta. Ahora el enlace
+// solo prepara la pantalla de acceso; el atleta entra contra Supabase Auth con
+// la contraseña que su entrenador le mandó en ese mismo mensaje de WhatsApp.
+//
+// Devuelve true si la URL era un enlace de invitación (y por tanto ya dejó la
+// pantalla de acceso montada), false si no lo era.
 function procesarDeepLinkAtletaUrl() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenParam = urlParams.get('t');
-    const atletaParam = urlParams.get('atleta') || urlParams.get('cliente');
     const emailParam = urlParams.get('email') || urlParams.get('atletaEmail');
-    const atletaIdParam = urlParams.get('id') || urlParams.get('atletaId');
-    const vistaParam = urlParams.get('view') || urlParams.get('vista');
 
-    // Comprobar si hay señal de deep-link de atleta
-    const esDeepLink = Boolean(tokenParam || atletaParam || emailParam || atletaIdParam || vistaParam === 'athlete');
-    if (!esDeepLink) return;
+    const esDeepLink = Boolean(
+      urlParams.get('t') ||
+      urlParams.get('atleta') || urlParams.get('cliente') ||
+      emailParam ||
+      urlParams.get('id') || urlParams.get('atletaId') ||
+      urlParams.get('view') === 'athlete' || urlParams.get('vista') === 'athlete'
+    );
+    if (!esDeepLink) return false;
 
-    // Activar modo atleta estricto
-    window.esSesionModoAtleta = true;
-    document.body.classList.add('is-athlete-mode');
+    mostrarPantallaAuth();
+    seleccionarPerfilAuth('athlete');
 
-    // 🔗 Resolver token seguro si está presente
-    let clienteDeToken = null;
-    if (tokenParam) {
-      clienteDeToken = resolverTokenAtleta(tokenParam);
-    }
-
-    // Cargar datos dinámicos actualizados del almacenamiento
-    const clienteEncontrado = cargarDatosContextoAtleta({
-      id: atletaIdParam || clienteDeToken?.id,
-      email: emailParam ? decodeURIComponent(emailParam) : clienteDeToken?.email,
-      nombre: atletaParam ? decodeURIComponent(atletaParam) : clienteDeToken?.nombre
-    });
-
-    let clienteObj = clienteEncontrado || clienteDeToken;
-
-    if (!clienteObj) {
-      clienteObj = {
-        id: atletaIdParam || `atleta_${Date.now()}`,
-        nombre: atletaParam ? decodeURIComponent(atletaParam) : "Carlos Mendoza",
-        email: emailParam ? decodeURIComponent(emailParam) : "atleta@fitprosuite.com",
-        objetivo: "Hipertrofia & Rendimiento",
-        entrenador: "Coach Master Pro",
-        peso: 75.0,
-        altura: 175,
-        estadoMembresia: "activa"
-      };
-    }
-
-    const athleteUser = {
-      id: clienteObj.id,
-      email: clienteObj.email,
-      user_metadata: {
-        full_name: clienteObj.nombre,
-        role: 'athlete'
+    // Los enlaces enviados antes de este cambio todavía traen el correo en la
+    // URL. Se aprovecha para rellenar el campo y ahorrarle el tecleo al
+    // atleta, pero se borra de la barra de direcciones acto seguido.
+    const emailInput = document.getElementById('auth-input-email');
+    if (emailInput && emailParam) {
+      try {
+        emailInput.value = sanitizeText(decodeURIComponent(emailParam), 120);
+      } catch (e) {
+        console.warn('Notice leyendo el correo del enlace:', e);
       }
-    };
-
-    // Guardar sesión permanente para que el teléfono recuerde al atleta SIEMPRE
-    guardarStorageCifrado('fitpro_persisted_athlete_session', {
-      user: athleteUser,
-      cliente: clienteObj,
-      timestamp: Date.now()
-    });
-
-    sesionUsuarioActual = {
-      user: athleteUser,
-      esModoAtleta: true
-    };
-
-    // Ocultar pantalla de login y entrar directamente al portal
-    ocultarPantallaAuth();
-    renderPortalAtleta(athleteUser);
-    navegarA('athlete-portal');
-
-    // Si viene de token o link directo, abrir modal de bienvenida
-    if (tokenParam || atletaParam) {
-      setTimeout(() => {
-        abrirModalBienvenidaAtleta(clienteObj.nombre);
-      }, 500);
     }
 
-    // Limpiar parámetros de la barra de direcciones de forma segura
+    // Fuera de la URL: si no, el correo del atleta queda en el historial del
+    // navegador, en los logs del servidor y en la cabecera Referer de cada
+    // recurso externo que cargue la página.
     if (window.history && window.history.replaceState) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    const passInput = document.getElementById('auth-input-password');
+    if (passInput) passInput.focus();
+
+    mostrarExitoAuth('Escribe la contraseña que te envió tu entrenador para entrar a tu plan.');
+    return true;
   } catch (err) {
-    console.warn("Notice procesando deep link URL:", err);
+    console.warn("Notice procesando el enlace de invitación:", err);
+    mostrarPantallaAuth();
+    return false;
   }
 }
 
