@@ -2172,7 +2172,9 @@ function procesarEventoRealtimeClientes(payload) {
       estadoMembresia: newRow.estado_membresia,
       adherencia: newRow.adherencia,
       must_change_password: newRow.must_change_password,
-      password_provisional: newRow.password_provisional,
+      // Se ignora lo que venga de la fila: puede ser un valor en texto plano
+      // guardado antes de que se dejara de persistir.
+      password_provisional: null,
       gym_id: newRow.gym_id
     };
 
@@ -2431,8 +2433,12 @@ async function sincronizarClienteConSupabase(cliente) {
       estado_membresia: cliente.estadoMembresia || 'activa',
       adherencia: cliente.adherencia || '100%',
       must_change_password: cliente.must_change_password !== undefined ? Boolean(cliente.must_change_password) : true,
-      password_provisional: cliente.password_provisional || '',
-      datos_completos: { ...cliente, user_id: userId, gym_id: gymId, entrenador: entrenador, email: cliente.email || '', telefono: cliente.telefono || '', must_change_password: cliente.must_change_password !== undefined ? Boolean(cliente.must_change_password) : true, password_provisional: cliente.password_provisional || '' },
+      // password_provisional se envia SIEMPRE vacio a proposito: la contrasena
+      // del atleta vive hasheada en Supabase Auth y no debe replicarse en
+      // texto plano en la tabla `clients`. Se manda '' en vez de omitirlo para
+      // que tambien limpie los valores que quedaron guardados de antes.
+      password_provisional: '',
+      datos_completos: { ...cliente, user_id: userId, gym_id: gymId, entrenador: entrenador, email: cliente.email || '', telefono: cliente.telefono || '', must_change_password: cliente.must_change_password !== undefined ? Boolean(cliente.must_change_password) : true, password_provisional: '' },
       updated_at: new Date().toISOString()
     };
 
@@ -4873,7 +4879,10 @@ function guardarCliente() {
     edad,
     genero: sanitizeText(generoInput.value || "Masculino", 20),
     email: emailAtleta,
-    password_provisional: passwordAtleta,
+    // No se guarda la clave: vive hasheada en Supabase Auth (ver
+    // registrarCredencialesAtletaSupabase, que se llama mas abajo con
+    // passwordAtleta). Persistirla aqui la replicaba en texto plano.
+    password_provisional: null,
     must_change_password: mustChangePassword,
     telefono: sanitizeText(document.getElementById('modal-telefono')?.value || "", 30),
     objetivo: objetivoVal || "Hipertrofia",
@@ -5068,39 +5077,43 @@ async function registrarCredencialesAtletaSupabase(cliente, password, mustChange
 
   try {
     console.log(`🔐 Creando credenciales de acceso Supabase Auth para atleta: ${escapeHtml(cliente.email)} (must_change_password: ${mustChangePassword})...`);
-    const { data, error } = await supabaseClient.auth.signUp({
-      email: cliente.email,
-      password: password,
-      options: {
-        data: {
-          full_name: cliente.nombre,
-          role: 'athlete',
-          gym_id: cliente.gym_id || gimnasioActivoId,
-          coach_id: getUsuarioActualId(),
-          phone: cliente.telefono || '',
-          must_change_password: mustChangePassword
-        }
-      }
-    });
 
-    if (error) {
-      console.warn("Notice al registrar credenciales de atleta:", error.message);
-      if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('user already exists')) {
-        showToast(`El correo ${escapeHtml(cliente.email)} ya posee cuenta en Supabase. Atleta vinculado correctamente.`, "info", "👤 Usuario Existente", 5000);
-      }
+    // Igual que en generarCredencialesAtleta: se usa /api/create-athlete en
+    // lugar de auth.signUp(). signUp deja la cuenta pendiente de confirmar por
+    // email, y como a muchos atletas la app les genera un correo en el dominio
+    // inexistente @atleta.fitpro.app, esa confirmacion no llega nunca y el
+    // atleta no puede entrar. La funcion serverless la crea ya confirmada.
+    const { data: sesion } = await supabaseClient.auth.getSession();
+    const token = sesion?.session?.access_token;
+    if (!token) throw new Error('No hay sesión de entrenador activa');
+
+    const resp = await fetch('/api/create-athlete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        email: cliente.email,
+        password: password,
+        full_name: cliente.nombre,
+        gym_id: cliente.gym_id || gimnasioActivoId,
+        phone: cliente.telefono || ''
+      })
+    });
+    const resultado = await resp.json();
+
+    if (!resp.ok) {
+      showToast(`No se pudo crear el acceso de ${escapeHtml(cliente.nombre)}: ${resultado.error || resp.status}`, "error", "❌ Error de Autenticación", 9000);
       return null;
     }
 
-    if (data && data.user) {
-      cliente.auth_user_id = data.user.id;
-      cliente.must_change_password = mustChangePassword;
-      persistirDatosUsuarioActual();
-      sincronizarClienteConSupabase(cliente);
-      showToast(`¡Cuenta móvil creada para ${escapeHtml(cliente.nombre)}! Correo: ${escapeHtml(cliente.email)}`, "success", "📲 Credenciales Móviles Listas", 6000);
-      return data.user.id;
-    }
+    cliente.auth_user_id = resultado.auth_user_id;
+    cliente.must_change_password = mustChangePassword;
+    persistirDatosUsuarioActual();
+    sincronizarClienteConSupabase(cliente);
+    showToast(`¡Cuenta móvil creada para ${escapeHtml(cliente.nombre)}! Correo: ${escapeHtml(cliente.email)}`, "success", "📲 Credenciales Móviles Listas", 6000);
+    return resultado.auth_user_id;
   } catch (err) {
     console.warn("Excepción creando usuario de atleta en Supabase Auth:", err);
+    showToast(`No se pudo crear el acceso: ${err.message}`, "error", "❌ Error de Autenticación", 9000);
   }
   return null;
 }
@@ -5129,7 +5142,19 @@ async function generarUsuarioYPasswordAtleta(clienteId) {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   const randNum = Math.floor(1000 + Math.random() * 9000);
   const randPass = `FP*${randNum}${chars[Math.floor(Math.random() * chars.length)]}${chars[Math.floor(Math.random() * chars.length)]}`;
-  cliente.password_provisional = randPass;
+  // La contrasena NO se guarda en ningun lado: se muestra una vez al coach y
+  // se descarta. Antes vivia en cliente.password_provisional, que se persistia
+  // en localStorage, se sincronizaba en texto plano a la tabla `clients` y
+  // quedaba a la vista en cuatro pantallas del panel.
+  //
+  // Ya no hace falta conservarla: desde que el atleta tiene cuenta real en
+  // Supabase Auth (ver /api/create-athlete), la contrasena vive alli hasheada.
+  // Si el coach la pierde, regenera una nueva; no puede "consultarla", que es
+  // exactamente el comportamiento que corresponde.
+  //
+  // Asignar null (en vez de solo omitirlo) tambien limpia el valor viejo de
+  // los clientes que ya lo tenian guardado de antes.
+  cliente.password_provisional = null;
   cliente.must_change_password = true;
 
   persistirDatosUsuarioActual();
@@ -5186,8 +5211,11 @@ async function generarUsuarioYPasswordAtleta(clienteId) {
   persistirDatosUsuarioActual();
   renderClientes();
 
-  showToast(`✅ Credenciales generadas:\n📧 ${escapeHtml(cliente.email)}\n🔑 ${cliente.password_provisional}`, "success", "👤 Usuario & Clave Creados", 8000);
-  return { email: cliente.email, password: cliente.password_provisional };
+  // Unica oportunidad de ver la contrasena: sale de la variable local, no del
+  // cliente, que ya no la guarda. Se deja mas tiempo en pantalla porque el
+  // coach tiene que copiarla ahora o volver a generarla.
+  showToast(`✅ Credenciales generadas (anotalas, no quedan guardadas):\n📧 ${escapeHtml(cliente.email)}\n🔑 ${randPass}`, "success", "👤 Usuario & Clave Creados", 20000);
+  return { email: cliente.email, password: randPass };
 }
 
 async function enviarEnlaceWhatsAppAtleta(clienteId) {
@@ -5197,9 +5225,20 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
     return;
   }
 
-  // Si no tiene credenciales, autogenerarlas primero
-  if (!cliente.email || !cliente.password_provisional) {
-    await generarUsuarioYPasswordAtleta(clienteId);
+  // Siempre se generan credenciales nuevas al enviar la bienvenida.
+  //
+  // Antes solo se generaban si el cliente no tenia `password_provisional`
+  // guardada, y el mensaje se armaba leyendo ese campo. Como la contrasena ya
+  // no se persiste (queda hasheada en Supabase Auth y nada mas), no hay nada
+  // que leer: hay que producir una nueva y usarla en el acto.
+  //
+  // Efecto practico: reenviar la bienvenida rota la clave del atleta. Es el
+  // comportamiento correcto — el coach nunca puede "consultar" una contrasena
+  // existente, solo emitir una nueva.
+  const credenciales = await generarUsuarioYPasswordAtleta(clienteId);
+  if (!credenciales || !credenciales.password) {
+    showToast("No se pudieron generar las credenciales; no se envió el mensaje.", "error", "❌ Error");
+    return;
   }
 
   let telefono = cliente.telefono || await obtenerTelefonoCliente(cliente.nombre);
@@ -5236,7 +5275,7 @@ async function enviarEnlaceWhatsAppAtleta(clienteId) {
     `Abre el enlace en tu navegador (Chrome / Safari) y presiona *"Añadir a pantalla de inicio"* o *"Instalar aplicación"*. Entrarás directamente a tu panel deportivo sin pasos complicados.\n\n` +
     `🔐 *TUS DATOS DE ACCESO:*\n` +
     `📧 *Correo:* ${escapeHtml(cliente.email)}\n` +
-    `🔒 *Contraseña temporal:* ${cliente.password_provisional}\n\n` +
+    `🔒 *Contraseña temporal:* ${credenciales.password}\n\n` +
     `💡 _Por tu seguridad, en tu primer inicio se te solicitará confirmar tu clave personal. Una vez dentro, tu rutina y dieta asignadas se cargarán de inmediato._\n\n` +
     `¡A darlo todo en cada sesión! 💪🔥\n` +
     `— *${coachName}* (${gymName})`;
@@ -5516,7 +5555,7 @@ function renderClientes(filtro = '') {
             </td>
             <td class="col-card-access" data-label="Acceso App">
               <div style="font-size:12px; font-family:monospace; color:#fbbf24; font-weight:700; background:rgba(251,191,36,0.08); padding:4px 8px; border-radius:4px; border:1px solid rgba(251,191,36,0.2); display:inline-block;">
-                ${c.password_provisional ? `🔑 ${c.password_provisional}` : '<span style="color:var(--text-muted); font-family:inherit;">(Personalizada)</span>'}
+                <span style="color:var(--text-muted); font-family:inherit;">(no almacenada)</span>
               </div>
             </td>
             <td class="col-card-actions" data-label="Acciones & WhatsApp">
@@ -5592,7 +5631,7 @@ function renderClientes(filtro = '') {
               🎯 <strong>Objetivo:</strong> ${escapeHtml(c.objetivo)}<br>
               📊 <strong>Adherencia:</strong> ${c.adherencia || '90%'}<br>
               ${c.email ? `📧 <strong>Email App:</strong> <span style="color:#38bdf8;">${escapeHtml(c.email)}</span><br>` : ''}
-              ${c.password_provisional ? `🔑 <strong>Clave App:</strong> <span style="color:#fbbf24; font-family:monospace; font-weight:700;">${c.password_provisional}</span><br>` : ''}
+              
               ${c.telefono ? `📱 <strong>Teléfono:</strong> <span style="color:#4ade80;">${escapeHtml(c.telefono)}</span><br>` : ''}
               🏢 <strong>Sede:</strong> <span style="color:#38bdf8;">${c.gym_id || gimnasioActivoId}</span> • 📅 <strong>Fecha:</strong> ${c.fecha || 'Reciente'}
             </div>
@@ -8543,7 +8582,7 @@ function abrirDetalleCliente(id) {
               Genera un enlace directo y seguro para que <strong style="color:#fff;">${escapeHtml(cliente.nombre)}</strong> acceda a su rutina, dieta y registre sus cargas desde el móvil sin necesidad de contraseña.
             </div>
             <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">
-              📧 ${cliente.email || '(sin correo registrado)'} &nbsp;|&nbsp; 🔑 Contraseña: <strong style="color:#fbbf24; font-family:monospace;">${cliente.password_provisional || '(por generar)'}</strong>
+              📧 ${cliente.email || '(sin correo registrado)'} &nbsp;|&nbsp; 🔑 Contraseña: <strong style="color:var(--text-muted); font-family:monospace;">(no almacenada — regenerar para obtener una)</strong>
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
