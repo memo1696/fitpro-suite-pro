@@ -1,49 +1,46 @@
 /**
- * FitPro Suite Pro - Repositorio Oficial y Conector de wger.de
- * Consume un catálogo curado de wger.de (proyecto FLOSS, licencia
- * CC-BY-SA) servido como archivo propio `wger_ejercicios.json`.
+ * FitPro Suite Pro — Repositorio de la biblioteca de ejercicios.
+ * Consume `exercises.v2.json`: 268 ejercicios de wger.de (proyecto FLOSS,
+ * licencia CC-BY-SA), servido como archivo propio del mismo origen.
  *
- * ── MIGRACIÓN DE DATASET (yuhonas/free-exercise-db → wger.de) ──
- * Se reemplazó free-exercise-db por decisión explícita: fotos reales pero
- * inconsistentes entre sí (persona/gimnasio distinto en cada una) y con
- * huecos de cobertura en los ejercicios escritos a mano (74 de 149 caían a
- * un ícono genérico). wger.de trae ilustraciones de línea con el MISMO
- * estilo en todos los ejercicios — consistente — pero de un catálogo total
- * mucho más chico (873 ejercicios, solo 268 con al menos una imagen). Por
- * eso `wger_ejercicios.json` NO es el catálogo completo de wger: es un
- * PRE-FILTRADO que ya descarta los 605 ejercicios sin imagen, para que
- * "cantidad de ejercicios visibles" siempre sea igual a "cantidad con
- * imagen real" — nunca se muestra un ícono genérico en la Biblioteca.
+ * ── LA BIBLIOTECA ES DE TEXTO, SIN CAPA MULTIMEDIA ──
+ * Decisión tomada tras auditar los medios (`scripts/exercise-media/audit.mjs`).
+ * Lo que había era esto:
  *
- * Cómo se construyó `wger_ejercicios.json` (proceso único, no en runtime):
- *  1. Se descargó el catálogo completo vía la API pública de wger
- *     (`/api/v2/exerciseinfo/`) y se filtró a los 268 con >=1 imagen.
- *  2. Nombre y descripción en español: wger ya trae traducciones nativas
- *     de su comunidad para 229 de esos 268 (`translations[].language===4`).
- *     Los 39 restantes se tradujeron una sola vez (mismo método que las
- *     instrucciones de free-exercise-db en su momento) y quedaron
- *     embebidos en el JSON — no hay traducción en runtime.
- *  3. Las URLs de imagen (`images[]`) ya vienen absolutas
- *     (`https://wger.de/media/exercise-images/...`), no relativas como en
- *     el dataset anterior — no hace falta CDN base ni `resolveUrls`.
+ *   - 301 GIFs en `wger_images/` que resultaron ser 8 archivos copiados con
+ *     301 nombres distintos. De 223 MB, 200 MB (89 %) era duplicación pura.
+ *   - Los 250 ejercicios compartían esos 8 visuales. NINGUNO tenía animación
+ *     propia. El más reutilizado cubría 77 ejercicios mezclando glúteos,
+ *     pecho, tríceps, core y pantorrillas: quien abría "Elevación de gemelos"
+ *     veía una apertura de pecho con mancuernas.
  *
- * Diferencias de forma relevantes respecto a la versión anterior del
- * archivo (free-exercise-db), todas absorbidas en ExercisesAdapter:
- *  - `id` vuelve a ser numérico (el id real de wger), no un slug de texto.
- *  - Sin campo `instructions`/traducción en runtime: `descripcionEs` ya
- *    viene resuelta en español desde el JSON.
- *  - `equipment` es un array de strings (puede haber más de uno); antes
- *    era un string único. Vocabulario también distinto: "Barbell",
- *    "Dumbbell", "Cable machine", "SZ-Bar", etc. Ver `mapEquipoLocal` y
- *    `EQUIPO_HINTS`.
- *  - `primaryMuscles` usa nombres en inglés de wger (Glutes, Quads,
- *    Hamstrings, Lats, Chest, Shoulders, Biceps, Triceps, Abs, Calves) con
- *    fallback a `category` (Legs/Arms/Chest/Back/Shoulders/Abs/Calves/
- *    Cardio) cuando el ejercicio no tiene músculo principal listado.
+ * En una guía de ejecución técnica, un clip que no corresponde al movimiento
+ * es peor que no mostrar nada: da una referencia falsa sobre cómo ejecutar.
+ * Generar 250 clips correctos con IA no era viable sin coste (las APIs de
+ * vídeo cobran por segundo, y el equipo no tiene GPU para modelos locales),
+ * así que se eliminó la capa multimedia y el contenido pasó a ser el texto.
  *
- * La interfaz pública (funciones colgadas de `window`) se mantiene 100%
- * igual que antes para no romper nada de lo que ya la consume en app.js /
- * index.html.
+ * Por eso el dataset volvió a las descripciones LARGAS de wger (mediana de
+ * 343 caracteres, con montaje, ejecución y avisos de seguridad) en lugar de
+ * las de una frase que acompañaban a las animaciones.
+ *
+ * `ExercisesAdapter.normalize` devuelve siempre `images: []`, y ningún punto
+ * de render pinta imágenes de ejercicio. Los ~640 archivos de `wger_images/`
+ * quedaron huérfanos: no los referencia nadie salvo `FALLBACK_GIFS_POR_
+ * CATEGORIA`, que sólo sirve a los ejercicios escritos a mano en app.js.
+ *
+ * ── FORMA DEL DATASET (v2) ──
+ * `{ schemaVersion, generatedAt, media: {}, exercises: [...] }`, con cada
+ * ejercicio anidado: `name.{es,en}`, `description.{es,parrafos,pasos,excerpt}`,
+ * `taxonomy.{category,muscleGroup,musclesPrimary,musclesSecondary,equipment}`.
+ * La descripción viene ya troceada desde `scripts/exercise-media/normalize.mjs`
+ * para no re-parsearla en cada render: la tarjeta usa `excerpt` y la ficha
+ * `pasos` (si el texto está estructurado) o `parrafos`.
+ *
+ * `normalize()` acepta además el v1 plano por compatibilidad.
+ *
+ * La interfaz pública (funciones colgadas de `window`) se mantiene igual que
+ * antes para no romper nada de lo que ya la consume en app.js / index.html.
  */
 
 (function (window) {
@@ -64,10 +61,10 @@
     // (vercel.json), que dentro de esa hora se sirve directo desde caché
     // del navegador sin revalidar. Subir esta versión fuerza a tratarlo
     // como una URL nueva cada vez que cambia el contenido del archivo.
-    datasetUrl: 'wger_ejercicios.json?v=2',
+    datasetUrl: 'exercises.v2.json?v=2',
     dbName: 'fitpro_exercises_cache',
     dbStore: 'dataset',
-    dbVersion: 4,          // subido: la forma del objeto normalizado cambió con la migración a wger
+    dbVersion: 5,          // subido: la forma del objeto cambió al esquema v2 (biblioteca de texto, sin capa multimedia)
     // Clave de caché ligada al dataset de origen: evita servir datos con la
     // forma vieja (del dataset anterior) desde IndexedDB tras la migración.
     //
@@ -78,8 +75,7 @@
     // habían entrado siguieron sirviendo las URLs viejas desde IndexedDB
     // durante los 7 días de TTL, y como `gifUrls()` les antepone
     // 'wger_images/', el src quedaba en
-    // 'wger_images/https://wger.de/...' -> todas las imágenes rotas.
-    cacheKey: 'exercises_normalized_wger_selfhosted',
+    cacheKey: 'exercises_v2_texto_268_v2',
     cacheTtlMs: 1000 * 60 * 60 * 24 * 7, // 7 días
     maxEsperaEjerciciosDB: 50 // reintentos de 100ms (~5s) antes de rendirse
   };
@@ -93,21 +89,7 @@
   // ==========================================================================
   // ENCUADRE DE IMÁGENES — ver el bloque "ESTÁNDAR VISUAL DE IMÁGENES DE
   // EJERCICIO" en styles.css para el porqué.
-  //
-  // El default de TODO el catálogo es `contain` sobre fondo claro. Esta lista
-  // son las únicas imágenes que son fotografías reales de alta confianza
-  // (persona real en gimnasio/exterior, sin fondo blanco, no panorámicas):
-  // en una foto el recorte cuadrado se ve mejor que las barras laterales.
-  //
-  // Se generó con `scripts/clasificador-imagenes.html`, que compone cada
-  // imagen sobre blanco en un <canvas> y mide fondo de esquinas, fracción de
-  // blanco, saturación, canal alfa y relación de aspecto. El criterio está
-  // sesgado a `contain` a propósito: recortar una ilustración de 2 fases
-  // parte las dos figuras al medio (el bug que esto arregla), mientras que
-  // una barra lateral en una foto es sólo cosmético.
-  //
-  // Si se re-sincroniza el catálogo desde wger, volver a correr esa página
-  // y reemplazar esta lista.
+  // ==========================================================================
   const IMAGENES_FOTO = new Set([
     '1022_0.jpg', '1022_1.jpg', '1185_0.jpg', '1186_0.jpg', '1227_0.jpg',
     '1239_0.jpg', '1387_0.jpg', '1521_0.jpg', '1551_0.jpg', '1554_0.jpg',
@@ -123,19 +105,6 @@
     return IMAGENES_FOTO.has(archivo) ? 'ej-img-box ej-img-box--foto' : 'ej-img-box';
   };
 
-  // `escapeHtml` es usado en varios puntos de app.js (catálogo de ejercicios,
-  // sección de Planes) pero nunca estaba definido en ningún archivo del
-  // proyecto -> causaba "ReferenceError: escapeHtml is not defined" al
-  // entrar a Planes. No es parte de la integración del dataset, pero se
-  // define aquí (que carga antes que app.js) para no dejar la app rota.
-  // Para valores que caen DENTRO de un atributo de evento, es decir en
-  // contexto JavaScript anidado en HTML: onclick="fn('AQUI')".
-  // escapeHtml no alcanza ahi: convierte < y > pero deja pasar la comilla
-  // simple, que cierra el string de JS y permite inyectar codigo. Y al reves,
-  // escapar solo para JS deja pasar la comilla doble, que cierra el atributo.
-  // Hay que hacer las dos cosas, en este orden: primero JS (barra invertida y
-  // comilla simple), despues HTML (para que la comilla doble no corte el
-  // atributo).
   if (typeof window.escapeJsAttr !== 'function') {
     window.escapeJsAttr = function (str) {
       if (str === null || str === undefined) return '';
@@ -163,6 +132,36 @@
     };
   }
 
+  // ==========================================================================
+  // VOCABULARIO ES — wger devuelve músculos y equipamiento en inglés. Como la
+  // biblioteca es de texto, esas etiquetas SON el producto y no pueden salir
+  // en inglés. Cubre el vocabulario completo del catálogo (verificado con
+  // `node -e` sobre exercises.v2.json: 10 músculos y 12 equipamientos).
+  // ==========================================================================
+  const MUSCULO_ES = {
+    'glutes': 'Glúteos',
+    'triceps': 'Tríceps',
+    'chest': 'Pecho',
+    'lats': 'Dorsales',
+    'biceps': 'Bíceps',
+    'calves': 'Pantorrillas',
+    'abs': 'Abdominales',
+    'quads': 'Cuádriceps',
+    'shoulders': 'Hombros',
+    'hamstrings': 'Isquiotibiales'
+  };
+
+  const CATEGORIA_ES = {
+    'legs': 'Piernas', 'arms': 'Brazos', 'chest': 'Pecho', 'back': 'Espalda',
+    'shoulders': 'Hombros', 'abs': 'Abdomen', 'calves': 'Pantorrillas', 'cardio': 'Cardio'
+  };
+
+  /** Traduce un músculo de wger; si no lo conoce devuelve el original capitalizado. */
+  function musculoEs(nombre) {
+    if (!nombre) return '';
+    return MUSCULO_ES[String(nombre).toLowerCase().trim()] || capitalizeFirst(nombre);
+  }
+
   // Auxiliares de capitalización
   function capitalizeWords(str) {
     if (!str) return '';
@@ -174,115 +173,142 @@
   }
 
   // ==========================================================================
-  // 2. ADAPTADOR — única capa que conoce la forma real del dataset externo.
-  //    Si mañana el repo cambia nombres de campos, carpetas de medios, etc.,
-  //    SOLO este bloque debería necesitar cambios; el resto de la app sigue
-  //    consumiendo la forma normalizada de siempre.
+  // 2. ADAPTADOR — capa de normalización de ejercicios
   // ==========================================================================
   const ExercisesAdapter = {
-    // Registro crudo del JSON -> objeto interno "delgado" (solo lo que se usa)
+    /**
+     * Acepta el esquema v2 (`exercises.v2.json`) y, por compatibilidad, el v1
+     * plano que se usaba antes. La biblioteca es de TEXTO: v2 no trae capa
+     * multimedia, así que `images` sale siempre vacío y ningún punto de render
+     * intenta pintar una imagen.
+     */
     normalize(raw) {
+      const esV2 = raw && typeof raw.name === 'object';
+      if (esV2) {
+        const t = raw.taxonomy || {};
+        const d = raw.description || {};
+        return {
+          id: String(raw.id),
+          slug: raw.slug || '',
+          name: raw.name.en || '',
+          nombreEs: raw.name.es || capitalizeWords(raw.name.en || ''),
+          descripcionEs: d.es || '',
+          // Ya vienen troceados desde normalize.mjs: la tarjeta usa `excerpt`
+          // y el detalle `parrafos`/`pasos`, sin re-parsear en cada render.
+          parrafos: d.parrafos || [],
+          pasos: d.pasos || [],
+          excerpt: d.excerpt || '',
+          category: t.category || '',
+          grupoMuscular: t.muscleGroup || '',
+          primaryMuscles: t.musclesPrimary || [],
+          secondaryMuscles: t.musclesSecondary || [],
+          equipment: t.equipment || [],
+          riesgo: raw.risk || 'Bajo',
+          images: [],
+          licenseAuthor: '',
+          licenseShort: ''
+        };
+      }
+
       return {
         id: String(raw.id),
+        slug: '',
         name: raw.name_en || '',
         nombreEs: raw.name_es_native || capitalizeWords(raw.name_en || ''),
         descripcionEs: raw.description_es_native || '',
-        category: raw.category || '', // Legs/Arms/Chest/Back/Shoulders/Abs/Calves/Cardio (agrupación amplia de wger)
+        parrafos: [], pasos: [], excerpt: '',
+        category: raw.category || '',
+        grupoMuscular: raw.grupo_muscular || '',
         primaryMuscles: raw.muscles || [],
         secondaryMuscles: raw.muscles_secondary || [],
-        equipment: raw.equipment || [], // array, puede tener 0-N items
-        // Nombres de archivo relativos (ej. "12_0.png"); se resuelven a
-        // ./wger_images/<archivo> en gifUrls(). Las imágenes se
-        // autohospedan en vez de enlazar en vivo a wger.de: su servidor
-        // (proyecto comunitario, no un CDN) resultó no ser confiable para
-        // hotlinking en tiempo real desde el navegador de los usuarios.
+        equipment: raw.equipment || [],
+        riesgo: raw.riesgo || 'Bajo',
         images: raw.images || [],
-        // Atribución requerida por la licencia CC-BY-SA de wger.
         licenseAuthor: raw.license_author || '',
         licenseShort: raw.license_short || 'CC-BY-SA'
       };
     },
 
-    normalizeAll(rawArray) {
-      return (rawArray || []).map(r => this.normalize(r));
+    /** Acepta tanto el array plano v1 como el objeto v2 { exercises: [...] }. */
+    normalizeAll(payload) {
+      const lista = Array.isArray(payload) ? payload : (payload && payload.exercises) || [];
+      return lista.map(r => this.normalize(r));
     },
 
-    // Se mantiene el nombre `gifUrls` por compatibilidad con el resto del
-    // archivo y con app.js.
     gifUrls(record) {
       return (record.images || []).map(nombreArchivo => 'wger_images/' + nombreArchivo);
     },
     imageUrls(record) { return this.gifUrls(record); },
 
-    // Músculo principal (nombres en inglés de wger) -> categoría fija del
-    // catálogo local. Si el ejercicio no tiene músculo principal listado
-    // (pasa en varios de wger), se cae a la categoría amplia de wger.
     mapCategoriaLocal(record) {
+      if (record.grupoMuscular) return record.grupoMuscular.toLowerCase();
       const primary = ((record.primaryMuscles && record.primaryMuscles[0]) || '').toLowerCase();
-      if (primary.includes('chest')) return 'pecho';
-      if (primary.includes('lat')) return 'espalda';
-      if (primary.includes('shoulder')) return 'hombros';
-      if (primary.includes('abs')) return 'core';
-      if (primary.includes('quad')) return 'cuadriceps';
-      if (primary.includes('hamstring')) return 'isquiotibiales';
-      if (primary.includes('glute')) return 'gluteos';
-      if (primary.includes('calf') || primary.includes('calve')) return 'pantorrillas';
+      if (primary.includes('chest') || primary.includes('pecho')) return 'pecho';
+      if (primary.includes('lat') || primary.includes('espalda')) return 'espalda';
+      if (primary.includes('shoulder') || primary.includes('hombro')) return 'hombros';
+      if (primary.includes('abs') || primary.includes('core')) return 'core';
+      if (primary.includes('quad') || primary.includes('cuadr')) return 'cuadriceps';
+      if (primary.includes('hamstring') || primary.includes('isquio') || primary.includes('femoral')) return 'isquiotibiales';
+      if (primary.includes('glute') || primary.includes('glut')) return 'gluteos';
+      if (primary.includes('calf') || primary.includes('pantorrilla') || primary.includes('gemel')) return 'pantorrillas';
       if (primary.includes('bicep')) return 'biceps';
       if (primary.includes('tricep')) return 'triceps';
-      const cat = (record.category || '').toLowerCase();
-      if (cat === 'legs') return 'cuadriceps';
-      if (cat === 'arms') return 'biceps';
-      if (cat === 'chest') return 'pecho';
-      if (cat === 'back') return 'espalda';
-      if (cat === 'shoulders') return 'hombros';
-      if (cat === 'abs') return 'core';
-      if (cat === 'calves') return 'pantorrillas';
-      return 'core'; // cardio y cualquier otro caso
+      return 'core';
     },
 
     mapEquipoLocal(record) {
-      const lista = (record.equipment || []).map(e => e.toLowerCase());
+      const lista = (record.equipment || []).filter(Boolean).map(e => e.toLowerCase());
+      // 49 ejercicios de wger no declaran equipamiento. Antes caían al default
+      // y se mostraban como "Peso Corporal", afirmando algo que el dataset no
+      // dice. Sin dato, no se inventa: se devuelve vacío y la UI lo omite.
+      if (lista.length === 0) return '';
+
       const eq = lista.join(' | ');
-      if (eq.includes('sz-bar') || eq.includes('barbell')) return 'Barra';
-      if (eq.includes('dumbbell')) return 'Mancuerna';
-      if (eq.includes('kettlebell')) return 'Mancuerna';
-      if (eq.includes('cable')) return 'Polea';
-      if (eq.includes('resistance band')) return 'Banda';
-      if (eq.includes('machine')) return 'Máquina';
-      // "none (bodyweight exercise)", "bench", "incline bench", "gym mat",
-      // "pull-up bar", "swiss ball", sin equipamiento -> sin equivalente
-      // local claro, se agrupan como peso corporal.
+      if (eq.includes('barra') || eq.includes('barbell') || eq.includes('sz-bar')) return 'Barra';
+      if (eq.includes('mancuerna') || eq.includes('dumbbell') || eq.includes('kettlebell')) return 'Mancuerna';
+      if (eq.includes('polea') || eq.includes('cable')) return 'Polea';
+      if (eq.includes('máquina') || eq.includes('maquina') || eq.includes('machine')) return 'Máquina';
+      if (eq.includes('banda') || eq.includes('band')) return 'Banda';
       return 'Peso Corporal';
     },
 
-    // Registro normalizado -> objeto con la MISMA forma que ya usa
-    // `ejerciciosDB` en app.js. Este es el único punto de contacto entre el
-    // dataset externo y el esquema interno de la app.
     toEjercicioLocal(record) {
       const ejecucion = record.descripcionEs || 'Realiza el ejercicio controlando el tempo de ejecución. Asegura mantener la postura correcta.';
-      const imageUrls = this.imageUrls(record);
+      const imageUrls = this.imageUrls(record);   // vacío en la biblioteca de texto
+      const cat = this.mapCategoriaLocal(record);
+
+      // 51 ejercicios de wger no listan músculo principal: se cae a la
+      // categoría traducida en vez de dejar la etiqueta en inglés o vacía.
+      const primario = (record.primaryMuscles || []).find(Boolean);
+      const musculoPrincipalEs = primario
+        ? musculoEs(primario)
+        : (CATEGORIA_ES[String(record.category || '').toLowerCase()] || capitalizeFirst(cat));
 
       return {
         nombre: record.nombreEs,
-        categoria: this.mapCategoriaLocal(record),
-        musculoPrimario: capitalizeFirst((record.primaryMuscles && record.primaryMuscles[0]) || this.mapCategoriaLocal(record)),
+        categoria: cat,
+        musculoPrimario: musculoPrincipalEs,
         equipamiento: this.mapEquipoLocal(record),
-        riesgo: 'Bajo',
-        musculos: (record.primaryMuscles || []).concat(record.secondaryMuscles || []).join(', '),
+        riesgo: record.riesgo || 'Bajo',
+        musculos: (record.primaryMuscles || []).concat(record.secondaryMuscles || [])
+                    .filter(Boolean).map(musculoEs).join(', ') || musculoPrincipalEs,
         ejecucion,
-        // Propiedades extendidas para carga en modal / biblioteca visual
-        github_id: record.id, // nombre historico del campo (era el id de GitHub); ahora es el id de wger
+        // Texto ya troceado para la biblioteca (tarjeta = excerpt, detalle = párrafos/pasos)
+        parrafos: record.parrafos || [],
+        pasos: record.pasos || [],
+        excerpt: record.excerpt || '',
+        slug: record.slug || '',
+        github_id: record.id,
         github_name: record.name,
         url_gif: imageUrls[0] || '',
-        real_gif_url: imageUrls[0] || '', // un solo origen real, sin CDN de respaldo distinto
-        url_gif_frame2: imageUrls[1] || '',
-        url_gif_frame2_fallback: imageUrls[1] || '',
+        real_gif_url: imageUrls[0] || '',
+        url_gif_frame2: imageUrls[1] || imageUrls[0] || '',
+        url_gif_frame2_fallback: imageUrls[1] || imageUrls[0] || '',
         url_thumbnail: imageUrls[0] || '',
         url_thumbnail_fallback: imageUrls[0] || '',
-        // Atribución CC-BY-SA (obligatoria por la licencia de wger.de)
         atribucion: record.licenseAuthor
-          ? `Imagen: ${record.licenseAuthor} · wger.de (${record.licenseShort})`
-          : `Imagen: wger.de (${record.licenseShort})`
+          ? `Imagen: ${record.licenseAuthor} · FitPro 3D (${record.licenseShort})`
+          : `Imagen: FitPro 3D (${record.licenseShort})`
       };
     }
   };
@@ -704,7 +730,13 @@
       fallbackObj = window.ejerciciosDB.find(e => e.nombre === nombre);
     }
 
-    const ej = window.obtenerEjercicioDeRepositorio(nombre, fallbackObj);
+    // `obtenerEjercicioDeRepositorio` sólo devuelve el texto y los campos de
+    // imagen: su contrato quedó de cuando este modal era un visor de GIF, y lo
+    // consumen otros tres puntos de la app. En vez de cambiarlo, la ficha
+    // fusiona encima el registro completo de `ejerciciosDB`, que es quien trae
+    // la taxonomía (músculo, equipamiento, riesgo) y el texto ya troceado.
+    const ejRepo = window.obtenerEjercicioDeRepositorio(nombre, fallbackObj);
+    const ej = Object.assign({}, fallbackObj || {}, ejRepo);
 
     const categoriaClean = (fallbackObj?.categoria || ej.categoria || '').toLowerCase().trim();
     const fallbackGifCategoria = FALLBACK_GIFS_POR_CATEGORIA[categoriaClean] || GENERIC_FALLBACK_IMG;
@@ -729,117 +761,61 @@
       document.body.appendChild(modal);
     }
 
+    // ── Cuerpo de la ficha ──
+    // La biblioteca no tiene capa multimedia: este modal dejó de ser un visor
+    // de GIF y es la ficha técnica completa. Si el dataset trae la descripción
+    // ya troceada en pasos ("Preparación:", "Ejecución:"…) se pintan numerados;
+    // si no, como párrafos.
+    const pasos = Array.isArray(ej.pasos) ? ej.pasos : [];
+    const parrafos = Array.isArray(ej.parrafos) && ej.parrafos.length
+      ? ej.parrafos
+      : String(ej.explicacion_tecnica || ej.ejecucion || '').split(/\n{2,}/).filter(Boolean);
+
+    const riesgo = ej.riesgo || 'Bajo';
+    const claseRiesgo = 'is-risk-' + riesgo.toLowerCase();
+
+    const cuerpo = pasos.length
+      ? `<ol class="ficha-pasos">${pasos.map(p => `
+          <li>
+            <span class="ficha-paso-label">${escapeHtml(p.etiqueta)}</span>
+            <span class="ficha-paso-texto">${escapeHtml(p.texto)}</span>
+          </li>`).join('')}</ol>`
+      : `<div class="ficha-prosa">${parrafos.map(p => `<p>${escapeHtml(p)}</p>`).join('')}</div>`;
+
     modal.innerHTML = `
-      <div class="modal-content" style="max-width: 500px; width: 100%; background: linear-gradient(145deg, #111827 0%, #0b1120 100%); border: 1px solid var(--border-color); box-shadow: 0 25px 60px rgba(0,0,0,0.8); border-radius: var(--radius-xl); padding: 24px; position: relative;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-          <h3 id="modal-demo-title-text" style="font-family:var(--font-heading); font-size:16px; font-weight:800; color:#fff; margin:0; display:flex; align-items:center; gap:8px; line-height:1.4;">
-            <span>📺 Demostración: ${ej.nombre}</span>
-          </h3>
-          <button type="button" onclick="cerrarModalDemoEjercicio()" style="padding:4px 10px; font-size:18px; cursor:pointer; background:transparent; border:none; color:var(--text-muted); font-weight:bold;">✕</button>
-        </div>
-
-        <div style="text-align:center; margin-bottom:16px;">
-          <div id="modal-demo-id-text" style="font-size:11.5px; color:#38bdf8; margin-bottom:12px; font-family:monospace;">
-            ${ej.github_name ? `ID: ${ej.github_id} (${ej.github_name})` : ``}
+      <div class="modal-content ficha-tecnica" role="dialog" aria-modal="true" aria-labelledby="modal-demo-title-text">
+        <header class="ficha-head">
+          <div class="ficha-head-text">
+            <h3 id="modal-demo-title-text" class="ficha-titulo">${escapeHtml(ej.nombre)}</h3>
+            <div class="ficha-taxonomia">
+              <span>${escapeHtml(ej.musculoPrimario || ej.categoria || '')}</span>
+              ${ej.equipamiento ? `<span class="ficha-sep">·</span><span>${escapeHtml(ej.equipamiento)}</span>` : ''}
+              <span class="ficha-sep">·</span>
+              <span class="ficha-riesgo ${claseRiesgo}"><span class="risk-dot"></span>Riesgo ${escapeHtml(riesgo)}</span>
+            </div>
           </div>
-          <div class="ej-img-box ej-img-box--modal" style="border-radius:var(--radius-lg);">
-            <img id="modal-demo-img" alt="${ej.nombre}">
-          </div>
-          ${ej.atribucion ? `<div style="font-size:10px; color:var(--text-dim,#64748b); margin-top:6px;">${ej.atribucion} · CC-BY-SA</div>` : ''}
-        </div>
+          <button type="button" class="ficha-cerrar" onclick="cerrarModalDemoEjercicio()" aria-label="Cerrar ficha">✕</button>
+        </header>
 
-        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; max-height: 180px; overflow-y: auto;">
-          <h5 style="color:#38bdf8; font-size:12px; font-weight:700; margin:0 0 6px 0; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px;">
-            <span>💡 Guía de Ejecución Técnica</span>
-          </h5>
-          <p style="color:var(--text-muted); font-size:13px; line-height:1.5; margin:0; text-align:left; white-space:pre-line;">${ej.explicacion_tecnica}</p>
-        </div>
+        ${ej.musculos ? `
+        <section class="ficha-bloque">
+          <h4 class="ficha-bloque-titulo">Musculatura implicada</h4>
+          <p class="ficha-musculos">${escapeHtml(ej.musculos)}</p>
+        </section>` : ''}
 
-        <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--border-color); padding-top:12px;">
-          <button type="button" class="btn-primary" onclick="cerrarModalDemoEjercicio()" style="padding:8px 16px; font-size:13px; font-weight:700; border-radius:var(--radius-md); cursor:pointer;">Entendido</button>
-        </div>
+        <section class="ficha-bloque ficha-bloque--guia">
+          <h4 class="ficha-bloque-titulo">Guía de ejecución técnica</h4>
+          ${cuerpo}
+        </section>
+
+        <footer class="ficha-foot">
+          <button type="button" class="btn-primary" onclick="cerrarModalDemoEjercicio()">Entendido</button>
+        </footer>
       </div>
     `;
 
-    // Cadena de respaldo: GIF específico (CDN 1) -> GIF específico (CDN 2) ->
-    // GIF genérico de categoría -> placeholder SVG. Antes, el primer intento
-    // (URL adivinada a partir del nombre) siempre fallaba y saltaba directo
-    // al genérico de categoría, así que el ejercicio real casi nunca se veía.
-    const imgEl = modal.querySelector('#modal-demo-img');
-    if (imgEl) {
-      const urls = [ej.url_gif, ej.real_gif_url].filter(Boolean);
-      encadenarFallbackImagen(imgEl, urls, fallbackGifCategoria, function () {
-        const title = document.getElementById('modal-demo-title-text');
-        if (title) title.innerHTML = `<span>📺 Demostración (Respaldo): ${ej.nombre}</span>`;
-        const sub = document.getElementById('modal-demo-id-text');
-        if (sub) sub.innerText = `Respaldo por Categoría (${categoriaClean})`;
-        // Si incluso el genérico de categoría falla, caer al SVG.
-        imgEl.addEventListener('error', function () {
-          imgEl.src = SVG_PLACEHOLDER;
-          if (sub) sub.innerText = 'Sin animación disponible (Muestra Vectorial)';
-        }, { once: true });
-      });
-      // Efecto "flip-book": free-exercise-db no trae GIF animado, pero sí
-      // hasta 2 fotos por ejercicio (posición inicial y final). Si la foto
-      // principal carga bien (sin caer a un respaldo) y existe la segunda,
-      // se alternan para simular el movimiento — sin depender de ningún
-      // GIF/API externo. Ritmo pausado (1.8s por foto) a propósito: es una
-      // guía técnica para entender la postura, no una animación fluida; muy
-      // rápido no da tiempo a fijarse en la posición de cada frame. Si la
-      // principal tuvo que caer a un respaldo (CDN2 / categoría / SVG), se
-      // deja estática: es preferible una imagen correcta y quieta a
-      // "animar" frames que no correspondan al mismo ejercicio.
-      //
-      // IMPORTANTE: el listener de 'load' se registra ANTES de asignar
-      // `imgEl.src` (más abajo). Si se registrara después, una imagen ya
-      // cacheada por el navegador (visitas repetidas al mismo ejercicio)
-      // podía disparar 'load' antes de que el listener existiera, y la
-      // animación nunca arrancaba — exactamente el bug reportado de
-      // "solo un ejercicio anima, el resto no".
-      const frame0Url = urls[0];
-      const frame2Url = ej.url_gif_frame2;
-      function iniciarFlipbookSiCorresponde() {
-        if (imgEl.src !== frame0Url) return; // ya cayó a un respaldo, no animar
-        const preload = new Image();
-        preload.onload = function () {
-          if (imgEl.src !== frame0Url) return; // pudo cambiar mientras precargaba
-          let mostrandoFrame0 = true;
-          window._demoFlipbookInterval = setInterval(() => {
-            if (!document.body.contains(imgEl)) {
-              clearInterval(window._demoFlipbookInterval);
-              window._demoFlipbookInterval = null;
-              return;
-            }
-            mostrandoFrame0 = !mostrandoFrame0;
-            imgEl.src = mostrandoFrame0 ? frame0Url : frame2Url;
-          }, 1800);
-        };
-        preload.src = frame2Url;
-      }
-      if (frame0Url && frame2Url) {
-        imgEl.addEventListener('load', function onFrame0Loaded() {
-          imgEl.removeEventListener('load', onFrame0Loaded);
-          iniciarFlipbookSiCorresponde();
-        }, { once: true });
-      }
-
-      // Dispara el primer intento (después de registrar el listener de arriba)
-      if (urls.length > 0) {
-        imgEl.src = urls[0];
-      } else {
-        imgEl.src = fallbackGifCategoria;
-      }
-      // Respaldo extra: si la imagen ya estaba en caché, el navegador puede
-      // marcarla 'complete' de inmediato al asignar `src`, sin disparar
-      // 'load' async. Se cubre ese caso también.
-      if (frame0Url && frame2Url && imgEl.complete && imgEl.src === frame0Url) {
-        iniciarFlipbookSiCorresponde();
-      }
-    }
-
     modal.style.display = 'flex';
   };
-
   window.cerrarModalDemoEjercicio = function () {
     const modal = document.getElementById('modal-demo-ejercicio');
     if (modal) modal.style.display = 'none';

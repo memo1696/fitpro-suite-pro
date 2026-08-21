@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitpro-suite-pro-v3.3.1-self-hosted-icon';
+const CACHE_NAME = 'fitpro-suite-pro-v3.7.0-agenda';
 const STATIC_ASSETS = [
   './',
   './index.html',
