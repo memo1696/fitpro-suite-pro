@@ -15,6 +15,37 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 window.addEventListener('unhandledrejection', function(event) {
   console.error("FitPro Unhandled Promise Rejection:", event.reason);
 });
+// ==========================================
+// 🔑 LECTURA TEMPRANA DEL ENLACE DE RECUPERACIÓN DE CONTRASEÑA
+// ==========================================
+// Supabase devuelve al usuario con los tokens en el fragmento de la URL
+// (#access_token=...&type=recovery). El cliente se crea con
+// detectSessionInUrl:true, así que apenas corre initSupabaseClient() el SDK
+// consume ese fragmento y lo borra de la barra de direcciones. Por eso la
+// lectura tiene que pasar aquí, en tiempo de parseo del script y antes de que
+// el cliente exista: si se hiciera dentro del arranque, el hash ya no estaría
+// y el enlace de recuperación abriría la app en lugar del formulario de
+// contraseña nueva.
+(function detectarRetornoDeRecuperacion() {
+  try {
+    const paramsHash = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+    const paramsQuery = new URLSearchParams(window.location.search || '');
+
+    // El marcador ?fitpro=recovery lo agrega urlRetornoRecuperacion() y
+    // sobrevive al redirect de Supabase (que solo añade el fragmento), así que
+    // el regreso se reconoce incluso cuando el enlace venció y no llega ningún
+    // token.
+    window.fitproRetornoRecuperacion = paramsQuery.get('fitpro') === 'recovery' || paramsHash.get('type') === 'recovery';
+    window.fitproRecuperacionErrorEnlace = paramsHash.get('error_code') || paramsHash.get('error') || '';
+    window.fitproRecuperacionPendiente = false;
+  } catch (e) {
+    console.warn('Notice leyendo el enlace de recuperación:', e);
+    window.fitproRetornoRecuperacion = false;
+    window.fitproRecuperacionErrorEnlace = '';
+    window.fitproRecuperacionPendiente = false;
+  }
+})();
+
 
 // ==========================================
 // 🔔 SAAS FLOATING TOAST NOTIFICATION ENGINE
@@ -554,6 +585,14 @@ async function verificarYEscucharSupabaseAuth() {
     initSupabaseClient();
   }
 
+  // Regreso desde el correo de recuperación: hay que pedir la contraseña nueva
+  // en vez de dejar entrar a la app con la sesión que abre el propio enlace.
+  if (window.fitproRetornoRecuperacion) {
+    window.fitproRetornoRecuperacion = false;
+    await manejarRetornoRecuperacionPassword();
+    return;
+  }
+
   // 1. Verificar si la URL contiene un deep-link de atleta
   const urlParams = new URLSearchParams(window.location.search);
   const emailParam = urlParams.get('email') || urlParams.get('atletaEmail');
@@ -608,6 +647,18 @@ async function verificarYEscucharSupabaseAuth() {
       // 2. Suscribirse a cambios en el estado de autenticación (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
       supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log(`🔔 Evento Supabase Auth: ${event}`);
+        if (event === 'PASSWORD_RECOVERY') {
+          // El SDK reconoció el token del correo de recuperación. La sesión que
+          // abre ese token solo sirve para cambiar la contraseña, así que no se
+          // le entrega la app: se muestra el formulario de contraseña nueva.
+          window.fitproRecuperacionPendiente = true;
+          mostrarPantallaAuth();
+          mostrarPanelNuevaPassword();
+          return;
+        }
+        if (window.fitproRecuperacionPendiente && event === 'SIGNED_IN') {
+          return;
+        }
         if (event === 'SIGNED_IN' && session) {
           establecerSesionActiva(session, session.user);
         } else if (event === 'SIGNED_OUT') {
@@ -633,6 +684,319 @@ async function verificarYEscucharSupabaseAuth() {
     mostrarPantallaAuth();
   }
 }
+
+// ==========================================
+// 🔑 RECUPERACIÓN DE CONTRASEÑA DEL ENTRENADOR
+// ==========================================
+// Dos pasos:
+//   1. solicitarRecuperacionPassword() le pide a Supabase que envíe el correo.
+//   2. Al volver del enlace, manejarRetornoRecuperacionPassword() muestra el
+//      formulario de contraseña nueva en lugar de abrir la app.
+//
+// Depende de que el proyecto de Supabase tenga SMTP propio configurado: el
+// servicio de correo que viene de fábrica solo despacha a los miembros del
+// proyecto y con un tope de 2 correos por hora, así que sin SMTP ningún
+// entrenador real recibe el enlace.
+
+function urlRetornoRecuperacion() {
+  return `${window.location.origin}${window.location.pathname}?fitpro=recovery`;
+}
+
+// Borra de la barra de direcciones tanto el marcador ?fitpro=recovery como
+// cualquier token que haya quedado en el fragmento. Sin esto el access_token
+// se queda en el historial y viaja en la cabecera Referer.
+function limpiarUrlRecuperacion() {
+  try {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } catch (e) {
+    console.warn('Notice limpiando la URL de recuperación:', e);
+  }
+}
+
+function actualizarVisibilidadRecuperacion() {
+  const fila = document.getElementById('auth-forgot-row');
+  if (!fila) return;
+  const panel = document.getElementById('auth-recovery-panel');
+  const panelActivo = Boolean(panel) && !panel.classList.contains('hidden');
+  const visible = perfilAuthActual !== 'athlete' && modoAuthActual === 'login' && !panelActivo;
+  fila.style.display = visible ? '' : 'none';
+}
+
+async function solicitarRecuperacionPassword() {
+  limpiarErrorAuth();
+
+  if (!supabaseClient) {
+    initSupabaseClient();
+  }
+  if (!supabaseClient) {
+    mostrarErrorAuth('La recuperación de contraseña necesita conexión con Supabase Cloud; el Modo Demo / Local no la soporta.');
+    return;
+  }
+
+  const emailInput = document.getElementById('auth-input-email');
+  const email = sanitizeText(emailInput?.value, 120).toLowerCase().trim();
+
+  if (!email || !email.includes('@')) {
+    mostrarErrorAuth('Escribe tu correo electrónico arriba y vuelve a pulsar «¿Olvidaste tu contraseña?».');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  // Los atletas no tienen correo real: la app les genera uno en el dominio
+  // inexistente @atleta.fitpro.app, así que el enlace no llegaría a ninguna
+  // parte. Su contraseña la regenera el entrenador desde su panel.
+  if (perfilAuthActual === 'athlete' || email.includes('@atleta.') || email.includes('@cliente.')) {
+    mostrarErrorAuth('Las cuentas de atleta no tienen correo real. Pídele a tu entrenador que te genere una contraseña nueva desde su panel.');
+    return;
+  }
+
+  const btn = document.getElementById('auth-btn-forgot');
+  const textoOriginal = btn ? btn.innerText : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Enviando…';
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: urlRetornoRecuperacion()
+    });
+
+    if (error) {
+      console.warn('Error Supabase resetPasswordForEmail:', error.message);
+      const msg = (error.message || '').toLowerCase();
+      let amigable = error.message;
+
+      if (error.status === 429 || msg.includes('security purposes') || msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+        amigable = 'Se pidieron demasiados correos seguidos. Espera un minuto y vuelve a intentarlo.';
+      } else if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed')) {
+        amigable = 'No se pudo contactar con el servidor de autenticación. Revisa tu conexión e intenta de nuevo.';
+      } else if (msg.includes('error sending') || msg.includes('send email') || msg.includes('smtp')) {
+        // Síntoma exacto de un SMTP mal configurado o rechazado en Supabase.
+        // El filtro va sobre 'error sending', no sobre 'mail': cualquier
+        // mensaje que mencione "email" (por ejemplo "Unable to validate email
+        // address") se reportaría como una falla del servidor de correo.
+        amigable = 'El servidor de correo rechazó el envío. Si administras la plataforma, revisa el SMTP en Supabase → Authentication → Emails.';
+      } else if (msg.includes('validate email') || msg.includes('invalid format')) {
+        amigable = 'Ese correo no tiene un formato válido.';
+      }
+
+      mostrarErrorAuth(amigable);
+      showToast(amigable, 'error', 'No se pudo enviar el correo');
+      return;
+    }
+
+    // Respuesta deliberadamente genérica: confirmar si el correo existe o no
+    // permitiría enumerar las cuentas de entrenador dadas de alta.
+    mostrarExitoAuth('Si ese correo tiene una cuenta, te enviamos un enlace para restablecer la contraseña. Revisa la bandeja de entrada y la carpeta de spam: el enlace vence en 1 hora.');
+    showToast('Correo de recuperación enviado.', 'success', '📧 Revisa tu bandeja');
+  } catch (err) {
+    console.warn('Excepción al solicitar recuperación de contraseña:', err);
+    mostrarErrorAuth('No se pudo contactar con el servidor de autenticación. Revisa tu conexión e intenta de nuevo.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = textoOriginal || '¿Olvidaste tu contraseña?';
+    }
+  }
+}
+
+function mostrarPanelNuevaPassword() {
+  const panel = document.getElementById('auth-recovery-panel');
+  if (panel) panel.classList.remove('hidden');
+
+  const form = document.getElementById('form-auth-supabase');
+  if (form) form.style.display = 'none';
+
+  const tabs = document.getElementById('auth-coach-tabs');
+  if (tabs) tabs.style.display = 'none';
+
+  const fila = document.getElementById('auth-forgot-row');
+  if (fila) fila.style.display = 'none';
+
+  const selectorPerfil = document.getElementById('btn-perfil-coach')?.parentElement;
+  if (selectorPerfil) selectorPerfil.style.display = 'none';
+
+  const divisor = document.querySelector('.auth-demo-divider');
+  if (divisor) divisor.style.display = 'none';
+  document.querySelectorAll('.auth-btn-demo').forEach(b => { b.style.display = 'none'; });
+
+  const switchPrompt = document.getElementById('auth-switch-prompt');
+  if (switchPrompt && switchPrompt.parentElement) switchPrompt.parentElement.style.display = 'none';
+
+  const subtitulo = document.getElementById('auth-header-subtitle');
+  if (subtitulo) subtitulo.innerText = 'Elige una contraseña nueva para tu cuenta de entrenador.';
+}
+
+function ocultarPanelNuevaPassword() {
+  const panel = document.getElementById('auth-recovery-panel');
+  if (panel) panel.classList.add('hidden');
+
+  const form = document.getElementById('form-auth-supabase');
+  if (form) form.style.display = '';
+
+  const selectorPerfil = document.getElementById('btn-perfil-coach')?.parentElement;
+  if (selectorPerfil) selectorPerfil.style.display = '';
+
+  // Devuelve tabs, divisor, botón demo y textos a su estado normal de coach.
+  seleccionarPerfilAuth('coach');
+}
+
+// El SDK canjea el fragmento de la URL por una sesión de forma asíncrona, así
+// que al llegar aquí puede que todavía no exista. Se espera hasta 3 segundos
+// antes de dar el enlace por inválido.
+async function esperarSesionRecuperacion(intentos = 20, esperaMs = 150) {
+  if (!supabaseClient) return null;
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      if (data && data.session) return data.session;
+    } catch (e) {
+      console.warn('Notice esperando la sesión de recuperación:', e);
+    }
+    await new Promise(r => setTimeout(r, esperaMs));
+  }
+  return null;
+}
+
+async function manejarRetornoRecuperacionPassword() {
+  mostrarPantallaAuth();
+  seleccionarPerfilAuth('coach');
+  limpiarErrorAuth();
+
+  if (window.fitproRecuperacionErrorEnlace) {
+    limpiarUrlRecuperacion();
+    const vencido = /expired/i.test(window.fitproRecuperacionErrorEnlace);
+    mostrarErrorAuth(vencido
+      ? 'El enlace de recuperación ya venció. Escribe tu correo abajo y pide uno nuevo.'
+      : 'El enlace de recuperación no es válido o ya se usó. Escribe tu correo abajo y pide uno nuevo.');
+    return;
+  }
+
+  if (!supabaseClient) {
+    initSupabaseClient();
+  }
+  if (!supabaseClient) {
+    limpiarUrlRecuperacion();
+    mostrarErrorAuth('No hay conexión con Supabase Cloud, así que no se puede validar el enlace de recuperación. Reintenta con conexión a internet.');
+    return;
+  }
+
+  mostrarPanelNuevaPassword();
+
+  const sesion = await esperarSesionRecuperacion();
+  limpiarUrlRecuperacion();
+
+  if (!sesion) {
+    ocultarPanelNuevaPassword();
+    mostrarErrorAuth('No pudimos validar el enlace de recuperación: puede haber vencido o haberse usado ya. Escribe tu correo y pide uno nuevo.');
+    return;
+  }
+
+  window.fitproRecuperacionPendiente = true;
+
+  const emailInput = document.getElementById('auth-input-email');
+  if (emailInput && sesion.user?.email) emailInput.value = sesion.user.email;
+
+  mostrarExitoAuth('Enlace verificado. Elige tu contraseña nueva.');
+  document.getElementById('auth-recovery-password')?.focus();
+}
+
+async function confirmarNuevaPassword(event) {
+  if (event) event.preventDefault();
+  limpiarErrorAuth();
+
+  if (!supabaseClient) {
+    initSupabaseClient();
+  }
+  if (!supabaseClient) {
+    mostrarErrorAuth('Sin conexión con Supabase Cloud no se puede cambiar la contraseña.');
+    return;
+  }
+
+  const input1 = document.getElementById('auth-recovery-password');
+  const input2 = document.getElementById('auth-recovery-password2');
+  const pass = input1?.value || '';
+  const pass2 = input2?.value || '';
+
+  if (pass.length < 8) {
+    mostrarErrorAuth('La contraseña nueva debe tener al menos 8 caracteres.');
+    input1?.focus();
+    return;
+  }
+  if (pass !== pass2) {
+    mostrarErrorAuth('Las dos contraseñas no coinciden.');
+    input2?.focus();
+    return;
+  }
+
+  const btn = document.getElementById('auth-btn-recovery-submit');
+  const htmlOriginal = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Guardando…</span>';
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({ password: pass });
+
+    if (error) {
+      console.warn('Error Supabase updateUser (password):', error.message);
+      const msg = (error.message || '').toLowerCase();
+      let amigable = error.message;
+
+      if (msg.includes('should be different')) {
+        amigable = 'La contraseña nueva tiene que ser distinta de la anterior.';
+      } else if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed')) {
+        amigable = 'No se pudo contactar con el servidor de autenticación. Revisa tu conexión e intenta de nuevo.';
+      } else if (msg.includes('session') || msg.includes('jwt') || msg.includes('token')) {
+        amigable = 'El enlace de recuperación venció. Vuelve a la pantalla de acceso y pide uno nuevo.';
+      } else if (msg.includes('at least') || msg.includes('weak') || msg.includes('short')) {
+        amigable = 'Supabase rechazó esa contraseña: ' + error.message;
+      }
+
+      mostrarErrorAuth(amigable);
+      showToast(amigable, 'error', 'No se pudo cambiar la contraseña');
+      return;
+    }
+
+    const emailUsuario = data?.user?.email || '';
+    if (input1) input1.value = '';
+    if (input2) input2.value = '';
+
+    // Se cierra la sesión que abrió el enlace a propósito: obliga a estrenar la
+    // contraseña nueva y deja sin valor el token de recuperación en este equipo.
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (e) {
+      console.warn('Notice cerrando sesión tras cambiar la contraseña:', e);
+    }
+
+    window.fitproRecuperacionPendiente = false;
+    ocultarPanelNuevaPassword();
+
+    const emailInput = document.getElementById('auth-input-email');
+    if (emailInput && emailUsuario) emailInput.value = emailUsuario;
+
+    mostrarExitoAuth('Contraseña actualizada. Inicia sesión con la nueva.');
+    showToast('Contraseña actualizada correctamente.', 'success', '🔑 Listo');
+    document.getElementById('auth-input-password')?.focus();
+  } catch (err) {
+    console.warn('Excepción al actualizar la contraseña:', err);
+    mostrarErrorAuth('Ocurrió un error inesperado al guardar la contraseña. Intenta de nuevo.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = htmlOriginal;
+    }
+  }
+}
+
+window.solicitarRecuperacionPassword = solicitarRecuperacionPassword;
+window.confirmarNuevaPassword = confirmarNuevaPassword;
+window.mostrarPanelNuevaPassword = mostrarPanelNuevaPassword;
+window.ocultarPanelNuevaPassword = ocultarPanelNuevaPassword;
+window.actualizarVisibilidadRecuperacion = actualizarVisibilidadRecuperacion;
 
 function mostrarErrorAuth(mensaje) {
   const errBox = document.getElementById('auth-error-box');
@@ -693,6 +1057,12 @@ function seleccionarPerfilAuth(perfil) {
     if (demoDivider) demoDivider.style.display = 'none';
     demoBtns.forEach(b => b.style.display = 'none');
     if (switchPrompt && switchPrompt.parentElement) switchPrompt.parentElement.style.display = 'none';
+
+    // Las cuentas de atleta usan correos de un dominio inexistente, así que el
+    // enlace de recuperación no puede llegarles: su contraseña la regenera el
+    // entrenador desde su panel.
+    const filaOlvidoAtleta = document.getElementById('auth-forgot-row');
+    if (filaOlvidoAtleta) filaOlvidoAtleta.style.display = 'none';
 
     // Ocultar campos de registro de coach
     const grpNombre = document.getElementById('auth-group-nombre');
@@ -763,6 +1133,8 @@ function cambiarModoAuth(modo) {
     if (switchPrompt) switchPrompt.innerText = '¿No tienes cuenta aún?';
     if (switchBtn) switchBtn.innerText = 'Registrarse aquí';
   }
+
+  actualizarVisibilidadRecuperacion();
 }
 
 function alternarModoAuthDirecto(modo) {

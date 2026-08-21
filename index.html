@@ -55,6 +55,25 @@
       <!-- CAJAS DE ALERTA DE ERROR Y ÉXITO -->
       <div id="auth-error-box" class="auth-error-box hidden" role="alert"></div>
       <div id="auth-success-box" class="auth-success-box hidden" role="status"></div>
+      <!-- PANEL DE CONTRASEÑA NUEVA (APARECE AL VOLVER DEL CORREO DE RECUPERACIÓN) -->
+      <form id="auth-recovery-panel" class="hidden" onsubmit="confirmarNuevaPassword(event)">
+        <div class="auth-form-group">
+          <label for="auth-recovery-password">Contraseña Nueva</label>
+          <div class="auth-input-wrapper">
+            <input type="password" id="auth-recovery-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" oninput="limpiarErrorAuth()" />
+          </div>
+        </div>
+        <div class="auth-form-group">
+          <label for="auth-recovery-password2">Repite la Contraseña Nueva</label>
+          <div class="auth-input-wrapper">
+            <input type="password" id="auth-recovery-password2" placeholder="Debe coincidir con la anterior" autocomplete="new-password" oninput="limpiarErrorAuth()" />
+          </div>
+        </div>
+        <button type="submit" class="auth-btn-submit" id="auth-btn-recovery-submit">
+          <span>🔑 Guardar Contraseña Nueva</span>
+        </button>
+      </form>
+
 
       <form id="form-auth-supabase" onsubmit="procesarFormularioAuth(event)">
         <!-- NOMBRE (SOLO REGISTRO) -->
@@ -112,6 +131,11 @@
           <span id="auth-btn-text">🔒 Iniciar Sesión en FitPro Cloud</span>
         </button>
       </form>
+
+      <!-- RECUPERACIÓN DE CONTRASEÑA (SOLO COACH, SOLO EN MODO LOGIN) -->
+      <div id="auth-forgot-row" style="text-align:center; margin-top:12px; font-size:13px;">
+        <button type="button" id="auth-btn-forgot" style="background:transparent; border:none; color:var(--text-muted); font-weight:600; cursor:pointer; text-decoration:underline;" onclick="solicitarRecuperacionPassword()">¿Olvidaste tu contraseña?</button>
+      </div>
 
       <!-- ENLACE DIRECTO PARA CAMBIO DE MODO -->
       <div style="text-align:center; margin-top:14px; font-size:13px;">
@@ -3411,6 +3435,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="ejercicios_repo.js?v=3.7.0"></script>
-  <script src="app.js?v=3.5.0"></script>
+  <script src="app.js?v=3.6.0"></script>
 </body>
 </html>

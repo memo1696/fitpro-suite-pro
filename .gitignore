@@ -40,3 +40,6 @@ desktop.ini
 # Temporary files
 *.tmp
 *.temp
+
+# Claude Code (config local de previsualizacion)
+.claude/
