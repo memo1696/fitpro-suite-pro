@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitpro-suite-pro-v3.7.0-agenda';
+const CACHE_NAME = 'fitpro-suite-pro-v3.8.0-agenda-sync';
 const STATIC_ASSETS = [
   './',
   './index.html',

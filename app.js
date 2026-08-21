@@ -303,6 +303,7 @@ function cambiarGimnasioActivo(nuevoGymId) {
 
   // Query Supabase for this gym's data
   cargarClientesDesdeSupabase();
+  cargarAgendaDesdeSupabase();
 
   // Refresh all views
   renderClientes();
@@ -441,6 +442,7 @@ function initSupabaseClient() {
       console.log(`🟢 Supabase Cloud inicializado de forma segura [Gym: ${gimnasioActivoId}]:`, SUPABASE_URL);
       actualizarBadgeSupabaseUI("conectado", `☁️ Supabase Cloud: ${gimnasioActivoId}`);
       cargarClientesDesdeSupabase();
+      cargarAgendaDesdeSupabase();
     } else {
       console.warn("⚠️ Supabase JS SDK no detectado; ejecutando en modo Local Multi-Gym.");
       actualizarBadgeSupabaseUI("local", `🟡 Nube: Modo Local (${gimnasioActivoId})`);
@@ -2528,6 +2530,7 @@ function establecerSesionActiva(session, user = null) {
   // Si es un usuario real, consultar sus datos de Supabase Cloud
   if (!esDemo && supabaseClient) {
     cargarClientesDesdeSupabase();
+    cargarAgendaDesdeSupabase();
     cargarFinanzasDesdeSupabase();
     cargarPlanesDesdeSupabase();
     iniciarSuscripcionesRealtimeSupabase();
@@ -2603,6 +2606,15 @@ function iniciarSuscripcionesRealtimeSupabase() {
       { event: '*', schema: 'public', table: 'finances' },
       (payload) => {
         procesarEventoRealtimeFinanzas(payload);
+      }
+    );
+
+    // 5. Escuchar cambios en AGENDA (Citas de entrenamiento y medición)
+    canalRealtimeActivo.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'agenda' },
+      (payload) => {
+        procesarEventoRealtimeAgenda(payload);
       }
     );
 
@@ -2737,6 +2749,52 @@ function procesarEventoRealtimeFinanzas(payload) {
       renderFinanzas();
     }
   }
+}
+
+function procesarEventoRealtimeAgenda(payload) {
+  const { eventType, new: newRow, old: oldRow } = payload;
+
+  // Las filas de la nube usan snake_case y `time` con segundos; el modelo en
+  // memoria usa camelCase y 'HH:MM'. Sin esta conversión, una cita llegada por
+  // realtime se pintaría con la hora en blanco y sin duración.
+  const aModelo = (row) => ({
+    id: row.id,
+    clienteId: row.client_id || null,
+    user_id: row.user_id,
+    gym_id: row.gym_id || gimnasioActivoId,
+    atleta: row.atleta,
+    tipo: row.tipo || 'entrenamiento',
+    fecha: row.fecha,
+    hora: horaDesdeSupabase(row.hora),
+    duracion: Number(row.duracion) || 60,
+    lugar: row.lugar || '',
+    notas: row.notas || '',
+    estado: row.estado || 'programada',
+    creadoEn: row.creado_en || new Date().toISOString()
+  });
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    // El canal es por sede, pero cada entrenador sólo debe ver lo suyo.
+    const userId = getUsuarioActualId();
+    if (userId && newRow.user_id && newRow.user_id !== userId) return;
+
+    const cita = aModelo(newRow);
+    const idx = agendaDB.findIndex(c => c.id === cita.id);
+    if (idx !== -1) agendaDB[idx] = cita;
+    else agendaDB.push(cita);
+  } else if (eventType === 'DELETE') {
+    if (!oldRow?.id) return;
+    agendaDB = agendaDB.filter(c => c.id !== oldRow.id);
+    window.agendaDB = agendaDB;
+  } else {
+    return;
+  }
+
+  persistirDatosUsuarioActual();
+  renderAgenda();
+  renderProximosEntrenamientos();
+  actualizarBadgeAgenda();
 }
 
 // ==========================================
@@ -3229,10 +3287,20 @@ async function sincronizarTodoConSupabase() {
       const res = await sincronizarClienteConSupabase(c);
       if (res) exitos++;
     }
+
+    // Las citas creadas sin red se suben aquí; después se relee la nube, que
+    // es la que manda para reflejar lo agendado desde otro dispositivo.
+    const citasGym = getCitasActivas();
+    let citasSubidas = 0;
+    for (const cita of citasGym) {
+      if (await sincronizarCitaConSupabase(cita)) citasSubidas++;
+    }
+
     await cargarClientesDesdeSupabase();
+    await cargarAgendaDesdeSupabase();
     const gymObj = getGimnasioActivo();
     actualizarBadgeSupabaseUI(`☁️ Supabase Cloud: Sincronizado`, "badge-green");
-    showToast(`Sincronización multi-gimnasio completada. ${clientesGym.length} atletas verificados y respaldados en la nube para ${escapeHtml(gymObj.nombre)}.`, 'success', '☁️ Nube Supabase Sincronizada');
+    showToast(`Sincronización multi-gimnasio completada. ${clientesGym.length} atletas y ${citasSubidas} citas respaldados en la nube para ${escapeHtml(gymObj.nombre)}.`, 'success', '☁️ Nube Supabase Sincronizada');
   } else {
     actualizarBadgeSupabaseUI(`☁️ Nube: Modo Local (${gimnasioActivoId})`, "badge-primary");
     showToast(`Modo Local Multi-Gym activo (${gimnasioActivoId}). Datos resguardados y filtrados localmente.`, 'info', '⚡ Modo Local Multi-Gym');
@@ -12212,20 +12280,27 @@ function guardarCita(evento) {
     return fallar(`Se solapa con la cita de ${choque.atleta} a las ${choque.hora}. Elige otra hora.`);
   }
 
+  let citaGuardada;
   if (id) {
-    const cita = agendaDB.find(c => c.id === id);
-    if (cita) Object.assign(cita, { atleta, fecha, hora, tipo, duracion, lugar, notas });
+    citaGuardada = agendaDB.find(c => c.id === id);
+    if (citaGuardada) Object.assign(citaGuardada, { atleta, fecha, hora, tipo, duracion, lugar, notas });
   } else {
-    agendaDB.push({
+    citaGuardada = {
       id: 'cita_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       atleta, fecha, hora, tipo, duracion, lugar, notas,
       estado: 'programada',
       gym_id: gimnasioActivoId,
       creadoEn: new Date().toISOString()
-    });
+    };
+    agendaDB.push(citaGuardada);
   }
 
   persistirDatosUsuarioActual();
+
+  // La nube es un espejo, no la ruta crítica: la cita ya está guardada en local
+  // y pintada. Si la red falla, el aviso queda en consola y la próxima
+  // sincronización la sube; no se bloquea al entrenador por ello.
+  if (citaGuardada) sincronizarCitaConSupabase(citaGuardada);
   cerrarModalCita();
   renderAgenda();
   renderProximosEntrenamientos();
@@ -12245,6 +12320,7 @@ function eliminarCita() {
   agendaDB = agendaDB.filter(c => c.id !== id);
   window.agendaDB = agendaDB;
   persistirDatosUsuarioActual();
+  eliminarCitaDeSupabase(id);
   cerrarModalCita();
   renderAgenda();
   renderProximosEntrenamientos();
@@ -12309,6 +12385,134 @@ window.guardarCita = guardarCita;
 window.eliminarCita = eliminarCita;
 window.renderProximosEntrenamientos = renderProximosEntrenamientos;
 window.actualizarBadgeAgenda = actualizarBadgeAgenda;
+
+// ==============================================================================
+// AGENDA — SINCRONIZACIÓN CON SUPABASE
+// Mismo contrato que clientes y finanzas: local primero (localStorage cifrado,
+// que es lo que hace que la app funcione sin red) y la nube como espejo para
+// que las citas viajen entre dispositivos.
+// Requiere haber ejecutado `supabase_agenda.sql` en el proyecto de Supabase.
+// ==============================================================================
+
+/** Postgres devuelve `time` como 'HH:MM:SS'; el modelo y el <input type="time">
+ *  usan 'HH:MM'. Sin este recorte la hora se mostraría como "10:00:00" y el
+ *  input quedaría vacío por no reconocer el formato. */
+function horaDesdeSupabase(valor) {
+  return String(valor || '').slice(0, 5);
+}
+
+/** El id de cliente sólo existe si el atleta está dado de alta; agendar a
+ *  alguien no registrado es un caso válido y deja `client_id` en null. */
+function clientIdDeCita(cita) {
+  if (cita.clienteId) return cita.clienteId;
+  const c = (clientes || []).find(x => x.nombre === cita.atleta);
+  return c ? c.id : null;
+}
+
+async function cargarAgendaDesdeSupabase() {
+  if (!supabaseClient) return;
+  const userId = getUsuarioActualId();
+  if (!userId || sesionUsuarioActual?.esModoDemo) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('agenda')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('gym_id', gimnasioActivoId)
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true });
+
+    if (error) {
+      console.warn('Agenda load notice:', error.message);
+      return;
+    }
+    if (!data) return;
+
+    // A diferencia de finanzas, aquí SÍ se aplica un resultado vacío: si el
+    // entrenador borró todas sus citas en otro dispositivo, la nube es la
+    // verdad y hay que reflejarlo, no resucitarlas desde la copia local.
+    agendaDB = data.map(row => ({
+      id: row.id,
+      clienteId: row.client_id || null,
+      user_id: row.user_id || userId,
+      gym_id: row.gym_id || gimnasioActivoId,
+      atleta: row.atleta,
+      tipo: row.tipo || 'entrenamiento',
+      fecha: row.fecha,
+      hora: horaDesdeSupabase(row.hora),
+      duracion: Number(row.duracion) || 60,
+      lugar: row.lugar || '',
+      notas: row.notas || '',
+      estado: row.estado || 'programada',
+      creadoEn: row.creado_en || new Date().toISOString()
+    }));
+    window.agendaDB = agendaDB;
+
+    persistirDatosUsuarioActual();
+    renderAgenda();
+    renderProximosEntrenamientos();
+    actualizarBadgeAgenda();
+  } catch (e) {
+    console.warn('Agenda load notice:', e);
+  }
+}
+
+async function sincronizarCitaConSupabase(cita) {
+  if (!supabaseClient) return false;
+  const userId = getUsuarioActualId();
+  if (!userId || sesionUsuarioActual?.esModoDemo) return false;
+
+  try {
+    const { error } = await supabaseClient.from('agenda').upsert({
+      id: cita.id,
+      client_id: clientIdDeCita(cita),
+      user_id: userId,
+      gym_id: cita.gym_id || gimnasioActivoId,
+      atleta: cita.atleta,
+      tipo: cita.tipo,
+      fecha: cita.fecha,
+      hora: cita.hora,
+      duracion: cita.duracion || 60,
+      lugar: cita.lugar || null,
+      notas: cita.notas || null,
+      estado: cita.estado || 'programada',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Supabase agenda sync error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Supabase agenda sync error:', e);
+    return false;
+  }
+}
+
+async function eliminarCitaDeSupabase(id) {
+  if (!supabaseClient) return;
+  const userId = getUsuarioActualId();
+  if (!userId || sesionUsuarioActual?.esModoDemo) return;
+
+  try {
+    // El filtro por user_id es defensa en profundidad: la RLS ya lo impide,
+    // pero así una llamada mal formada tampoco puede tocar filas ajenas.
+    const { error } = await supabaseClient
+      .from('agenda')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) console.warn('Supabase agenda delete error:', error.message);
+  } catch (e) {
+    console.warn('Supabase agenda delete error:', e);
+  }
+}
+
+window.cargarAgendaDesdeSupabase = cargarAgendaDesdeSupabase;
+window.sincronizarCitaConSupabase = sincronizarCitaConSupabase;
+window.eliminarCitaDeSupabase = eliminarCitaDeSupabase;
 // Scientific Supplements
 function renderSuplementos() {
   const grid = document.getElementById('supplements-grid');
