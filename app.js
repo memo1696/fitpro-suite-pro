@@ -15,6 +15,29 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 window.addEventListener('unhandledrejection', function(event) {
   console.error("FitPro Unhandled Promise Rejection:", event.reason);
 });
+
+// ==========================================================================
+// 🔑 INTERRUPTOR: ENLACE DE "¿OLVIDASTE TU CONTRASEÑA?"
+// ==========================================================================
+// PARA ENCENDERLO: poner true aquí y subir el ?v= de app.js en index.html.
+//
+// Está apagado porque el proyecto de Supabase todavía no tiene SMTP propio, y
+// su servicio de correo de fábrica solo despacha a los miembros del proyecto,
+// con un tope de 2 correos por hora. Con el enlace visible, un entrenador
+// pulsaría el botón, leería "te enviamos un enlace" y no le llegaría nada
+// nunca: peor que no tener el botón.
+//
+// El flujo entero ya está implementado y probado (solicitarRecuperacionPassword,
+// manejarRetornoRecuperacionPassword, confirmarNuevaPassword). Esto solo decide
+// si se muestra la puerta de entrada, así que encenderlo es el único paso que
+// queda una vez configurado el SMTP.
+//
+// Qué hace falta antes de encenderlo, en el dashboard de Supabase:
+//   1. Authentication → Emails → SMTP Settings: SMTP propio (p.ej. Brevo).
+//   2. Authentication → Rate Limits: subir "emails per hour" (viene en 2).
+//   3. Authentication → URL Configuration → Redirect URLs:
+//      https://fitpro-suite-pro.vercel.app/**
+const RECUPERACION_PASSWORD_HABILITADA = false;
 // ==========================================
 // 🔑 LECTURA TEMPRANA DEL ENLACE DE RECUPERACIÓN DE CONTRASEÑA
 // ==========================================
@@ -559,6 +582,8 @@ function mostrarPantallaAuth() {
       setTimeout(() => passInput.focus(), 150);
     }
   }
+
+  actualizarVisibilidadRecuperacion();
 }
 
 // Contraparte de mostrarPantallaAuth(): nunca estuvo definida pese a ya
@@ -721,7 +746,8 @@ function actualizarVisibilidadRecuperacion() {
   if (!fila) return;
   const panel = document.getElementById('auth-recovery-panel');
   const panelActivo = Boolean(panel) && !panel.classList.contains('hidden');
-  const visible = perfilAuthActual !== 'athlete' && modoAuthActual === 'login' && !panelActivo;
+  const visible = RECUPERACION_PASSWORD_HABILITADA &&
+                  perfilAuthActual !== 'athlete' && modoAuthActual === 'login' && !panelActivo;
   fila.style.display = visible ? '' : 'none';
 }
 
