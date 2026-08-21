@@ -4275,3 +4275,521 @@ body.auth-pending #app-layout {
   max-width: 100%;
   max-height: 280px;
 }
+
+/* ==============================================================================
+   PORTAL DEL ATLETA — SHELL TIPO APP NATIVA (v3.5.0)
+   ------------------------------------------------------------------------------
+   Rediseño de la vista del atleta para que se lea como una app de fitness
+   nativa y no como un panel B2B: header con marca, saludo, tarjeta de rutina
+   destacada, bento de métricas y tab bar inferior fija.
+
+   Sobre la paleta: el resto de la app usa el azul-slate de :root (--bg-main
+   #0B0F19). Acá se usa la escala ZINC, que es neutra y bastante más oscura.
+   Los valores son la traducción exacta de las clases de Tailwind pedidas
+   (zinc-950/900/800, emerald-500/400) a hex, porque este proyecto no tiene
+   Tailwind ni build step. Se declaran como tokens locales en
+   body.is-athlete-mode para NO contaminar la vista del entrenador.
+
+   Nada de esto aplica si el body no tiene .is-athlete-mode.
+   ============================================================================== */
+body.is-athlete-mode {
+  --fp-bg:         #09090B;                /* zinc-950  */
+  --fp-surface:    #18181B;                /* zinc-900  */
+  --fp-surface-a:  rgba(24, 24, 27, 0.6);  /* zinc-900/60 */
+  --fp-line:       #27272A;                /* zinc-800  */
+  --fp-line-a:     rgba(39, 39, 42, 0.8);  /* zinc-800/80 */
+  --fp-text:       #F4F4F5;                /* zinc-100  */
+  --fp-text-2:     #A1A1AA;                /* zinc-400  */
+  --fp-text-3:     #71717A;                /* zinc-500  */
+  --fp-em:         #10B981;                /* emerald-500 */
+  --fp-em-2:       #34D399;                /* emerald-400 */
+  --fp-radius:     16px;                   /* rounded-2xl */
+
+  background: var(--fp-bg) !important;
+  color: var(--fp-text) !important;
+}
+
+/* El main-content del entrenador es de 1200px. Acá se estrecha a ancho de
+   teléfono y se centra: en escritorio queda como un simulador de la app, que
+   es exactamente lo que el atleta ve en su celular. Un solo diseño que
+   mantener en vez de dos. */
+body.is-athlete-mode .main-content {
+  max-width: 480px !important;
+  padding: 0 !important;
+  background: var(--fp-bg) !important;
+}
+
+body.is-athlete-mode #view-athlete-portal {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 18px 18px 96px 18px;   /* pb-24 = 96px, para que la tab bar no tape nada */
+}
+
+/* ── Header: marca a la izquierda, avatar a la derecha ── */
+.fp-athlete-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.fp-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.fp-brand-mark {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--fp-em-2);
+}
+
+.fp-brand-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fp-brand-name {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fp-text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.fp-brand-sub {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--fp-text-3);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+/* w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 */
+.fp-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--fp-surface);
+  border: 1px solid var(--fp-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--fp-text-2);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ── Saludo ── */
+.fp-greeting {
+  font-family: var(--font-heading);
+  font-size: 25px;
+  font-weight: 600;
+  color: var(--fp-text);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin: 0 0 16px 0;
+}
+
+/* ── Tarjeta principal: Rutina del Día ──
+   El degradado esmeralda de arriba imita el glow del mockup sin usar
+   box-shadow de color, que en pantallas OLED baratas se ve sucio. */
+.fp-routine-card {
+  border-radius: var(--fp-radius);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  background:
+    linear-gradient(180deg, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0.03) 42%, rgba(24, 24, 27, 0) 100%),
+    #101013;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.fp-routine-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.fp-routine-eyebrow {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fp-text);
+  letter-spacing: -0.01em;
+}
+
+.fp-routine-menu {
+  background: transparent;
+  border: 0;
+  color: var(--fp-text-3);
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 0;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.fp-routine-menu:hover {
+  color: var(--fp-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fp-routine-menu svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Insignia de tiempo, p. ej. Hoy 45 min */
+.fp-time-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  color: #D4D4D8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  margin-bottom: 10px;
+}
+
+.fp-routine-title {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.fp-routine-sub {
+  font-size: 12px;
+  color: var(--fp-text-3);
+  margin: 3px 0 0 0;
+  line-height: 1.4;
+}
+
+/* ── Lista interna de ejercicios ── */
+.fp-ex-list {
+  margin-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 4px;
+}
+
+.fp-ex-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.fp-ex-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--fp-text-2);
+}
+
+.fp-ex-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fp-ex-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #E4E4E7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* bg-emerald-500 text-zinc-950 rounded-full */
+.fp-check {
+  width: 21px;
+  height: 21px;
+  border-radius: 9999px;
+  background: var(--fp-em);
+  color: var(--fp-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fp-check svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+/* Estado pendiente: mismo hueco, sin relleno, para que la lista no salte */
+.fp-check.is-pending {
+  background: transparent;
+  border: 1.5px solid #3F3F46;
+  color: transparent;
+}
+
+.fp-ex-count {
+  width: 21px;
+  height: 21px;
+  border-radius: 9999px;
+  background: #232326;
+  border: 1px solid #2E2E33;
+  color: var(--fp-text-2);
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Pie de la tarjeta: series / reps / kg ── */
+.fp-routine-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.fp-foot-label {
+  font-size: 12px;
+  color: var(--fp-text-3);
+}
+
+.fp-foot-metrics {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.fp-foot-metric {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fp-text);
+  white-space: nowrap;
+}
+
+.fp-foot-metric span {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--fp-text-3);
+  margin-left: 2px;
+}
+
+/* ── Bento de estadísticas (2 columnas) ──
+   bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 */
+.fp-bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.fp-bento-card {
+  background: var(--fp-surface-a);
+  border: 1px solid var(--fp-line-a);
+  border-radius: var(--fp-radius);
+  padding: 16px;
+}
+
+.fp-bento-label {
+  font-size: 11.5px;
+  color: var(--fp-text-3);
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.fp-bento-value {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fp-text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* ── Fila enlazable, p. ej. Mi Plan Nutricional ── */
+.fp-row-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--fp-surface-a);
+  border: 1px solid var(--fp-line-a);
+  border-radius: var(--fp-radius);
+  padding: 15px 16px;
+  margin-bottom: 12px;
+  color: var(--fp-text);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.fp-row-link:hover {
+  background: rgba(39, 39, 42, 0.6);
+  border-color: #3F3F46;
+}
+
+.fp-row-link-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--fp-em-2);
+}
+
+.fp-row-link-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fp-row-link-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fp-row-link-sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--fp-text-3);
+  margin-top: 2px;
+}
+
+.fp-row-link-chev {
+  width: 15px;
+  height: 15px;
+  color: var(--fp-text-3);
+  flex-shrink: 0;
+}
+
+.fp-row-link-chev svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fp-row-link--danger {
+  color: #F87171;
+}
+
+.fp-row-link--danger .fp-row-link-icon {
+  color: #F87171;
+}
+
+/* ── Título de sección ── */
+.fp-section-title {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fp-text-2);
+  letter-spacing: 0.01em;
+  margin: 20px 0 10px 0;
+}
+
+/* ── Tab bar inferior ──
+   fixed bottom-0 left-0 right-0 / bg-zinc-950/90 backdrop-blur-lg
+   border-t border-zinc-900 */
+.fp-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  background: rgba(9, 9, 11, 0.9);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--fp-surface);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.fp-nav-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.fp-nav-item {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 9px 0 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--fp-text-3);
+  font-family: var(--font-body);
+  transition: color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fp-nav-item svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+}
+
+.fp-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.fp-nav-item:hover {
+  color: var(--fp-text-2);
+}
+
+.fp-nav-item.active {
+  color: var(--fp-em-2);
+}
+
+/* La tab bar es la navegación del atleta: las viejas pestañas de texto del
+   portal quedan sin uso. Se ocultan en vez de borrarlas del HTML para no
+   romper cambiarPestañaPortalAtleta(), que todavía las consulta. */
+body.is-athlete-mode #athlete-portal-legacy-tabs {
+  display: none !important;
+}
+
+/* Estado vacío / sin datos */
+.fp-empty {
+  background: var(--fp-surface-a);
+  border: 1px dashed var(--fp-line);
+  border-radius: var(--fp-radius);
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--fp-text-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* La tab bar vive fuera del portal (ver comentario en index.html), o sea que
+   existe en el DOM tambien para el entrenador. Sólo se muestra en modo atleta. */
+.fp-nav {
+  display: none;
+}
+
+body.is-athlete-mode .fp-nav {
+  display: block;
+}

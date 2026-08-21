@@ -13334,7 +13334,12 @@ function renderPortalAtleta(userObj) {
     const avatarEl = document.getElementById('athlete-portal-avatar');
     const badgeMembresia = document.getElementById('athlete-portal-badge-membresia');
 
-    if (nombreEl) nombreEl.innerText = cliente.nombre;
+    // El saludo del header muestra sólo el primer nombre ("Hola, Carlos").
+    // El nombre completo se conserva en la pestaña Perfil.
+    const primerNombre = String(cliente.nombre || 'Atleta').trim().split(/\s+/)[0] || 'Atleta';
+    if (nombreEl) nombreEl.innerText = primerNombre;
+    const perfilNombreEl = document.getElementById('athlete-portal-perfil-nombre');
+    if (perfilNombreEl) perfilNombreEl.innerText = cliente.nombre || 'Atleta';
     if (objetivoEl) objetivoEl.innerText = cliente.objetivo || "Hipertrofia & Rendimiento";
     if (gymEl) gymEl.innerText = (typeof getGimnasioActivo === 'function' ? getGimnasioActivo().nombre : "FitPro Central Hub");
     if (coachEl) coachEl.innerText = cliente.entrenador || "Coach Master Pro";
@@ -13397,6 +13402,8 @@ function renderPortalAtleta(userObj) {
       }
 
       const plan = planesCliente[0];
+      // La pantalla "Hoy" necesita este mismo plan resuelto (con su fallback)
+      window.fpPlanAtleta = plan;
 
       // Si el plan no tiene días estructurados pero sí ejercicios, estructurarlo automáticamente
       if (!plan.dias || !Array.isArray(plan.dias) || plan.dias.length === 0) {
@@ -13822,27 +13829,48 @@ function renderPortalAtleta(userObj) {
       `;
     }
 
+    // 5. Renderizar la pantalla "Hoy" (shell tipo app nativa) y dejarla abierta
+    renderAtletaHoy(cliente, window.fpPlanAtleta);
+    cambiarPestañaPortalAtleta('hoy');
   } catch (err) {
     console.error("Error al renderizar portal del atleta:", err);
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// NAVEGACIÓN DEL PORTAL DEL ATLETA
+// --------------------------------------------------------------------------
+// Pestañas reales: hoy | rutina | dieta | medidas | perfil.
+// La tab bar inferior sólo expone 4 ranuras (Hoy / Rutinas / Progreso /
+// Perfil). 'dieta' se alcanza desde la tarjeta de Hoy y desde Perfil; mientras
+// está abierta se deja iluminado Perfil, que es de donde cuelga.
+// ══════════════════════════════════════════════════════════════════════════
+const FP_TABS_ATLETA = ['hoy', 'rutina', 'dieta', 'medidas', 'perfil'];
+
 function cambiarPestañaPortalAtleta(tabName) {
-  const btnRutina = document.getElementById('tab-portal-btn-rutina');
-  const btnDieta = document.getElementById('tab-portal-btn-dieta');
-  const btnMedidas = document.getElementById('tab-portal-btn-medidas');
+  const tab = FP_TABS_ATLETA.includes(tabName) ? tabName : 'hoy';
 
-  const contRutina = document.getElementById('tab-portal-content-rutina');
-  const contDieta = document.getElementById('tab-portal-content-dieta');
-  const contMedidas = document.getElementById('tab-portal-content-medidas');
+  FP_TABS_ATLETA.forEach(t => {
+    const cont = document.getElementById(`tab-portal-content-${t}`);
+    if (cont) cont.classList.toggle('hidden', t !== tab);
+  });
 
-  if (btnRutina) btnRutina.classList.toggle('active', tabName === 'rutina');
-  if (btnDieta) btnDieta.classList.toggle('active', tabName === 'dieta');
-  if (btnMedidas) btnMedidas.classList.toggle('active', tabName === 'medidas');
+  // Pestañas de texto originales: siguen ocultas por CSS, pero se les mantiene
+  // el estado por si algún flujo viejo las vuelve a mostrar.
+  ['rutina', 'dieta', 'medidas'].forEach(t => {
+    const btn = document.getElementById(`tab-portal-btn-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
 
-  if (contRutina) contRutina.classList.toggle('hidden', tabName !== 'rutina');
-  if (contDieta) contDieta.classList.toggle('hidden', tabName !== 'dieta');
-  if (contMedidas) contMedidas.classList.toggle('hidden', tabName !== 'medidas');
+  const tabBarActiva = tab === 'dieta' ? 'perfil' : tab;
+  document.querySelectorAll('#fp-athlete-nav .fp-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.fpTab === tabBarActiva);
+  });
+
+  // El scroll no vive en el body (body tiene overflow:hidden), sino en
+  // .main-content. Volver arriba al cambiar de pestaña, como una app nativa.
+  const scroller = document.querySelector('.main-content');
+  if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function abrirModalCambiarPasswordManual() {
@@ -15332,3 +15360,245 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// 📱 PANTALLA "HOY" DEL ATLETA
+// --------------------------------------------------------------------------
+// Pantalla principal del portal, con formato de app de fitness nativa:
+// tarjeta de la rutina del día + bento de métricas + acceso a la dieta.
+//
+// Todo sale de datos reales: `plan.dias` para la sesión y `registrosFuerzaDB`
+// para lo que el atleta ya cargó. Si no hay plan asignado se muestra un vacío
+// explícito en vez de números inventados — el atleta no puede distinguir un
+// placeholder de una prescripción real, y en una app de salud eso es grave.
+// ══════════════════════════════════════════════════════════════════════════
+
+const FP_ICONOS_EJERCICIO = {
+  banca:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="4" rx="1"/><path d="M6 13v4"/><path d="M18 13v4"/><path d="M2 6v6"/><path d="M22 6v6"/></svg>',
+  mancuerna:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11"/><path d="M17.5 6.5v11"/><path d="M3.5 9v6"/><path d="M20.5 9v6"/><path d="M6.5 12h11"/></svg>',
+  pierna:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v7l-2 5a4 4 0 0 0 4 6"/><path d="M15 3v7l2 5a4 4 0 0 1-4 6"/></svg>',
+  espalda:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M5 7h14"/><path d="M7 11l-2 9"/><path d="M17 11l2 9"/></svg>',
+  hombro:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  core:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 12h16"/><path d="M12 4v16"/></svg>'
+};
+
+// El repositorio de ejercicios no trae categoría muscular normalizada, así que
+// el ícono se deduce del nombre. Es cosmético: si no matchea, cae en mancuerna.
+function fpIconoEjercicio(nombre) {
+  const n = String(nombre || '').toLowerCase();
+  if (/press|banca|pecho|fondo|flexi|apertura/.test(n))                       return FP_ICONOS_EJERCICIO.banca;
+  if (/sentadilla|prensa|pierna|femoral|gemelo|zancada|muerto|gl[uú]te/.test(n)) return FP_ICONOS_EJERCICIO.pierna;
+  if (/jal[oó]n|remo|dorsal|espalda|pull|domin/.test(n))                      return FP_ICONOS_EJERCICIO.espalda;
+  if (/elevaci|hombro|deltoid|face pull|militar/.test(n))                     return FP_ICONOS_EJERCICIO.hombro;
+  if (/plancha|abdo|core|crunch|obl[ií]cu/.test(n))                           return FP_ICONOS_EJERCICIO.core;
+  return FP_ICONOS_EJERCICIO.mancuerna;
+}
+
+// Qué día del mesociclo toca hoy. Rota por día del año en vez de al azar para
+// que refrescar la página no cambie la sesión que el atleta está haciendo.
+function fpDiaDeHoy(plan) {
+  const dias = (plan && Array.isArray(plan.dias)) ? plan.dias : [];
+  if (!dias.length) return null;
+  const inicioAnio = new Date(new Date().getFullYear(), 0, 0);
+  const diaDelAnio = Math.floor((new Date() - inicioAnio) / 86400000);
+  return dias[diaDelAnio % dias.length];
+}
+
+// Duración estimada: series x (descanso prescrito + ~45s de trabajo efectivo).
+function fpDuracionEstimada(dia) {
+  const ejs = (dia && dia.ejercicios) || [];
+  let segundos = 0;
+  ejs.forEach(e => {
+    const series = parseInt(e.series) || 3;
+    const descanso = parseInt(String(e.descanso || '90').replace(/[^\d]/g, '')) || 90;
+    segundos += series * (descanso + 45);
+  });
+  return Math.max(10, Math.round(segundos / 60));
+}
+
+function fpRegistroDeHoy(nombreCliente, ejercicio, fechaISO) {
+  const n = String(nombreCliente || '').toLowerCase();
+  return (registrosFuerzaDB || []).find(r =>
+    r.cliente && r.cliente.toLowerCase() === n &&
+    r.ejercicio === ejercicio &&
+    r.fecha === fechaISO
+  );
+}
+
+function fpMetricasDelDia(dia, nombreCliente) {
+  const ejs = (dia && dia.ejercicios) || [];
+  const totalSeries = ejs.reduce((acc, e) => acc + (parseInt(e.series) || 0), 0);
+
+  // Repetición prescrita más frecuente de la sesión
+  const conteoReps = {};
+  ejs.forEach(e => {
+    const r = String(e.repeticiones || '').trim();
+    if (r) conteoReps[r] = (conteoReps[r] || 0) + 1;
+  });
+  const reps = Object.keys(conteoReps).sort((a, b) => conteoReps[b] - conteoReps[a])[0] || '--';
+
+  // Carga máxima que el atleta ya registró HOY en los ejercicios de la sesión
+  const hoyISO = new Date().toISOString().split('T')[0];
+  let pesoMax = 0;
+  ejs.forEach(e => {
+    const reg = fpRegistroDeHoy(nombreCliente, e.nombre || e.ejercicio, hoyISO);
+    ((reg && reg.series) || []).forEach(s => {
+      const p = parseFloat(s.peso) || 0;
+      if (p > pesoMax) pesoMax = p;
+    });
+  });
+
+  return { totalSeries, reps, pesoMax };
+}
+
+// Volumen movido en los últimos 7 días (kg totales levantados).
+function fpVolumenSemanal(nombreCliente) {
+  const n = String(nombreCliente || '').toLowerCase();
+  const desde = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  return (registrosFuerzaDB || [])
+    .filter(r => r.cliente && r.cliente.toLowerCase() === n && String(r.fecha || '') >= desde)
+    .reduce((acc, r) => acc + (parseFloat(r.volumenTotal) || 0), 0);
+}
+
+// Sesiones del mes en curso. El denominador asume 4 semanas del mesociclo:
+// tantos días distintos como tenga el plan, por 4.
+function fpSesionesCompletadas(nombreCliente, plan) {
+  const n = String(nombreCliente || '').toLowerCase();
+  const mes = new Date().toISOString().slice(0, 7);
+  const fechas = new Set(
+    (registrosFuerzaDB || [])
+      .filter(r => r.cliente && r.cliente.toLowerCase() === n && String(r.fecha || '').startsWith(mes))
+      .map(r => r.fecha)
+  );
+  const diasPlan = (plan && Array.isArray(plan.dias) && plan.dias.length) ? plan.dias.length : 3;
+  return { hechas: fechas.size, total: diasPlan * 4 };
+}
+
+function renderAtletaHoy(cliente, plan) {
+  const cont = document.getElementById('athlete-portal-hoy-container');
+  if (!cont) return;
+
+  const nombreCliente = (cliente && cliente.nombre) || 'Atleta';
+  const dia = fpDiaDeHoy(plan);
+
+  if (!dia) {
+    cont.innerHTML = `
+      <div class="fp-empty">
+        Todavía no tenés una rutina asignada.<br>
+        Tu entrenador la va a publicar acá.
+      </div>`;
+    return;
+  }
+
+  const ejercicios = Array.isArray(dia.ejercicios) ? dia.ejercicios : [];
+  const titulo = String(dia.nombre || 'Sesión de hoy')
+    .replace(/^d[ií]a\s*\d+\s*[:\-–—]\s*/i, '')
+    .trim() || 'Sesión de hoy';
+  const minutos = fpDuracionEstimada(dia);
+  const hoyISO = new Date().toISOString().split('T')[0];
+  const met = fpMetricasDelDia(dia, nombreCliente);
+  const volumen = fpVolumenSemanal(nombreCliente);
+  const ses = fpSesionesCompletadas(nombreCliente, plan);
+
+  const filasHtml = ejercicios.map(e => {
+    const nombreEj = e.nombre || e.ejercicio || 'Ejercicio';
+    const hecho = !!fpRegistroDeHoy(nombreCliente, nombreEj, hoyISO);
+    const series = parseInt(e.series) || 3;
+    return `
+      <div class="fp-ex-row">
+        <span class="fp-ex-icon">${fpIconoEjercicio(nombreEj)}</span>
+        <span class="fp-ex-name" title="${escapeHtml(nombreEj)}">${escapeHtml(nombreEj)}</span>
+        <span class="fp-check${hecho ? '' : ' is-pending'}" title="${hecho ? 'Serie registrada hoy' : 'Pendiente'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span class="fp-ex-count">${series}</span>
+      </div>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="fp-routine-card">
+      <div class="fp-routine-top">
+        <div class="fp-routine-eyebrow">Rutina del Día</div>
+        <button type="button" class="fp-routine-menu" data-fp-action="rutina" title="Abrir la rutina completa" aria-label="Abrir la rutina completa">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+      </div>
+
+      <div class="fp-time-badge">Hoy &bull; ${minutos} min</div>
+
+      <h2 class="fp-routine-title">${escapeHtml(titulo)}</h2>
+      <p class="fp-routine-sub">${ejercicios.length} ejercicio${ejercicios.length === 1 ? '' : 's'} programado${ejercicios.length === 1 ? '' : 's'}</p>
+
+      <div class="fp-ex-list">${filasHtml}</div>
+
+      <div class="fp-routine-foot">
+        <span class="fp-foot-label">Prescripción de hoy</span>
+        <span class="fp-foot-metrics">
+          <span class="fp-foot-metric">${met.totalSeries}<span>series</span></span>
+          <span class="fp-foot-metric">${escapeHtml(met.reps)}<span>reps</span></span>
+          <span class="fp-foot-metric">${met.pesoMax > 0 ? met.pesoMax : '--'}<span>kg</span></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="fp-bento">
+      <div class="fp-bento-card">
+        <div class="fp-bento-label">Volumen Total<br>Semanal:</div>
+        <div class="fp-bento-value">${Math.round(volumen).toLocaleString('es-MX')} kg</div>
+      </div>
+      <div class="fp-bento-card">
+        <div class="fp-bento-label">Sesiones<br>Completadas:</div>
+        <div class="fp-bento-value">${ses.hechas}/${ses.total}</div>
+      </div>
+    </div>
+
+    <button type="button" class="fp-row-link" data-fp-action="dieta">
+      <span class="fp-row-link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      </span>
+      <span class="fp-row-link-body">
+        Mi Plan Nutricional
+        <div class="fp-row-link-sub">Macros, comidas y objetivo calórico</div>
+      </span>
+      <span class="fp-row-link-chev">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+    </button>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Handlers de la tab bar y de las filas del portal.
+// Delegación en document con data-fp-tab / data-fp-action en vez de onclick:
+// los ~170 onclick inline que ya tiene la app son justamente lo que bloquea
+// sacar 'unsafe-inline' de la CSP, así que el código nuevo no suma más.
+// ══════════════════════════════════════════════════════════════════════════
+document.addEventListener('click', (ev) => {
+  const btnTab = ev.target.closest('[data-fp-tab]');
+  if (btnTab) {
+    cambiarPestañaPortalAtleta(btnTab.dataset.fpTab);
+    return;
+  }
+
+  const btnAccion = ev.target.closest('[data-fp-action]');
+  if (!btnAccion) return;
+
+  switch (btnAccion.dataset.fpAction) {
+    case 'rutina':
+      cambiarPestañaPortalAtleta('rutina');
+      break;
+    case 'dieta':
+      cambiarPestañaPortalAtleta('dieta');
+      break;
+    case 'password':
+      if (typeof abrirModalCambiarPasswordManual === 'function') abrirModalCambiarPasswordManual();
+      break;
+    case 'logout':
+      if (typeof cerrarSesionSupabaseAuth === 'function') cerrarSesionSupabaseAuth(ev);
+      break;
+  }
+});
+
+window.renderAtletaHoy = renderAtletaHoy;
+window.fpDiaDeHoy = fpDiaDeHoy;
+window.fpVolumenSemanal = fpVolumenSemanal;
+window.fpSesionesCompletadas = fpSesionesCompletadas;
